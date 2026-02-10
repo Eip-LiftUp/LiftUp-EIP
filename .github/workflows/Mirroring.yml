@@ -1,0 +1,29 @@
+name: Mirroring_to_Epitech
+
+env:
+  MIRRORING_REPO: "git@github.com:EpitechPGE3-2025/G-EIP-600-NCE-6-1-eip-6.git"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  mirroring:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Mirror to Epitech
+        uses: yesolutions/mirror-action@master
+        with:
+          REMOTE_URL: ${{ env.MIRRORING_REPO }}
+          GIT_USERNAME: ${{github.actor}}
+          GIT_EMAIL: ${{github.actor}}@users.noreply.github.com
+        env:
+          GIT_PASSWORD: ${{ secrets.EPITECH_PAT }}

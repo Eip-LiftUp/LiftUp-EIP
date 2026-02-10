@@ -25,4 +25,4 @@ jobs:
         with:
           REMOTE: ${{ env.MIRRORING_REPO }}
           GIT_USERNAME: ${{github.actor}}
-          GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GIT_PASSWORD: ${{ secrets.EPITECH_PAT }}

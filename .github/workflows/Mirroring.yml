@@ -12,18 +12,18 @@ on:
       - main
 
 jobs:
-  mirroring:
-    runs-on: ubuntu-latest
-    if: github.repository != 'EpitechPGE3-2025/G-EIP-600-NCE-6-1-eip-6'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Mirror to Epitech
-        uses: yesolutions/mirror-action@master
-        with:
-          REMOTE: ${{ env.MIRRORING_REPO }}
-          GIT_USERNAME: ${{github.actor}}
-          GIT_PASSWORD: ${{ secrets.EPITECH_PAT }}
+  push_to_mirror:
+      runs-on: ubuntu-latest
+      if: |
+        startsWith(github.ref, 'refs/heads/ga-ignore-') == false &&
+        github.repository != 'EpitechPGE3-2025/G-EIP-600-NCE-6-1-eip-6'
+      steps:                                              # <-- must use actions/checkout before mirroring!
+        - uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
+        - uses: pixta-dev/repository-mirroring-action@v1
+          with:
+            target_repo_url:
+              ${{ env.MIRRORING_REPO }}
+            ssh_private_key:                              # <-- use 'secrets' to pass credential information.
+              ${{ secrets.GIT_SSH_PRIVATE_KEY }}

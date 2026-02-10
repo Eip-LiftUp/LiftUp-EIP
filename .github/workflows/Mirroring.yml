@@ -1,7 +1,7 @@
 name: Mirroring_to_Epitech
 
 env:
-  MIRRORING_REPO: https://github.com/EpitechPGE3-2025/G-EIP-600-NCE-6-1-eip-6.git
+  MIRRORING_REPO: git@github.com:EpitechPGE3-2025/G-EIP-600-NCE-6-1-eip-6.git
 
 on:
   push:

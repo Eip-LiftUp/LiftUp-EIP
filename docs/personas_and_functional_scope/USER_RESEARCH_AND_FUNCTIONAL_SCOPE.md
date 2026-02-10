@@ -361,6 +361,8 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 
 **US-038:** As **Alex**, I want meal suggestions based on my macro targets so that I'm not guessing what to eat.
 
+**US-061:** As **Alex**, I want to take a photo of my meal and have the app automatically calculate calories and macros so that tracking nutrition is faster and more convenient.
+
 ---
 
 ### 2.7 Social & Motivation Features
@@ -387,9 +389,19 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 
 **US-047:** As **Alex**, I want a glossary of fitness terms (RPE, 1RM, hypertrophy) so that I understand the app's language.
 
+**US-058:** As **Alex**, I want to see 3D models of exercises so that I can understand the movement from all angles and learn proper form more effectively than with videos alone.
+
 ---
 
-### 2.9 Settings & Customization
+### 2.9 Equipment & Gym Management
+
+**US-059:** As **Sarah**, I want to list the available equipment at my gym so that the app only suggests exercises I can actually perform.
+
+**US-060:** As **Marcus**, I want the app to integrate with gym equipment databases via API so that I can automatically access equipment availability at partnered gyms.
+
+---
+
+### 2.10 Settings & Customization
 
 **US-048:** As **Sarah**, I want to adjust my available training days weekly so that the app adapts to my changing schedule.
 
@@ -414,6 +426,12 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 **US-056:** As **Alex**, I want to delete my account and all data so that I control my privacy.
 
 **US-057:** As **Marcus**, I want the app to work entirely offline so that my data never leaves my device unless I choose to sync.
+
+---
+
+### 2.11 Advanced Technology Features
+
+**US-062:** As **Sarah**, I want the app to remember which gym I'm at and suggest exercises based on that gym's equipment so that I don't waste time configuring settings every visit.
 
 ---
 
@@ -526,6 +544,11 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 #### Nutrition Advanced
 - **US-037:** Protein vs. training volume correlation
 - **US-038:** Meal suggestions
+- **US-061:** Photo-based calorie and macro calculation
+
+#### Equipment & Gym Management
+- **US-059:** Manual gym equipment list
+- **US-062:** Gym-specific equipment suggestions
 
 #### Social Features
 - **US-039:** Share PRs on social media
@@ -536,18 +559,22 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 - **US-045:** Educational articles on training concepts
 - **US-046:** Scientific study references
 - **US-047:** Fitness terms glossary
+- **US-058:** 3D exercise models
 
 #### Data Export
 - **US-054:** Full data export functionality
 
-**Could Have Scope:** 16 user stories
-**Development Estimate:** 3-4 months (iterative, based on user feedback)
+**Could Have Scope:** 20 user stories
+**Development Estimate:** 4-6 months (iterative, based on user feedback)
 
 ---
 
 ### Won't Have (This Release) - Explicitly out of scope
 
 > **Definition:** Initiatives that are explicitly excluded from the current scope but might be considered in the future. These help set boundaries and manage expectations.
+
+#### Future Consideration (Post-MVP)
+- **US-060:** Gym equipment API integration with partner gyms
 
 #### Not in Current Scope
 - **Video Chat with Trainers:** Too complex, requires live support infrastructure
@@ -558,7 +585,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 - **Live Streaming Workouts:** Not aligned with offline-first architecture
 - **Social Network Features:** (Comments, likes, follows) - Not core to training
 - **In-App Purchases for Premium Exercises:** Want to avoid paywall fragmentation
-- **Integration with Gym Management Systems:** B2B complexity
+- **Real-time Gym Equipment Availability Tracking:** Too complex, requires hardware partnerships
 - **Supplement Store Integration:** Not our business model
 - **DNA-Based Recommendations:** Science not mature enough
 - **Virtual Reality Workouts:** Technology not accessible enough
@@ -571,19 +598,21 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 
 ### MVP Feature Count by Category
 
-| Category | Must Have | Should Have | Could Have | Total |
-|----------|-----------|-------------|------------|-------|
-| **Onboarding** | 4 | 0 | 1 | 5 |
-| **Workout Generation** | 1 | 3 | 2 | 6 |
-| **Workout Tracking** | 4 | 3 | 0 | 7 |
-| **Adaptive Intelligence** | 1 | 4 | 2 | 7 |
-| **Progress Analytics** | 2 | 2 | 3 | 7 |
-| **Nutrition** | 2 | 3 | 2 | 7 |
-| **Social & Motivation** | 0 | 2 | 3 | 5 |
-| **Education** | 0 | 2 | 3 | 5 |
-| **Settings** | 2 | 3 | 1 | 6 |
-| **Data Management** | 3 | 0 | 1 | 4 |
-| **TOTAL** | **18** | **21** | **16** | **57** |
+| Category | Must Have | Should Have | Could Have | Won't Have | Total |
+|----------|-----------|-------------|------------|------------|-------|
+| **Onboarding** | 4 | 0 | 1 | 0 | 5 |
+| **Workout Generation** | 1 | 3 | 2 | 0 | 6 |
+| **Workout Tracking** | 4 | 3 | 0 | 0 | 7 |
+| **Adaptive Intelligence** | 1 | 4 | 2 | 0 | 7 |
+| **Progress Analytics** | 2 | 2 | 3 | 0 | 7 |
+| **Nutrition** | 2 | 3 | 3 | 0 | 8 |
+| **Social & Motivation** | 0 | 2 | 3 | 0 | 5 |
+| **Education** | 0 | 2 | 4 | 0 | 6 |
+| **Equipment & Gym** | 0 | 0 | 2 | 1 | 3 |
+| **Settings** | 2 | 3 | 1 | 0 | 6 |
+| **Data Management** | 3 | 0 | 1 | 0 | 4 |
+| **Advanced Tech** | 0 | 0 | 1 | 0 | 1 |
+| **TOTAL** | **18** | **21** | **23** | **1** | **62** |
 
 ### Development Timeline
 

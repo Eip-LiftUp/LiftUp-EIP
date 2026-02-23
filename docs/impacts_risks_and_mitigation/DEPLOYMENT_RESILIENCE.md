@@ -39,6 +39,8 @@ Developing on `localhost` is easy. Running in production is hard. We explain how
   run: |
     cargo tarpaulin --out Xml
     # Fail if coverage below 80%
+```
+
 2. Automated Testing Pyramid
 
 Test Type	Count	Execution Time	Purpose

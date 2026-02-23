@@ -651,5 +651,4 @@ This workshop meets RCNP C2 & C5 requirements:
 
 **Date**: February 2026  
 **Project**: LiftUp - Adaptive Weight Training Coach  
-**Version**: 1.0  
-**Author**: [Your Name]
+**Version**: 1.0

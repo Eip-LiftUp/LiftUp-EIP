@@ -1,3 +1,5 @@
+## Part 3: Deployment & Resilience
+
 Developing on `localhost` is easy. Running in production is hard. We explain how LiftUp will live, evolve, and resist failures.
 
 ### Deployment & Migration Strategy
@@ -43,9 +45,9 @@ Developing on `localhost` is easy. Running in production is hard. We explain how
 
 | Test Type | Count | Execution Time | Purpose |
 |-----------|-------|----------------|----------|
-| Unit Tests | 150+ | <30s | Test individual functions (Rust engine logic) |
-| Integration Tests | 50+ | <2min | Test API endpoints, DB interactions |
-| E2E Tests | 10+ | <5min | Test critical user flows (login, workout, sync) |
+| **Unit Tests** | 150+ | <30s | Test individual functions (Rust engine logic) |
+| **Integration Tests** | 50+ | <2min | Test API endpoints, DB interactions |
+| **E2E Tests** | 10+ | <5min | Test critical user flows (login, workout, sync) |
 
 **3. Deployment Environments**
 
@@ -65,10 +67,10 @@ Developing on `localhost` is easy. Running in production is hard. We explain how
 
 | Scenario | Detection Time | Rollback Method | Recovery Time |
 |----------|----------------|-----------------|---------------|
-| Failed health checks | Immediate | Automatic (Docker/K8s) | <2 min |
-| High error rate (>5%) | <1 min | Manual rollback | <5 min |
-| Database migration issue | <5 min | Restore snapshot | <15 min |
-| Feature bug | Variable | Feature flag disable | <1 min |
+| **Failed health checks** | Immediate | Automatic (Docker/K8s) | <2 min |
+| **High error rate (>5%)** | <1 min | Manual rollback | <5 min |
+| **Database migration issue** | <5 min | Restore snapshot | <15 min |
+| **Feature bug** | Variable | Feature flag disable | <1 min |
 
 ---
 
@@ -152,14 +154,14 @@ COMMIT;
 
 | Component | Current State | Risk Level | Impact if Failed | Mitigation | Status |
 |-----------|---------------|------------|------------------|------------|--------|
-| Backend API | Single server (MVP) | HIGH | Complete outage | Load balancer + 2 instances, auto-scaling | DONE |
-| Database | Managed PostgreSQL | MEDIUM | Data unavailable | DO Managed DB with failover, daily backups | DONE |
-| Redis Cache | Single instance | LOW | Degraded performance | Cache miss = DB query. Redis Sentinel at 10k+ users | PLANNED |
-| Mobile App | Offline-first | NONE | N/A | Works offline, sync queued | DONE |
-| CDN | Cloudflare | LOW | Slower delivery | 200+ global PoPs, origin fallback | DONE |
-| Authentication | Supabase Auth | MEDIUM | Cannot login (new users) | JWT valid 7 days, local auth fallback planned | WARNING |
-| Push Notifications | Firebase | LOW | Delayed alerts | Not critical, in-app fallback | DONE |
-| Email Service | Resend | LOW | Delayed emails | 48h retry queue | DONE |
+| **Backend API** | Single server (MVP) | HIGH | Complete outage | Load balancer + 2 instances, auto-scaling | DONE |
+| **Database** | Managed PostgreSQL | MEDIUM | Data unavailable | DO Managed DB with failover, daily backups | DONE |
+| **Redis Cache** | Single instance | LOW | Degraded performance | Cache miss = DB query. Redis Sentinel at 10k+ users | PLANNED |
+| **Mobile App** | Offline-first | NONE | N/A | Works offline, sync queued | DONE |
+| **CDN** | Cloudflare | LOW | Slower delivery | 200+ global PoPs, origin fallback | DONE |
+| **Authentication** | Supabase Auth | MEDIUM | Cannot login (new users) | JWT valid 7 days, local auth fallback planned | WARNING |
+| **Push Notifications** | Firebase | LOW | Delayed alerts | Not critical, in-app fallback | DONE |
+| **Email Service** | Resend | LOW | Delayed emails | 48h retry queue | DONE |
 
 **Overall Resilience Score**: 8/10
 
@@ -171,10 +173,10 @@ COMMIT;
 
 | Type | Frequency | Retention | Location | Tested |
 |------|-----------|-----------|----------|--------|
-| Automated Snapshots | Daily (3:00 AM UTC) | 7 days | DO Frankfurt (separate volume) | Monthly |
-| Weekly Backups | Sunday 2:00 AM | 4 weeks | DO Frankfurt + AWS S3 | Quarterly |
-| Monthly Archives | 1st of month | 12 months | AWS S3 Glacier (Ireland) | Annually |
-| Pre-Migration | Before each migration | 7 days | DO Frankfurt | Always |
+| **Automated Snapshots** | Daily (3:00 AM UTC) | 7 days | DO Frankfurt (separate volume) | Monthly |
+| **Weekly Backups** | Sunday 2:00 AM | 4 weeks | DO Frankfurt + AWS S3 | Quarterly |
+| **Monthly Archives** | 1st of month | 12 months | AWS S3 Glacier (Ireland) | Annually |
+| **Pre-Migration** | Before each migration | 7 days | DO Frankfurt | Always |
 
 **Recovery Objectives:**
 - RTO (Recovery Time Objective): <30 minutes
@@ -194,10 +196,10 @@ COMMIT;
 
 | Asset | Versioning | Retention | Purpose |
 |-------|------------|-----------|---------|
-| Docker Images | Git SHA tags | Indefinite (prod tags) | Instant rollback |
-| Infrastructure as Code | Git (Terraform) | All commits | Recreate infrastructure |
-| Configuration Files | Git (encrypted) | All commits | Environment configs |
-| Secrets | HashiCorp Vault | Versioned | API keys, certificates |
+| **Docker Images** | Git SHA tags | Indefinite (prod tags) | Instant rollback |
+| **Infrastructure as Code** | Git (Terraform) | All commits | Recreate infrastructure |
+| **Configuration Files** | Git (encrypted) | All commits | Environment configs |
+| **Secrets** | HashiCorp Vault | Versioned | API keys, certificates |
 
 ---
 
@@ -205,17 +207,17 @@ COMMIT;
 
 | Location | Data | Recovery Method |
 |----------|------|-----------------|
-| User Device | Complete workout history (SQLite) | Primary source of truth |
-| Cloud Server | Synced subset (last 2 years) | Backup + cross-device sync |
-| User Export | JSON/CSV download feature | User-controlled backup |
+| **User Device** | Complete workout history (SQLite) | Primary source of truth |
+| **Cloud Server** | Synced subset (last 2 years) | Backup + cross-device sync |
+| **User Export** | JSON/CSV download feature | User-controlled backup |
 
 **Data Loss Recovery Scenarios:**
 
 | Scenario | Recovery Method | Data Loss |
 |----------|-----------------|-----------|
-| Server DB lost | Restore from daily backup | <24h of syncs |
-| User loses device | Login on new device, sync from cloud | 0 (if recently synced) |
-| Both server + device lost | User export restoration | Depends on last export |
+| **Server DB lost** | Restore from daily backup | <24h of syncs |
+| **User loses device** | Login on new device, sync from cloud | 0 (if recently synced) |
+| **Both server + device lost** | User export restoration | Depends on last export |
 
 ---
 
@@ -299,10 +301,10 @@ COMMIT;
 
 | Service Down | Impact | Degraded Mode | User Impact |
 |--------------|--------|---------------|-------------|
-| Email (Resend) | No transactional emails | Queue 48h, retry exponentially | Low (in-app notifications) |
-| Push Notifications | No push alerts | In-app banner instead | Low (see on app open) |
-| Auth (Supabase) | Cannot login (new sessions) | Existing JWTs valid 7 days | Medium (existing users OK) |
-| CDN (Cloudflare) | Slower assets | Origin serves directly | Low (slightly slower) |
+| **Email (Resend)** | No transactional emails | Queue 48h, retry exponentially | Low (in-app notifications) |
+| **Push Notifications** | No push alerts | In-app banner instead | Low (see on app open) |
+| **Auth (Supabase)** | Cannot login (new sessions) | Existing JWTs valid 7 days | Medium (existing users OK) |
+| **CDN (Cloudflare)** | Slower assets | Origin serves directly | Low (slightly slower) |
 
 ---
 
@@ -342,15 +344,15 @@ COMMIT;
 
 | Metric | Target | Warning | Critical | Action |
 |--------|--------|---------|----------|--------|
-| API Uptime | 99.9% | <99.5% | <99% | PagerDuty → On-call |
-| Response Time (P95) | <200ms | >500ms | >1000ms | Investigate immediately |
-| Error Rate | <0.1% | >1% | >5% | Rollback deployment |
-| DB Connections | <50% | >80% | >95% | Scale up DB |
-| Disk Usage | <70% | >85% | >95% | Cleanup + alert |
-| Memory Usage | <80% | >90% | >95% | Restart service |
-| Failed Logins | <10/h | >100/h | >1000/h | Rate limit (attack) |
-| Sync Queue Size | <100 | >10,000 | >50,000 | Backend scaling issue |
-| Certificate Expiry | >30 days | <14 days | <7 days | Renew immediately |
+| **API Uptime** | 99.9% | <99.5% | <99% | PagerDuty → On-call |
+| **Response Time (P95)** | <200ms | >500ms | >1000ms | Investigate immediately |
+| **Error Rate** | <0.1% | >1% | >5% | Rollback deployment |
+| **DB Connections** | <50% | >80% | >95% | Scale up DB |
+| **Disk Usage** | <70% | >85% | >95% | Cleanup + alert |
+| **Memory Usage** | <80% | >90% | >95% | Restart service |
+| **Failed Logins** | <10/h | >100/h | >1000/h | Rate limit (attack) |
+| **Sync Queue Size** | <100 | >10,000 | >50,000 | Backend scaling issue |
+| **Certificate Expiry** | >30 days | <14 days | <7 days | Renew immediately |
 
 ---
 
@@ -392,10 +394,10 @@ COMMIT;
 
 | Priority | Definition | Response Time | Examples |
 |----------|------------|---------------|----------|
-| P1 - Critical | Complete service outage | <15 minutes | API down, DB unreachable |
-| P2 - High | Major feature unavailable | <1 hour | Recommendations failing, sync broken |
-| P3 - Medium | Degraded performance | <4 hours | Slow API, minor UI bugs |
-| P4 - Low | Minor issue, no impact | <24 hours | UI typo, analytics gap |
+| **P1 - Critical** | Complete service outage | <15 minutes | API down, DB unreachable |
+| **P2 - High** | Major feature unavailable | <1 hour | Recommendations failing, sync broken |
+| **P3 - Medium** | Degraded performance | <4 hours | Slow API, minor UI bugs |
+| **P4 - Low** | Minor issue, no impact | <24 hours | UI typo, analytics gap |
 
 ---
 

@@ -18,178 +18,6 @@ Developing on `localhost` is easy. Running in production is hard. We explain how
 5. **Continuous Deployment**: Branch-based deployment
 
 **Deployment Strategy:**
-- `develop` branch → **Staging** (automatic)
-- `main` branch → **Production** (manual approval required)
-
----
-
-#### CI/CD Implementation Details
-
-**1. Code Quality Checks** (on every PR)
-
-```yaml
-# .github/workflows/ci.yml
-- name: Rust Linting
-  run: cargo clippy -- -D warnings
-
-- name: Rust Formatting
-  run: cargo fmt --check
-
-- name: Test Coverage
-  run: |
-    cargo tarpaulin --out Xml
-    # Fail if coverage below 80%
-2. Automated Testing Pyramid
-
-Test Type	Count	Execution Time	Purpose
-Unit Tests	150+	<30s	Test individual functions (Rust engine logic)
-Integration Tests	50+	<2min	Test API endpoints, DB interactions
-E2E Tests	10+	<5min	Test critical user flows (login, workout, sync)
-3. Deployment Environments
-
-Staging Environment:
-
-Trigger: Automatic on merge to develop
-
-Infrastructure: Identical to production (same OS, dependencies)
-
-Data: Synthetic test data (1000 fake users)
-
-Purpose: QA validation before production release
-
-Production Environment:
-
-Trigger: Manual approval on merge to main
-
-Strategy: Blue-Green deployment
-
-Traffic Shift: Gradual (0% → 25% → 50% → 100%)
-
-Auto-Rollback: If error rate >1%
-
-4. Rollback Procedures
-
-Scenario	Detection Time	Rollback Method	Recovery Time
-Failed health checks	Immediate	Automatic (Docker/K8s)	<2 min
-High error rate (>5%)	<1 min	Manual rollback	<5 min
-Database migration issue	<5 min	Restore snapshot	<15 min
-Feature bug	Variable	Feature flag disable	<1 min
-Database Migration Strategy
-Zero-Downtime Migration Process
-Philosophy: Backward-compatible changes only. Support both old and new schema during transition.
-
-Migration Phases:
-
-Phase 1: Preparation (Week N)
-
-Write migration script (up and down)
-
-Test on staging with production data copy
-
-Create rollback script
-
-Document expected impacts
-
-Phase 2: Deployment (Week N+1)
-
-Step 1: Automated database backup
-
-Step 2: Deploy NEW code (supports both schemas)
-
-Step 3: Run additive migration (add columns/tables)
-
-Step 4: Monitor for 24 hours
-
-Step 5: Mark as successful
-
-Phase 3: Data Migration (Week N+2)
-
-Step 6: Backfill new columns (batch job, off-peak)
-
-Step 7: Validate data integrity
-
-Step 8: Switch application to new schema
-
-Phase 4: Cleanup (Week N+4)
-
-Step 9: Remove old code paths
-
-Step 10: Drop old columns/tables
-
-Step 11: Update documentation
-
-Example Migration: Adding "Workout Notes" Feature
-sql
--- Migration V1.2_add_workout_notes.sql
--- Phase 1: Additive (backward compatible)
-
-BEGIN;
-
-ALTER TABLE workout_logs 
-ADD COLUMN notes TEXT NULL DEFAULT NULL;
-
-ALTER TABLE workout_logs 
-ADD COLUMN notes_created_at TIMESTAMP NULL DEFAULT NULL;
-
--- Create index for performance
-CREATE INDEX idx_workout_logs_notes 
-ON workout_logs(notes_created_at) 
-WHERE notes IS NOT NULL;
-
-COMMIT;
-Rollback Script:
-
-sql
--- Rollback if migration fails
-BEGIN;
-
-DROP INDEX IF EXISTS idx_workout_logs_notes;
-ALTER TABLE workout_logs DROP COLUMN IF EXISTS notes_created_at;
-ALTER TABLE workout_logs DROP COLUMN IF EXISTS notes;
-
-COMMIT;
-Resilience & Continuity
-Single Points of Failure (SPOF) Analysis
-Component	Current State	Risk Level	Impact if Failed	Mitigation	Status
-Backend API	Single server (MVP)	HIGH	Complete outage	Load balancer + 2 instances, auto-scaling	DONE
-Préparé à l'aide de Claude Sonnet 4.5 Thinking
-| Metric | Target | Warning | Critical | Action |
-|--------|--------|---------|----------|--------|
-| **API Uptime** | 99.9% | <99.5% | <99% | PagerDuty → On-call |
-| **Response Time (P95)** | <200ms | >500ms | >1000ms | Investigate immediately |
-| **Error Rate** | <0.1% | >1% | >5% | Rollback deployment |
-| **DB Connections** | <50% | >80% | >95% | Scale up DB |
-| **Disk Usage** | <70% | >85% | >95% | Cleanup + alert |
-| **Memory Usage** | <80% | >90% | >95% | Restart service |
-| **Failed Logins** | <10/h | >100/h | >1000/h | Rate limit (attack) |
-| **Sync Queue Size** | <100 | >10,000 | >50,000 | Backend scaling issue |
-| **Certificate Expiry** | >30 days | <14 days | <7 days | Renew immediately |
-
-refais en faisant les tableau comme ça
-Parfait ! Je vais refaire toute la Partie 3 avec des tableaux simples sans formatage gras dans les cellules.
-
-Partie 3A - Deployment & CI/CD
-text
-## Part 3: Deployment & Resilience
-
-Developing on `localhost` is easy. Running in production is hard. We explain how LiftUp will live, evolve, and resist failures.
-
-### Deployment & Migration Strategy
-
-#### CI/CD Pipeline Architecture
-
-**Continuous Integration Flow:**
-
-1. **Trigger**: Git push to branch (feature/*, develop, main)
-2. **GitHub Actions**: Workflow starts (.github/workflows)
-3. **Parallel Checks**:
-   - **Code Quality**: cargo clippy, rustfmt, coverage check (>80%)
-   - **Build & Test**: cargo test, integration tests, E2E tests
-   - **Security**: cargo audit, dependabot, SAST scan
-4. **Validation**: All checks must pass
-5. **Continuous Deployment**: Branch-based deployment
-
-**Deployment Strategy:**
 - `develop` branch → Staging (automatic)
 - `main` branch → Production (manual approval required)
 
@@ -211,46 +39,41 @@ Developing on `localhost` is easy. Running in production is hard. We explain how
   run: |
     cargo tarpaulin --out Xml
     # Fail if coverage below 80%
-2. Automated Testing Pyramid
+```
 
-Test Type	Count	Execution Time	Purpose
-Unit Tests	150+	<30s	Test individual functions (Rust engine logic)
-Integration Tests	50+	<2min	Test API endpoints, DB interactions
-E2E Tests	10+	<5min	Test critical user flows (login, workout, sync)
-3. Deployment Environments
+**2. Automated Testing Pyramid**
 
-Staging Environment:
+| Test Type | Count | Execution Time | Purpose |
+|-----------|-------|----------------|----------|
+| **Unit Tests** | 150+ | <30s | Test individual functions (Rust engine logic) |
+| **Integration Tests** | 50+ | <2min | Test API endpoints, DB interactions |
+| **E2E Tests** | 10+ | <5min | Test critical user flows (login, workout, sync) |
 
-Trigger: Automatic on merge to develop
+**3. Deployment Environments**
 
-Infrastructure: Identical to production (same OS, dependencies)
+**Staging Environment:**
+- Trigger: Automatic on merge to develop
+- Infrastructure: Identical to production (same OS, dependencies)
+- Data: Synthetic test data (1000 fake users)
+- Purpose: QA validation before production release
 
-Data: Synthetic test data (1000 fake users)
+**Production Environment:**
+- Trigger: Manual approval on merge to main
+- Strategy: Blue-Green deployment
+- Traffic Shift: Gradual (0% → 25% → 50% → 100%)
+- Auto-Rollback: If error rate >1%
 
-Purpose: QA validation before production release
+**4. Rollback Procedures**
 
-Production Environment:
+| Scenario | Detection Time | Rollback Method | Recovery Time |
+|----------|----------------|-----------------|---------------|
+| **Failed health checks** | Immediate | Automatic (Docker/K8s) | <2 min |
+| **High error rate (>5%)** | <1 min | Manual rollback | <5 min |
+| **Database migration issue** | <5 min | Restore snapshot | <15 min |
+| **Feature bug** | Variable | Feature flag disable | <1 min |
 
-Trigger: Manual approval on merge to main
+---
 
-Strategy: Blue-Green deployment
-
-Traffic Shift: Gradual (0% → 25% → 50% → 100%)
-
-Auto-Rollback: If error rate >1%
-
-4. Rollback Procedures
-
-Scenario	Detection Time	Rollback Method	Recovery Time
-Failed health checks	Immediate	Automatic (Docker/K8s)	<2 min
-High error rate (>5%)	<1 min	Manual rollback	<5 min
-Database migration issue	<5 min	Restore snapshot	<15 min
-Feature bug	Variable	Feature flag disable	<1 min
-text
-
-## Partie 3B - Database Migrations
-
-```markdown
 ### Database Migration Strategy
 
 #### Zero-Downtime Migration Process
@@ -308,9 +131,11 @@ COMMIT;
 -- Application V1.2 handles NULL notes gracefully
 -- Old app versions still work (ignore new column)
 -- New app versions can write notes
-Rollback Script:
+```
 
-sql
+**Rollback Script:**
+
+```sql
 -- Rollback if migration fails
 BEGIN;
 
@@ -319,25 +144,24 @@ ALTER TABLE workout_logs DROP COLUMN IF EXISTS notes_created_at;
 ALTER TABLE workout_logs DROP COLUMN IF EXISTS notes;
 
 COMMIT;
-text
+```
 
-## Partie 3C - SPOF Analysis & Backups
+---
 
-```markdown
 ### Resilience & Continuity
 
 #### Single Points of Failure (SPOF) Analysis
 
 | Component | Current State | Risk Level | Impact if Failed | Mitigation | Status |
 |-----------|---------------|------------|------------------|------------|--------|
-| Backend API | Single server (MVP) | HIGH | Complete outage | Load balancer + 2 instances, auto-scaling | DONE |
-| Database | Managed PostgreSQL | MEDIUM | Data unavailable | DO Managed DB with failover, daily backups | DONE |
-| Redis Cache | Single instance | LOW | Degraded performance | Cache miss = DB query. Redis Sentinel at 10k+ users | PLANNED |
-| Mobile App | Offline-first | NONE | N/A | Works offline, sync queued | DONE |
-| CDN | Cloudflare | LOW | Slower delivery | 200+ global PoPs, origin fallback | DONE |
-| Authentication | Supabase Auth | MEDIUM | Cannot login (new users) | JWT valid 7 days, local auth fallback planned | WARNING |
-| Push Notifications | Firebase | LOW | Delayed alerts | Not critical, in-app fallback | DONE |
-| Email Service | Resend | LOW | Delayed emails | 48h retry queue | DONE |
+| **Backend API** | Single server (MVP) | HIGH | Complete outage | Load balancer + 2 instances, auto-scaling | DONE |
+| **Database** | Managed PostgreSQL | MEDIUM | Data unavailable | DO Managed DB with failover, daily backups | DONE |
+| **Redis Cache** | Single instance | LOW | Degraded performance | Cache miss = DB query. Redis Sentinel at 10k+ users | PLANNED |
+| **Mobile App** | Offline-first | NONE | N/A | Works offline, sync queued | DONE |
+| **CDN** | Cloudflare | LOW | Slower delivery | 200+ global PoPs, origin fallback | DONE |
+| **Authentication** | Supabase Auth | MEDIUM | Cannot login (new users) | JWT valid 7 days, local auth fallback planned | WARNING |
+| **Push Notifications** | Firebase | LOW | Delayed alerts | Not critical, in-app fallback | DONE |
+| **Email Service** | Resend | LOW | Delayed emails | 48h retry queue | DONE |
 
 **Overall Resilience Score**: 8/10
 
@@ -349,30 +173,22 @@ text
 
 | Type | Frequency | Retention | Location | Tested |
 |------|-----------|-----------|----------|--------|
-| Automated Snapshots | Daily (3:00 AM UTC) | 7 days | DO Frankfurt (separate volume) | Monthly |
-| Weekly Backups | Sunday 2:00 AM | 4 weeks | DO Frankfurt + AWS S3 | Quarterly |
-| Monthly Archives | 1st of month | 12 months | AWS S3 Glacier (Ireland) | Annually |
-| Pre-Migration | Before each migration | 7 days | DO Frankfurt | Always |
+| **Automated Snapshots** | Daily (3:00 AM UTC) | 7 days | DO Frankfurt (separate volume) | Monthly |
+| **Weekly Backups** | Sunday 2:00 AM | 4 weeks | DO Frankfurt + AWS S3 | Quarterly |
+| **Monthly Archives** | 1st of month | 12 months | AWS S3 Glacier (Ireland) | Annually |
+| **Pre-Migration** | Before each migration | 7 days | DO Frankfurt | Always |
 
 **Recovery Objectives:**
 - RTO (Recovery Time Objective): <30 minutes
 - RPO (Recovery Point Objective): <24 hours
 - Critical RTO: <15 minutes (pre-migration backups)
 
-**Backup Testing Protocol:**
-Monthly Drill (3rd Tuesday):
-
-Restore latest daily backup to staging DB
-
-Verify data integrity (row counts, checksums)
-
-Run application test suite against restored DB
-
-Validate backup size and completion time
-
-Document results in ops log
-
-text
+**Backup Testing Protocol (Monthly Drill - 3rd Tuesday):**
+1. Restore latest daily backup to staging DB
+2. Verify data integrity (row counts, checksums)
+3. Run application test suite against restored DB
+4. Validate backup size and completion time
+5. Document results in ops log
 
 ---
 
@@ -380,10 +196,10 @@ text
 
 | Asset | Versioning | Retention | Purpose |
 |-------|------------|-----------|---------|
-| Docker Images | Git SHA tags | Indefinite (prod tags) | Instant rollback |
-| Infrastructure as Code | Git (Terraform) | All commits | Recreate infrastructure |
-| Configuration Files | Git (encrypted) | All commits | Environment configs |
-| Secrets | HashiCorp Vault | Versioned | API keys, certificates |
+| **Docker Images** | Git SHA tags | Indefinite (prod tags) | Instant rollback |
+| **Infrastructure as Code** | Git (Terraform) | All commits | Recreate infrastructure |
+| **Configuration Files** | Git (encrypted) | All commits | Environment configs |
+| **Secrets** | HashiCorp Vault | Versioned | API keys, certificates |
 
 ---
 
@@ -391,19 +207,20 @@ text
 
 | Location | Data | Recovery Method |
 |----------|------|-----------------|
-| User Device | Complete workout history (SQLite) | Primary source of truth |
-| Cloud Server | Synced subset (last 2 years) | Backup + cross-device sync |
-| User Export | JSON/CSV download feature | User-controlled backup |
+| **User Device** | Complete workout history (SQLite) | Primary source of truth |
+| **Cloud Server** | Synced subset (last 2 years) | Backup + cross-device sync |
+| **User Export** | JSON/CSV download feature | User-controlled backup |
 
 **Data Loss Recovery Scenarios:**
 
 | Scenario | Recovery Method | Data Loss |
 |----------|-----------------|-----------|
-| Server DB lost | Restore from daily backup | <24h of syncs |
-| User loses device | Login on new device, sync from cloud | 0 (if recently synced) |
-| Both server + device lost | User export restoration | Depends on last export |
-Partie 3D - Degraded Mode Scenarios
-text
+| **Server DB lost** | Restore from daily backup | <24h of syncs |
+| **User loses device** | Login on new device, sync from cloud | 0 (if recently synced) |
+| **Both server + device lost** | User export restoration | Depends on last export |
+
+---
+
 #### Degraded Mode & Graceful Failures
 
 **Scenario 1: API Server Down**
@@ -484,12 +301,13 @@ text
 
 | Service Down | Impact | Degraded Mode | User Impact |
 |--------------|--------|---------------|-------------|
-| Email (Resend) | No transactional emails | Queue 48h, retry exponentially | Low (in-app notifications) |
-| Push Notifications | No push alerts | In-app banner instead | Low (see on app open) |
-| Auth (Supabase) | Cannot login (new sessions) | Existing JWTs valid 7 days | Medium (existing users OK) |
-| CDN (Cloudflare) | Slower assets | Origin serves directly | Low (slightly slower) |
-Partie 3E - Monitoring & Deliverables
-text
+| **Email (Resend)** | No transactional emails | Queue 48h, retry exponentially | Low (in-app notifications) |
+| **Push Notifications** | No push alerts | In-app banner instead | Low (see on app open) |
+| **Auth (Supabase)** | Cannot login (new sessions) | Existing JWTs valid 7 days | Medium (existing users OK) |
+| **CDN (Cloudflare)** | Slower assets | Origin serves directly | Low (slightly slower) |
+
+---
+
 #### Monitoring & Alerting
 
 **Observability Stack Layers:**
@@ -526,15 +344,15 @@ text
 
 | Metric | Target | Warning | Critical | Action |
 |--------|--------|---------|----------|--------|
-| API Uptime | 99.9% | <99.5% | <99% | PagerDuty → On-call |
-| Response Time (P95) | <200ms | >500ms | >1000ms | Investigate immediately |
-| Error Rate | <0.1% | >1% | >5% | Rollback deployment |
-| DB Connections | <50% | >80% | >95% | Scale up DB |
-| Disk Usage | <70% | >85% | >95% | Cleanup + alert |
-| Memory Usage | <80% | >90% | >95% | Restart service |
-| Failed Logins | <10/h | >100/h | >1000/h | Rate limit (attack) |
-| Sync Queue Size | <100 | >10,000 | >50,000 | Backend scaling issue |
-| Certificate Expiry | >30 days | <14 days | <7 days | Renew immediately |
+| **API Uptime** | 99.9% | <99.5% | <99% | PagerDuty → On-call |
+| **Response Time (P95)** | <200ms | >500ms | >1000ms | Investigate immediately |
+| **Error Rate** | <0.1% | >1% | >5% | Rollback deployment |
+| **DB Connections** | <50% | >80% | >95% | Scale up DB |
+| **Disk Usage** | <70% | >85% | >95% | Cleanup + alert |
+| **Memory Usage** | <80% | >90% | >95% | Restart service |
+| **Failed Logins** | <10/h | >100/h | >1000/h | Rate limit (attack) |
+| **Sync Queue Size** | <100 | >10,000 | >50,000 | Backend scaling issue |
+| **Certificate Expiry** | >30 days | <14 days | <7 days | Renew immediately |
 
 ---
 
@@ -576,10 +394,10 @@ text
 
 | Priority | Definition | Response Time | Examples |
 |----------|------------|---------------|----------|
-| P1 - Critical | Complete service outage | <15 minutes | API down, DB unreachable |
-| P2 - High | Major feature unavailable | <1 hour | Recommendations failing, sync broken |
-| P3 - Medium | Degraded performance | <4 hours | Slow API, minor UI bugs |
-| P4 - Low | Minor issue, no impact | <24 hours | UI typo, analytics gap |
+| **P1 - Critical** | Complete service outage | <15 minutes | API down, DB unreachable |
+| **P2 - High** | Major feature unavailable | <1 hour | Recommendations failing, sync broken |
+| **P3 - Medium** | Degraded performance | <4 hours | Slow API, minor UI bugs |
+| **P4 - Low** | Minor issue, no impact | <24 hours | UI typo, analytics gap |
 
 ---
 
@@ -651,4 +469,4 @@ This workshop meets RCNP C2 & C5 requirements:
 
 **Date**: February 2026  
 **Project**: LiftUp - Adaptive Weight Training Coach  
-**Version**: 1.0
+**Version**: 1.0  

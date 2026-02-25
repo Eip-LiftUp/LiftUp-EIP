@@ -268,15 +268,15 @@ pub extern "C" fn calculate_next_workout(
 - tokio: Async runtime (if networking needed)
 ```
 
-## 5. Offline-First Architecture
+## 5. Cloud-Centric Architecture
 
 ### 5.1 Design Patterns
 
-**Local-First Software Principles:**
-1. No spinners: App works instantly without network
-2. Work continues offline
-3. Network is optional for sync, not core functionality
-4. Conflict resolution for data synchronization
+**Cloud-Native Software Principles:**
+1. Real-time access: App data is always up-to-date
+2. Application handles connectivity loss gracefully
+3. Network is required for core functionality
+4. Server-side validation for data integrity
 
 **Storage Technologies:**
 
@@ -575,9 +575,9 @@ fn encrypt_user_data(data: &[u8], key: &Key) -> Vec<u8> {
 | Feature | StrongLifts | Strong | Fitbod | JEFIT | LiftUp (Proposed) |
 |---------|-------------|--------|--------|-------|-------------------|
 | **Auto-Adaptation** | No | No | Yes | No | **Yes (Rust-powered)** |
-| **Offline Mode** | Limited | Yes | Limited | Yes | **Full offline** |
+| **Offline Mode** | Limited | Yes | Limited | Yes | **Connection Required** |
 | **Nutrition Tracking** | No | No | Basic | Basic | **Integrated** |
-| **ML Personalization** | No | No | Yes | No | **Yes (offline)** |
+| **ML Personalization** | No | No | Yes | No | **Yes (server-side)** |
 | **Custom Programs** | No | No | Limited | Yes | **Yes** |
 | **Performance Analytics** | Basic | Good | Good | Good | **Advanced** |
 | **Cross-Platform** | iOS/Android | iOS/Android | iOS/Android | iOS/Android | **iOS/Android** |
@@ -642,9 +642,9 @@ Backend Logic:
 - Explainable recommendations
 - User trust through transparency
 
-**True Offline AI:**
-- Most apps claim offline but need internet for key features
-- Rust-powered local ML inference
+**Cloud-Powered AI:**
+- Leverage cloud resources for powerful model inference
+- Real-time API response optimization
 - Privacy-first approach
 
 **Scientific Methodology:**
@@ -659,7 +659,7 @@ Backend Logic:
 
 ### 12.2 Technical Challenges
 
-**Challenge 1: Offline ML Model Size**
+**Challenge 1: API Latency & Optimization**
 - *Solution*: Use lightweight models (decision trees, linear models)
 - *Alternative*: Quantized neural networks for mobile
 
@@ -683,27 +683,27 @@ Backend Logic:
 4. **Training Load**: The Training-Performance Puzzle (Vanrenterghem et al., 2017)
 5. **Machine Learning in Fitness**: "AI-based Training" (Various papers, 2020-2024)
 6. **Rust Performance**: Zero-cost Abstractions (Mozilla Research)
-7. **Local-First Software**: Ink & Switch Research (Kleppmann et al., 2019)
-8. **CRDT**: Conflict-free Replicated Data Types (Shapiro et al., 2011)
+7. **Cloud Architecture**: Modern Serverless Patterns
+8. **CAP Theorem**: Consistency, Availability, Partition Tolerance
 
 ## 14. Conclusion
 
 The fitness app market is mature but still has room for innovation, particularly in:
-- **Truly offline-capable AI personalization**
+- **Real-time Cloud AI personalization**
 - **Transparent, scientifically-backed algorithms**
 - **Privacy-first architecture**
 - **Integration of training and nutrition with advanced analytics**
 
-LiftUp's proposed architecture using Flutter for UI and Rust for core logic positions it well to deliver on these differentiators. The offline-first approach with Rust ensures:
+LiftUp's proposed architecture using Flutter for UI and Rust for core logic positions it well to deliver on these differentiators. The cloud-centric approach with Rust ensures:
 - Consistent performance across devices
 - User privacy and data ownership
-- Ability to function without internet connectivity
+- Centralized data processing and analytics
 - Cross-platform code sharing for business logic
 
 **Key Success Factors:**
 1. Start with proven rule-based adaptation before adding ML
 2. Focus on core training principles (progressive overload, periodization)
-3. Build robust offline sync from day one
+3. Build robust data synchronization
 4. Extensive testing with real users and trainers
 5. Iterative improvement based on data and feedback
 

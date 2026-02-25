@@ -32,13 +32,13 @@ Digital technology is responsible for 4% of global greenhouse gas emissions. As 
 
 **Analysis:**
 - Mobile app synchronizes training data, images, and recommendations
-- Average data transfer per user: ~5MB/month (lightweight due to offline-first architecture)
+- Average data transfer per user: ~5MB/month (efficient data transfer)
 
 **Optimization Actions:**
 
 | Optimization | Implementation | Savings |
 |--------------|----------------|---------|
-| **Offline-First Architecture** | ✅ Implemented | Reduces API calls by 90% vs cloud-first |
+| **Optimized Data Sync** | ✅ Implemented | Optimizes API calls vs polling |
 | **Data Compression** | ✅ Gzip for API responses | -70% bandwidth |
 | **Image Optimization** | ✅ WebP format for profiles | -50% vs JPEG |
 | **Incremental Sync** | ✅ Only changed data | -80% vs full sync |
@@ -164,7 +164,7 @@ Digital technology is responsible for 4% of global greenhouse gas emissions. As 
 
 | Principle | Implementation | Status | Score |
 |-----------|----------------|:------:|:-----:|
-| **Minimize Data Transfer** | Offline-first, compression, incremental sync | ✅ | 5/5 |
+| **Minimize Data Transfer** | Data compression, incremental sync | ✅ | 5/5 |
 | **Efficient Algorithms** | Rust, O(n) complexity, caching | ✅ | 5/5 |
 | **Low-Carbon Hosting** | EU datacenter, future Nordic migration | ⚠️ | 3/5 |
 | **Right-Sizing** | No over-provisioning, auto-scaling | ✅ | 5/5 |

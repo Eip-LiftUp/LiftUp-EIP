@@ -94,9 +94,9 @@ graph TB
     style LiftUp fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#fff
     style Users fill:#E8F4F8,stroke:#4A90E2
     style External_Systems fill:#FFF4E6,stroke:#FF9800
-    style Alex fill:#90EE90,stroke:#2E8B57
-    style Sarah fill:#FFB6C1,stroke:#C71585
-    style Marcus fill:#87CEEB,stroke:#4682B4
+    style Alex fill:#90EE90,stroke:#2E8B57,color:#000
+    style Sarah fill:#FFB6C1,stroke:#C71585,color:#000
+    style Marcus fill:#87CEEB,stroke:#4682B4,color:#000
 ```
 
 ### Key Insights

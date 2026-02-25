@@ -3,6 +3,9 @@ LiftUp is a mobile weight-training coaching app with personalized workout progra
 
 ## Documentation
 
+### 📌 Recent Changes
+- **[CHANGELOG](CHANGELOG.md)** - Track major architectural updates.
+
 ### Architecture
 - **[Architecture & UML Diagrams (C4 Model)](docs/ARCHITECTURE_UML_C4_MODEL.md)** - Complete system architecture with Context, Container, and Component diagrams
 

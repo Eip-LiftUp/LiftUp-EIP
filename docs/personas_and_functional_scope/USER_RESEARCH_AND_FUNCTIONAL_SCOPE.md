@@ -92,7 +92,7 @@ Alex recently joined a gym after years of sedentary lifestyle. He's been coding 
 - **Built-in Tracking:** Simple interface to log sets/reps without context switching
 - **Progress Visualization:** Clear charts showing strength gains over time
 - **Nutrition Guidance:** Calculates calorie/macro needs for muscle gain
-- **Offline-First:** Works in gym basement with poor signal
+- **Online-Required:** Requires stable internet connection for all features
 
 ---
 
@@ -301,7 +301,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 
 **US-014:** As **Marcus**, I want to log RPE (Rate of Perceived Exertion) for each set so that the algorithm can understand my actual effort level.
 
-**US-015:** As **Sarah**, I want the app to work offline so that I can track workouts in gym basements with poor signal.
+**US-015:** As **Sarah**, I need an internet connection to use the app and sync my workouts.
 
 **US-016:** As **Alex**, I want the app to auto-fill my previous workout's weights as a starting point so that I don't have to remember what I lifted last time.
 
@@ -425,7 +425,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 
 **US-056:** As **Alex**, I want to delete my account and all data so that I control my privacy.
 
-**US-057:** As **Marcus**, I want the app to work entirely offline so that my data never leaves my device unless I choose to sync.
+**US-057:** As **Marcus**, I want my data to be securely synced to the cloud so that I can access it from any device.
 
 ---
 
@@ -444,7 +444,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 #### Core Workout Experience
 - **US-006:** Automatic workout program generation
 - **US-013:** Simple workout logging (sets, reps, weight)
-- **US-015:** Offline functionality
+- **US-015:** Online functionality
 - **US-016:** Auto-fill previous weights
 - **US-019:** Mark sets as completed
 - **US-022:** Automatic progressive overload (weight increase)
@@ -466,7 +466,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 #### Data Management
 - **US-055:** Local data encryption
 - **US-056:** Account deletion
-- **US-057:** Full offline functionality
+- **US-057:** Full online connectivity
 
 #### Settings (Essential)
 - **US-050:** Equipment limitations
@@ -582,7 +582,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 - **Wearable Device Integration:** (Apple Watch, Whoop, etc.) - Phase 3 consideration
 - **Built-in Form Check AI:** Computer vision is experimental, accuracy concerns
 - **Marketplace for Custom Programs:** Two-sided marketplace complexity
-- **Live Streaming Workouts:** Not aligned with offline-first architecture
+- **Live Streaming Workouts:** Not aligned with current scope
 - **Social Network Features:** (Comments, likes, follows) - Not core to training
 - **In-App Purchases for Premium Exercises:** Want to avoid paywall fragmentation
 - **Real-time Gym Equipment Availability Tracking:** Too complex, requires hardware partnerships
@@ -590,7 +590,7 @@ As a <persona>, I want <feature/goal> so that <reason/benefit>.
 - **DNA-Based Recommendations:** Science not mature enough
 - **Virtual Reality Workouts:** Technology not accessible enough
 
-**Rationale:** These features would distract from core value proposition: intelligent, offline-first, personalized training. They can be revisited after achieving product-market fit.
+**Rationale:** These features would distract from core value proposition: intelligent, cloud-centric, personalized training. They can be revisited after achieving product-market fit.
 
 ---
 
@@ -621,7 +621,7 @@ Month 1-2: Core Infrastructure
   - Database schema
   - Rust logic engine foundation
   - Basic UI components
-  - Offline sync architecture
+  - Online data sync architecture
 
 Month 3-4: MVP Features (Must Have)
   - Onboarding flow
@@ -671,7 +671,7 @@ Month 10-12: Could Have Features (Based on Feedback)
 
 **Outreach Strategy:**
 1. Participate authentically in discussions
-2. Share our technical approach (Rust-powered offline AI)
+2. Share our technical approach (Rust-powered server-side AI)
 3. Offer beta access to active contributors
 4. Create AMA (Ask Me Anything) about our approach
 
@@ -839,7 +839,7 @@ Feedback Loop:
 2. **Consistency Over Perfection:** Users value showing up over perfect program execution
 3. **Adaptation is King:** Life interrupts training—apps must adapt or users quit
 4. **Trust Through Transparency:** Users want to understand why apps recommend things
-5. **Offline is Non-Negotiable:** Gym basements, travel, data costs—offline must work
+5. **Online is Essential:** Users expect real-time sync and community features
 
 ---
 

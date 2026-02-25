@@ -254,7 +254,7 @@ This workshop aims to demonstrate the **economic viability of LiftUp's technical
 
 ### ✅ Financial Strengths
 
-- **Offline-first architecture** drastically reduces API and bandwidth costs
+- **Online architecture** ensures real-time data consistency
 - **Rust engine** = high performance with minimal resources
 - **Generous free tiers** for critical services (auth, notifications, analytics)
 - **Predictable linear scaling** up to 10k users

@@ -19,7 +19,7 @@ This document presents the complete architectural design of **LiftUp-EIP**, a mo
 **LiftUp Overview:**
 - **Purpose**: Mobile weight-training coaching app with AI-powered personalization
 - **Key Features**: Adaptive workouts, progress tracking, nutrition management
-- **Architecture**: Offline-first mobile app with Rust decision engine and cloud sync
+- **Architecture**: Mobile app with Rust decision engine and cloud-centric architecture
 - **Target Users**: Fitness enthusiasts from beginners to advanced athletes
 
 ---
@@ -55,7 +55,7 @@ graph TB
         Marcus["👤 Marcus<br/>Optimization Enthusiast<br/>Data Analyst"]
     end
     
-    LiftUp["🏋️ LiftUp System<br/>Mobile Fitness Coaching App<br/>Personalized workouts & nutrition<br/>Offline-first with Rust engine"]
+    LiftUp["🏋️ LiftUp System<br/>Mobile Fitness Coaching App<br/>Personalized workouts & nutrition<br/>Cloud-centric with Rust engine"]
     
     subgraph External_Systems["External Systems"]
         AppStores["📱 App Stores<br/>Apple App Store<br/>Google Play Store<br/>[Distribution]"]
@@ -123,22 +123,22 @@ graph TB
 
 #### External System Dependencies
 
-| System | Purpose | Critical? | Offline Fallback |
+| System | Purpose | Critical? | Connectivity Strategy |
 |--------|---------|-----------|------------------|
-| **App Stores** | Distribution platform | Yes | N/A (required for installation) |
-| **Food Databases** | Nutrition data lookup | No | Local database cache |
-| **Supabase Auth** | User authentication | Yes | Local auth cache (7 days) |
-| **Email Service** | Notifications & recovery | No | Queue for later delivery |
-| **Push Notifications** | Workout reminders | No | In-app notifications only |
+| **App Stores** | Distribution platform | Yes | N/A |
+| **Food Databases** | Nutrition data lookup | No | Unavailable when offline |
+| **Supabase Auth** | User authentication | Yes | Session caching |
+| **Email Service** | Notifications & recovery | No | Server-side queue |
+| **Push Notifications** | Workout reminders | No | Retry logic |
 | **Payment Systems** | Subscription management | Yes | Grace period handling |
-| **Wearables** | Heart rate, activity sync | No | App works standalone |
-| **Analytics** | Usage tracking | No | Store & forward queue |
+| **Wearables** | Heart rate, activity sync | No | Buffer on device |
+| **Analytics** | Usage tracking | No | Buffer locally |
 | **Monitoring** | Error tracking | No | Local error logs |
 
-**Architecture Principle**: **Offline-First Design**
-- LiftUp works fully without internet connection
-- External dependencies are optional or have local fallbacks
-- Cloud sync is a convenience feature, not a requirement
+**Architecture Principle**: **Cloud-Connected Architecture**
+- LiftUp requires an active internet connection for core features
+- External dependencies are critical
+- Cloud sync is essential/required
 
 ---
 
@@ -162,7 +162,7 @@ graph TB
     
     subgraph Mobile["📱 Mobile Application Container"]
         direction TB
-        MobileApp["Mobile App<br/>(Flutter/React Native)<br/>• UI/UX Layer<br/>• Offline-first<br/>• Local workout tracking<br/>• Progress visualization"]
+        MobileApp["Mobile App<br/>(Flutter/React Native)<br/>• UI/UX Layer<br/>• Cloud-connected<br/>• Workout tracking<br/>• Progress visualization"]
         
         RustEngine["Rust Logic Engine<br/>(Rust + FFI)<br/>• Decision algorithms<br/>• Progressive overload<br/>• Auto-regulation<br/>• Periodization logic"]
         
@@ -245,12 +245,12 @@ graph TB
 |-----------|------------|------------------|
 | **Mobile App** | Flutter or React Native | • User interface and interaction<br/>• Workout tracking screens<br/>• Progress visualization (charts)<br/>• Nutrition logging<br/>• Settings and profile management |
 | **Rust Logic Engine** | Rust (compiled to native via FFI) | • Workout generation algorithms<br/>• Progressive overload calculations<br/>• Plateau detection<br/>• TDEE/macro calculations<br/>• Statistical analysis |
-| **Local Database** | SQLite with SQLCipher encryption | • Encrypted storage of health data<br/>• Workout history<br/>• User profile and preferences<br/>• Nutrition logs<br/>• Sync queue |
+| **Local Database** | SQLite with SQLCipher encryption | • Caching only<br/>• Short-term storage |
 
 **Key Architecture Decisions:**
-- **Offline-First**: All core features work without internet
+- **Cloud-Centric**: Internet connection required
 - **Rust for Logic**: Performance-critical algorithms compiled to native code
-- **Local Encryption**: GDPR-compliant data protection at rest
+- **Encryption**: Secure data handling
 
 #### Backend Services Container
 
@@ -314,7 +314,7 @@ graph TB
         
         NutritionController["Nutrition Controller<br/>• Log meals<br/>• Calculate macros<br/>• Search foods"]
         
-        SyncController["Sync Controller<br/>• Queue changes<br/>• Sync to cloud<br/>• Resolve conflicts<br/>• Handle offline"]
+        SyncController["Sync Controller<br/>• Real-time sync<br/>• Push/Pull logic<br/>• Handle network errors"]
     end
     
     subgraph Services["⚙️ Service Layer"]
@@ -359,7 +359,7 @@ graph TB
     NutritionController -->|"Store logs"| DatabaseService
     
     SyncController -->|"HTTP sync"| ApiClient
-    SyncController -->|"Queue management"| DatabaseService
+    SyncController -->|"Error handling"| StateManager
     
     DatabaseService --> Repositories
     Repositories --> Models
@@ -445,7 +445,7 @@ graph TB
 **Sync Controller**
 - Maintains sync queue
 - Implements conflict resolution (last-write-wins)
-- Handles offline mode gracefully
+- Handles connectivity loss gracefully
 - Retries failed syncs with exponential backoff
 
 #### Service Layer
@@ -1161,24 +1161,24 @@ struct SyncMetadata {
 
 ## Architecture Decision Records
 
-### ADR-001: Offline-First Mobile Architecture
+### ADR-001: Cloud-Centric Mobile Architecture
 
 **Status:** Accepted
 
 **Context:**
-- Fitness apps are used in gyms with poor internet connectivity
-- Real-time responsiveness is critical for user experience
-- Health data privacy concerns
+- Fitness apps require connectivity for real-time data and community features
+- Real-time responsiveness is critical
+- Simplified data consistency model required
 
 **Decision:**
-- Implement offline-first architecture
-- Store all data locally in encrypted SQLite database
-- Sync to cloud as optional feature
+- Implement cloud-centric architecture
+- Require internet connection for core features
+- Minimal local caching for session continuity
 
 **Consequences:**
-- **Positive**: App works in any environment, better privacy
-- **Negative**: Increased complexity for conflict resolution
-- **Mitigation**: Use Last-Write-Wins strategy with timestamp versioning
+- **Positive**: Simplified architecture, real-time data, no complex sync conflicts
+- **Negative**: App unusable without internet
+- **Mitigation**: Clear UI feedback when disconnected, graceful error handling
 
 ---
 
@@ -1252,7 +1252,7 @@ struct SyncMetadata {
 **Context:**
 - Need stateless authentication for mobile clients
 - Support for token refresh
-- Offline session validation
+- Stateless session validation
 
 **Decision:**
 - Use JWT tokens signed with RS256
@@ -1260,24 +1260,24 @@ struct SyncMetadata {
 - 15-minute access token, 7-day refresh token
 
 **Consequences:**
-- **Positive**: Stateless, works offline, widely supported
+- **Positive**: Stateless, scalable, widely supported
 - **Negative**: Token size, revocation complexity
 - **Mitigation**: Keep payload minimal, use Redis for session tracking
 
 ---
 
-### ADR-006: Last-Write-Wins Conflict Resolution
+### ADR-006: Server-Side Concurrency Control
 
 **Status:** Accepted
 
 **Context:**
-- Users may modify data offline on multiple devices
-- Complex conflict resolution (CRDTs) is overkill for fitness data
+- Users may access account from multiple devices simultaneously
+- Real-time data consistency is required
 - Need simple, predictable behavior
 
 **Decision:**
-- Use timestamp-based Last-Write-Wins (LWW)
-- Server maintains version numbers
+- Use Last-Write-Wins (LWW) with server timestamp
+- Server acts as single source of truth
 - Conflicting updates overwrite based on timestamp
 
 **Consequences:**
@@ -1356,8 +1356,8 @@ This architecture document presents the complete design of **LiftUp-EIP** using 
 3. **Level 3 (Components)**: Internal structure of mobile app, Rust engine, and backend API
 
 **Key Architectural Principles:**
-- **Offline-First**: Core features work without internet
-- **Performance**: Rust for compute-intensive logic
+- **Cloud-Centric**: Core features require internet
+- **Performance**: Rust for server-side logic optimization
 - **Privacy**: Local encryption, GDPR compliance
 - **Simplicity**: Last-Write-Wins sync, managed services
 - **Scalability**: Horizontal scaling of API, vertical scaling of DB

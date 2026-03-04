@@ -1,48 +1,72 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:app/core/constants/app_constants.dart';
+import 'package:app/core/widgets/main_scaffold.dart';
 
 class ProgramPage extends StatelessWidget {
   const ProgramPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
-        ),
-        title: const Text('Programme'),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
+    return SafeArea(
+      child: Column(
+        children: [
+          // Header
+          Padding(
             padding: const EdgeInsets.all(AppConstants.spacingL),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Row(
               children: [
-                Icon(
-                  Icons.calendar_month,
-                  size: 80,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: AppConstants.spacingL),
                 Text(
-                  'Mon Programme',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppConstants.spacingM),
-                Text(
-                  'Consultez et personnalisez votre programme d\'entraînement.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
+                  'Programme',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+          // Content
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppConstants.spacingL),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppConstants.spacingL),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.calendar_month_rounded,
+                        size: 80,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppConstants.spacingL),
+                    Text(
+                      'Mon Programme',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppConstants.spacingM),
+                    Text(
+                      'Consultez et personnalisez votre programme d\'entraînement.',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

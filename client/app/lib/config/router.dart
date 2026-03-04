@@ -13,6 +13,33 @@ int _getNavIndex(String location) {
   return 0;
 }
 
+// Custom page with slide transition
+CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 200),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(0.05, 0.0);
+      const end = Offset.zero;
+      final tween = Tween(begin: begin, end: end).chain(
+        CurveTween(curve: Curves.easeOut),
+      );
+      return Container(
+        color: const Color(0xFF0D1B2A),
+        child: SlideTransition(
+          position: animation.drive(tween),
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        ),
+      );
+    },
+  );
+}
+
 final GoRouter appRouter = GoRouter(
   initialLocation: '/home',
   routes: [
@@ -26,22 +53,22 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/home',
-          builder: (context, state) => const HomePage(),
+          pageBuilder: (context, state) => _buildPage(const HomePage(), state),
           name: 'home',
         ),
         GoRoute(
           path: '/movement-analysis',
-          builder: (context, state) => const MovementAnalysisPage(),
+          pageBuilder: (context, state) => _buildPage(const MovementAnalysisPage(), state),
           name: 'movement-analysis',
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const ProfilePage(),
+          pageBuilder: (context, state) => _buildPage(const ProfilePage(), state),
           name: 'profile',
         ),
         GoRoute(
           path: '/program',
-          builder: (context, state) => const ProgramPage(),
+          pageBuilder: (context, state) => _buildPage(const ProgramPage(), state),
           name: 'program',
         ),
       ],

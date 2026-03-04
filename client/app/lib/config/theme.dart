@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  // App background color - matches MainScaffold
+  static const Color _backgroundColor = Color(0xFF0D1B2A);
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      scaffoldBackgroundColor: _backgroundColor,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF6366F1),
         brightness: Brightness.light,
@@ -26,6 +30,7 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
+      scaffoldBackgroundColor: _backgroundColor,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF6366F1),
         brightness: Brightness.dark,

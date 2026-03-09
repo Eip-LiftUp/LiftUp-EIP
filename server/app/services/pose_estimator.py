@@ -2,45 +2,75 @@
 Pose Estimation Service
 
 This service handles pose estimation from images and videos using
-pre-trained ML models (placeholder for MediaPipe, OpenPose, or custom models).
+PyTorch-based ML models.
 """
 
-# import cv2  # Uncomment when implementing real ML
+import torch
+import torchvision
+from torchvision import transforms
+import cv2
 import numpy as np
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import io
 from PIL import Image
+from pathlib import Path
 
 from app.models.schemas import KeyPoint
 from app.core.config import settings
 
 
 class PoseEstimator:
-    """Pose estimation service using ML models"""
+    """Pose estimation service using PyTorch models"""
     
     def __init__(self):
         self.model_version = "0.1.0"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.keypoint_names = [
             "nose", "left_eye", "right_eye", "left_ear", "right_ear",
             "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
             "left_wrist", "right_wrist", "left_hip", "right_hip",
             "left_knee", "right_knee", "left_ankle", "right_ankle"
         ]
-        # TODO: Load actual ML model
-        # self.model = self._load_model()
+        
+        # Image preprocessing transforms
+        self.transform = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        
+        # Load model (using placeholder for now)
+        self.model = self._load_model()
     
-    def _load_model(self):
-        """Load the pose estimation model"""
-        # Placeholder for model loading
-        # In production, this would load MediaPipe, MMPose, or a custom model
-        # Example:
-        # import mediapipe as mp
-        # return mp.solutions.pose.Pose()
-        pass
+    def _load_model(self) -> Optional[torch.nn.Module]:
+        """
+        Load the PyTorch pose estimation model.
+        
+        Options for production:
+        1. Pre-trained torchvision model (e.g., Keypoint R-CNN)
+        2. Custom trained model
+        3. HRNet, OpenPose, or other pose estimation architectures
+        
+        Example with torchvision:
+            model = torchvision.models.detection.keypointrcnn_resnet50_fpn(pretrained=True)
+            model.to(self.device)
+            model.eval()
+            return model
+        """
+        # For now, return None as placeholder
+        # TODO: Load actual model when ready
+        # model_path = Path(settings.MODEL_DIR) / "pose_model.pth"
+        # if model_path.exists():
+        #     model = torch.load(model_path, map_location=self.device)
+        #     model.eval()
+        #     return model
+        
+        print(f"PyTorch device: {self.device}")
+        return None
     
     async def estimate_pose(self, image_data: bytes) -> Dict[str, Any]:
         """
-        Estimate pose from image data.
+        Estimate pose from image data using PyTorch model.
         
         Args:
             image_data: Raw image bytes
@@ -49,24 +79,37 @@ class PoseEstimator:
             Dictionary with keypoints and confidence
         """
         try:
-            # Convert bytes to numpy array
-            image = Image.open(io.BytesIO(image_data))
+            # Convert bytes to PIL Image
+            image = Image.open(io.BytesIO(image_data)).convert('RGB')
             image_np = np.array(image)
             
-            # TODO: Replace with actual model inference
-            # For now, return mock keypoints
-            keypoints = self._generate_mock_keypoints()
+            # TODO: Replace with actual PyTorch model inference
+            if self.model is not None:
+                # Preprocess image
+                input_tensor = self.transform(image).unsqueeze(0).to(self.device)
+                
+                # Run inference
+                with torch.no_grad():
+                    predictions = self.model(input_tensor)
+                
+                # Process predictions (depends on model architecture)
+                # keypoints = self._process_predictions(predictions, image_np.shape)
+                keypoints = self._generate_mock_keypoints()
+            else:
+                # Fallback to mock keypoints
+                keypoints = self._generate_mock_keypoints()
             
             return {
                 "keypoints": keypoints,
                 "confidence": 0.85,  # Mock confidence
+                "device": str(self.device),
             }
         except Exception as e:
             raise ValueError(f"Failed to process image: {str(e)}")
     
     async def estimate_pose_video(self, video_data: bytes) -> List[Dict[str, Any]]:
         """
-        Estimate pose for all frames in a video.
+        Estimate pose for all frames in a video using PyTorch.
         
         Args:
             video_data: Raw video bytes
@@ -74,11 +117,16 @@ class PoseEstimator:
         Returns:
             List of pose estimations per frame
         """
-        # TODO: Implement video processing
-        # This would extract frames and run pose estimation on each
+        # TODO: Implement video processing with OpenCV and PyTorch
+        # This would:
+        # 1. Save video_data to temporary file
+        # 2. Use cv2.VideoCapture to read frames
+        # 3. Run pose estimation on each frame with batching for efficiency
+        # 4. Return results
+        
         results = []
         
-        # Mock implementation
+        # Mock implementation for now
         for i in range(10):  # Mock 10 frames
             frame_result = {
                 "frame_number": i,

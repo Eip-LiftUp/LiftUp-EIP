@@ -43,9 +43,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     // Simulate login delay (frontend only)
     await Future.delayed(const Duration(seconds: 1));
 
-    // Mock successful login
-    ref.read(appStateProvider.notifier).setUserToken('mock_token_123');
-    ref.read(appStateProvider.notifier).setIsAuthenticated(true);
+    // Mock successful login with user data
+    ref.read(appStateProvider.notifier).loginWithMockData(
+      email: _emailController.text,
+    );
 
     setState(() {
       _isLoading = false;
@@ -54,6 +55,90 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (mounted) {
       context.go('/home');
     }
+  }
+
+  /// Handle social login
+  Future<void> _socialLogin(String provider) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // Simulate social login delay
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // Mock successful social login
+    ref.read(appStateProvider.notifier).loginWithMockData();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connexion avec $provider réussie !'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+      context.go('/home');
+    }
+  }
+
+  /// Show forgot password dialog
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController(text: _emailController.text);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text('Mot de passe oublié', style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Entrez votre email pour recevoir un lien de réinitialisation.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                labelText: 'Email',
+                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.background,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.navBarBorder),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Email de réinitialisation envoyé (mock)'),
+                  backgroundColor: AppColors.secondary,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Envoyer'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -199,9 +284,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () {
-                // TODO: Implement forgot password
-              },
+              onPressed: _showForgotPasswordDialog,
               child: const Text(
                 'Mot de passe oublié ?',
                 style: TextStyle(color: AppColors.primary),
@@ -325,9 +408,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         _SocialLoginButton(
           icon: Icons.g_mobiledata_rounded,
           label: 'Continuer avec Google',
-          onPressed: () {
-            // TODO: Implement Google login
-          },
+          onPressed: _isLoading ? () {} : () => _socialLogin('Google'),
         ),
         const SizedBox(height: AppConstants.spacingM),
 
@@ -335,9 +416,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         _SocialLoginButton(
           icon: Icons.apple,
           label: 'Continuer avec Apple',
-          onPressed: () {
-            // TODO: Implement Apple login
-          },
+          onPressed: _isLoading ? () {} : () => _socialLogin('Apple'),
         ),
       ],
     );

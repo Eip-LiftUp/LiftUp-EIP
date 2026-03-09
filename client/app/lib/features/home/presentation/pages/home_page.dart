@@ -1,69 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:app/core/constants/app_constants.dart';
+import 'package:app/core/widgets/main_scaffold.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppConstants.appName),
-        elevation: 2,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.spacingL),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppConstants.spacingL),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.fitness_center,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: AppConstants.spacingM),
-                    Text(
-                      'Welcome to ${AppConstants.appName}',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppConstants.spacingM),
-                    Text(
-                      'Your personal AI-powered fitness coach',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.spacingL),
+        child: Column(
+          children: [
+            const Spacer(),
+            // Header
+            _buildHeader(context),
+            const Spacer(),
+            // Version
+            Text(
+              'Version ${AppConstants.appVersion}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
               ),
-              const SizedBox(height: AppConstants.spacingL),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Welcome to LiftUp!')),
-                  );
-                },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Get Started'),
-              ),
-              const SizedBox(height: AppConstants.spacingM),
-              Text(
-                'Version ${AppConstants.appVersion}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: AppConstants.spacingM),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Column(
+      children: [
+        const Icon(
+          Icons.fitness_center,
+          size: 72,
+          color: AppColors.primary,
+        ),
+        const SizedBox(height: AppConstants.spacingM),
+        Text(
+          AppConstants.appName,
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+            letterSpacing: 2,
+          ),
+        ),
+      ],
     );
   }
 }

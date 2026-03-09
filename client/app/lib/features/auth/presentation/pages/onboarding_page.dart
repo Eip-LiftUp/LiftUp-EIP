@@ -20,7 +20,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   final List<_OnboardingData> _pages = [
     _OnboardingData(
-      icon: Icons.fitness_center_rounded,
+      icon: null,
+      imagePath: 'lib/assets/image.png',
       title: 'Bienvenue sur LiftUp',
       description:
           'Votre coach personnel alimenté par l\'IA pour améliorer vos performances sportives.',
@@ -139,11 +140,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
               color: data.color.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              data.icon,
-              size: 80,
-              color: data.color,
-            ),
+            child: data.imagePath != null
+                ? ClipOval(
+                    child: Image.asset(
+                      data.imagePath!,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                : Icon(
+                    data.icon,
+                    size: 80,
+                    color: data.color,
+                  ),
           ),
           const SizedBox(height: AppConstants.spacingXl),
 
@@ -257,13 +267,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
 /// Data class for onboarding pages
 class _OnboardingData {
-  final IconData icon;
+  final IconData? icon;
+  final String? imagePath;
   final String title;
   final String description;
   final Color color;
 
   _OnboardingData({
-    required this.icon,
+    this.icon,
+    this.imagePath,
     required this.title,
     required this.description,
     required this.color,

@@ -6,7 +6,7 @@ import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/config/providers.dart';
 
 /// Profile Page
-/// 
+///
 /// Displays user profile information, stats, achievements,
 /// and settings options with fully functional buttons.
 class ProfilePage extends ConsumerStatefulWidget {
@@ -80,9 +80,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   /// Show edit profile dialog
   void _showEditProfileDialog() {
     final profile = ref.read(appStateProvider).userProfile;
-    final nameController = TextEditingController(text: profile?.name ?? 'Jean Dupont');
-    final emailController = TextEditingController(text: profile?.email ?? 'jean.dupont@email.com');
-    final phoneController = TextEditingController(text: profile?.phone ?? '+33 6 12 34 56 78');
+    final nameController = TextEditingController(
+      text: profile?.name ?? 'Jean Dupont',
+    );
+    final emailController = TextEditingController(
+      text: profile?.email ?? 'jean.dupont@email.com',
+    );
+    final phoneController = TextEditingController(
+      text: profile?.phone ?? '+33 6 12 34 56 78',
+    );
 
     showDialog(
       context: context,
@@ -99,7 +105,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               TextField(
                 controller: nameController,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _inputDecoration('Nom complet', Icons.person_outline),
+                decoration: _inputDecoration(
+                  'Nom complet',
+                  Icons.person_outline,
+                ),
               ),
               const SizedBox(height: AppConstants.spacingM),
               TextField(
@@ -123,11 +132,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(appStateProvider.notifier).updateUserProfile(
-                name: nameController.text,
-                email: emailController.text,
-                phone: phoneController.text,
-              );
+              ref
+                  .read(appStateProvider.notifier)
+                  .updateUserProfile(
+                    name: nameController.text,
+                    email: emailController.text,
+                    phone: phoneController.text,
+                  );
               Navigator.of(context).pop();
               _showSuccessSnackBar('Profil mis à jour');
             },
@@ -160,12 +171,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               children: [
                 const Text(
                   'Niveau de fitness',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: AppConstants.spacingS),
-                ...['Débutant', 'Intermédiaire', 'Avancé', 'Expert'].map((level) {
+                ...['Débutant', 'Intermédiaire', 'Avancé', 'Expert'].map((
+                  level,
+                ) {
                   return RadioListTile<String>(
-                    title: Text(level, style: const TextStyle(color: AppColors.textPrimary)),
+                    title: Text(
+                      level,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
                     value: level,
                     groupValue: selectedLevel,
                     activeColor: AppColors.primary,
@@ -184,11 +203,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             ElevatedButton(
               onPressed: () {
-                ref.read(appStateProvider.notifier).updateUserProfile(level: selectedLevel);
+                ref
+                    .read(appStateProvider.notifier)
+                    .updateUserProfile(level: selectedLevel);
                 Navigator.of(context).pop();
                 _showSuccessSnackBar('Niveau mis à jour: $selectedLevel');
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
               child: const Text('Enregistrer'),
             ),
           ],
@@ -217,25 +240,45 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               SwitchListTile(
-                title: const Text('Notifications push', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Recevoir des notifications', style: TextStyle(color: AppColors.textSecondary)),
+                title: const Text(
+                  'Notifications push',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Recevoir des notifications',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
                 value: pushEnabled,
                 activeColor: AppColors.primary,
                 onChanged: (value) => setDialogState(() => pushEnabled = value),
               ),
               SwitchListTile(
-                title: const Text('Emails', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Recevoir des emails', style: TextStyle(color: AppColors.textSecondary)),
+                title: const Text(
+                  'Emails',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Recevoir des emails',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
                 value: emailEnabled,
                 activeColor: AppColors.primary,
-                onChanged: (value) => setDialogState(() => emailEnabled = value),
+                onChanged: (value) =>
+                    setDialogState(() => emailEnabled = value),
               ),
               SwitchListTile(
-                title: const Text('Rappels d\'entraînement', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Rappels avant les séances', style: TextStyle(color: AppColors.textSecondary)),
+                title: const Text(
+                  'Rappels d\'entraînement',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Rappels avant les séances',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
                 value: remindersEnabled,
                 activeColor: AppColors.primary,
-                onChanged: (value) => setDialogState(() => remindersEnabled = value),
+                onChanged: (value) =>
+                    setDialogState(() => remindersEnabled = value),
               ),
             ],
           ),
@@ -246,15 +289,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             ElevatedButton(
               onPressed: () {
-                ref.read(appStateProvider.notifier).updateUserProfile(
-                  notificationsEnabled: pushEnabled,
-                  emailNotifications: emailEnabled,
-                  workoutReminders: remindersEnabled,
-                );
+                ref
+                    .read(appStateProvider.notifier)
+                    .updateUserProfile(
+                      notificationsEnabled: pushEnabled,
+                      emailNotifications: emailEnabled,
+                      workoutReminders: remindersEnabled,
+                    );
                 Navigator.of(context).pop();
-                _showSuccessSnackBar('Préférences de notifications mises à jour');
+                _showSuccessSnackBar(
+                  'Préférences de notifications mises à jour',
+                );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
               child: const Text('Enregistrer'),
             ),
           ],
@@ -282,25 +331,46 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               SwitchListTile(
-                title: const Text('Profil public', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Visible par les autres', style: TextStyle(color: AppColors.textSecondary)),
+                title: const Text(
+                  'Profil public',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Visible par les autres',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
                 value: profilePublic,
                 activeColor: AppColors.primary,
-                onChanged: (value) => setDialogState(() => profilePublic = value),
+                onChanged: (value) =>
+                    setDialogState(() => profilePublic = value),
               ),
               SwitchListTile(
-                title: const Text('Partager ma progression', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Avec mes amis', style: TextStyle(color: AppColors.textSecondary)),
+                title: const Text(
+                  'Partager ma progression',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Avec mes amis',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
                 value: shareProgress,
                 activeColor: AppColors.primary,
-                onChanged: (value) => setDialogState(() => shareProgress = value),
+                onChanged: (value) =>
+                    setDialogState(() => shareProgress = value),
               ),
               SwitchListTile(
-                title: const Text('Classement', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Apparaître dans les classements', style: TextStyle(color: AppColors.textSecondary)),
+                title: const Text(
+                  'Classement',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Apparaître dans les classements',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
                 value: showInLeaderboard,
                 activeColor: AppColors.primary,
-                onChanged: (value) => setDialogState(() => showInLeaderboard = value),
+                onChanged: (value) =>
+                    setDialogState(() => showInLeaderboard = value),
               ),
             ],
           ),
@@ -312,9 +382,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _showSuccessSnackBar('Paramètres de confidentialité mis à jour');
+                _showSuccessSnackBar(
+                  'Paramètres de confidentialité mis à jour',
+                );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
               child: const Text('Enregistrer'),
             ),
           ],
@@ -383,7 +457,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildHelpItem({required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildHelpItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -392,7 +470,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             Icon(icon, color: AppColors.primary),
             const SizedBox(width: AppConstants.spacingM),
-            Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+              ),
+            ),
             const Spacer(),
             const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
@@ -406,18 +490,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('FAQ', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'FAQ',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFAQItem('Comment ajouter un exercice ?', 'Allez dans Programme, sélectionnez un jour et appuyez sur "Ajouter un exercice".'),
-              _buildFAQItem('Comment modifier mon programme ?', 'Dans l\'onglet Programme, vous pouvez modifier, ajouter ou supprimer des entraînements.'),
-              _buildFAQItem('Comment suivre ma progression ?', 'Vos statistiques sont visibles sur votre profil et dans l\'analyse de mouvement.'),
+              _buildFAQItem(
+                'Comment ajouter un exercice ?',
+                'Allez dans Programme, sélectionnez un jour et appuyez sur "Ajouter un exercice".',
+              ),
+              _buildFAQItem(
+                'Comment modifier mon programme ?',
+                'Dans l\'onglet Programme, vous pouvez modifier, ajouter ou supprimer des entraînements.',
+              ),
+              _buildFAQItem(
+                'Comment suivre ma progression ?',
+                'Vos statistiques sont visibles sur votre profil et dans l\'analyse de mouvement.',
+              ),
             ],
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Fermer'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+        ],
       ),
     );
   }
@@ -428,7 +529,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          Text(
+            question,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(answer, style: const TextStyle(color: AppColors.textSecondary)),
         ],
@@ -442,7 +549,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Contacter le support', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Contacter le support',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: TextField(
           controller: messageController,
           maxLines: 4,
@@ -450,7 +560,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           decoration: _inputDecoration('Votre message', Icons.message_outlined),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -470,15 +583,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Signaler un bug', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Signaler un bug',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: TextField(
           controller: bugController,
           maxLines: 4,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: _inputDecoration('Décrivez le bug', Icons.bug_report_outlined),
+          decoration: _inputDecoration(
+            'Décrivez le bug',
+            Icons.bug_report_outlined,
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -500,11 +622,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.cardBackground,
-          title: const Text('Feedback', style: TextStyle(color: AppColors.textPrimary)),
+          title: const Text(
+            'Feedback',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Note', style: TextStyle(color: AppColors.textSecondary)),
+              const Text(
+                'Note',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(5, (index) {
@@ -523,18 +651,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 controller: feedbackController,
                 maxLines: 3,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _inputDecoration('Votre feedback', Icons.chat_outlined),
+                decoration: _inputDecoration(
+                  'Votre feedback',
+                  Icons.chat_outlined,
+                ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _showSuccessSnackBar('Merci pour votre feedback !');
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
               child: const Text('Envoyer'),
             ),
           ],
@@ -560,21 +696,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               child: const Icon(Icons.fitness_center, color: AppColors.primary),
             ),
             const SizedBox(width: AppConstants.spacingM),
-            const Text('LiftUp', style: TextStyle(color: AppColors.textPrimary)),
+            const Text(
+              'LiftUp',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Version 1.0.0', style: TextStyle(color: AppColors.textSecondary)),
+            const Text(
+              'Version 1.0.0',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: AppConstants.spacingM),
             const Text(
               'LiftUp est votre coach fitness personnel qui utilise l\'analyse de mouvement par IA pour améliorer votre forme.',
               style: TextStyle(color: AppColors.textPrimary),
             ),
             const SizedBox(height: AppConstants.spacingL),
-            const Text('© 2025 LiftUp Team', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            const Text(
+              '© 2025 LiftUp Team',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
             const SizedBox(height: AppConstants.spacingM),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -613,7 +758,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppConstants.borderRadiusL)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppConstants.borderRadiusL),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -632,15 +779,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const SizedBox(height: AppConstants.spacingL),
               const Text(
                 'Paramètres rapides',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: AppConstants.spacingL),
               Consumer(
                 builder: (context, ref, child) {
                   final appState = ref.watch(appStateProvider);
                   return SwitchListTile(
-                    title: const Text('Mode sombre', style: TextStyle(color: AppColors.textPrimary)),
-                    secondary: const Icon(Icons.dark_mode, color: AppColors.textSecondary),
+                    title: const Text(
+                      'Mode sombre',
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                    secondary: const Icon(
+                      Icons.dark_mode,
+                      color: AppColors.textSecondary,
+                    ),
                     value: appState.isDarkMode,
                     activeColor: AppColors.primary,
                     onChanged: (value) {
@@ -650,17 +807,31 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.language, color: AppColors.textSecondary),
-                title: const Text('Langue', style: TextStyle(color: AppColors.textPrimary)),
-                trailing: const Text('Français', style: TextStyle(color: AppColors.primary)),
+                leading: const Icon(
+                  Icons.language,
+                  color: AppColors.textSecondary,
+                ),
+                title: const Text(
+                  'Langue',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                trailing: const Text(
+                  'Français',
+                  style: TextStyle(color: AppColors.primary),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _showSuccessSnackBar('Langue: Français (seule langue disponible)');
+                  _showSuccessSnackBar(
+                    'Langue: Français (seule langue disponible)',
+                  );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text('Supprimer le compte', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Supprimer le compte',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showDeleteAccountDialog();
@@ -678,13 +849,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: const Text('Supprimer le compte', style: TextStyle(color: Colors.red)),
+        title: const Text(
+          'Supprimer le compte',
+          style: TextStyle(color: Colors.red),
+        ),
         content: const Text(
           'Cette action est irréversible. Toutes vos données seront supprimées.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -728,7 +905,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         content: Text(message),
         backgroundColor: AppColors.secondary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.borderRadiusM)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+        ),
       ),
     );
   }
@@ -776,16 +955,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           Text(
             'Profil',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           IconButton(
             onPressed: _showSettingsMenu,
-            icon: const Icon(
-              Icons.settings,
-              color: AppColors.textSecondary,
-            ),
+            icon: const Icon(Icons.settings, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -802,10 +978,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       padding: const EdgeInsets.all(AppConstants.spacingL),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withOpacity(0.8),
-            AppColors.primary,
-          ],
+          colors: [AppColors.primary.withOpacity(0.8), AppColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -824,11 +997,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 3),
               ),
-              child: const Icon(
-                Icons.person,
-                size: 40,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.person, size: 40, color: Colors.white),
             ),
           ),
           const SizedBox(width: AppConstants.spacingM),
@@ -862,7 +1031,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadiusS,
+                    ),
                   ),
                   child: Text(
                     level,
@@ -886,11 +1057,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.edit,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.edit, color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -912,9 +1079,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           Text(
             'Statistiques',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: AppConstants.spacingM),
           Row(
@@ -998,10 +1165,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: AppConstants.spacingXs),
           Text(
             label,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),
@@ -1022,9 +1186,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               Text(
                 'Réalisations',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 '$unlockedCount/${_achievements.length}',
@@ -1065,7 +1229,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             Icon(
               achievement.icon,
-              color: achievement.isUnlocked ? AppColors.secondary : AppColors.textSecondary,
+              color: achievement.isUnlocked
+                  ? AppColors.secondary
+                  : AppColors.textSecondary,
             ),
             const SizedBox(width: AppConstants.spacingM),
             Expanded(
@@ -1080,18 +1246,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(achievement.description, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              achievement.description,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: AppConstants.spacingM),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingM, vertical: AppConstants.spacingS),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppConstants.spacingM,
+                vertical: AppConstants.spacingS,
+              ),
               decoration: BoxDecoration(
-                color: achievement.isUnlocked ? AppColors.secondary.withOpacity(0.2) : AppColors.navBarBorder.withOpacity(0.3),
+                color: achievement.isUnlocked
+                    ? AppColors.secondary.withOpacity(0.2)
+                    : AppColors.navBarBorder.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
               ),
               child: Text(
                 achievement.isUnlocked ? '✓ Débloqué' : '🔒 Verrouillé',
                 style: TextStyle(
-                  color: achievement.isUnlocked ? AppColors.secondary : AppColors.textSecondary,
+                  color: achievement.isUnlocked
+                      ? AppColors.secondary
+                      : AppColors.textSecondary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1099,7 +1275,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Fermer')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
         ],
       ),
     );
@@ -1165,9 +1344,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           Text(
             'Paramètres',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: AppConstants.spacingM),
           Container(
@@ -1252,10 +1431,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -1282,7 +1458,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.red,
             side: const BorderSide(color: Colors.red),
-            padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppConstants.spacingM,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
             ),
@@ -1307,4 +1485,3 @@ class _Achievement {
     required this.isUnlocked,
   });
 }
-

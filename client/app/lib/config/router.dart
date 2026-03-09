@@ -5,6 +5,7 @@ import 'package:app/features/home/presentation/pages/home_page.dart';
 import 'package:app/features/movement_analysis/presentation/pages/movement_analysis_page.dart';
 import 'package:app/features/profile/presentation/pages/profile_page.dart';
 import 'package:app/features/program/presentation/pages/program_page.dart';
+import 'package:app/features/auth/auth.dart';
 
 int _getNavIndex(String location) {
   if (location.startsWith('/movement-analysis')) return 1;
@@ -40,9 +41,43 @@ CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
   );
 }
 
+// Custom page with fade transition for auth pages
+CustomTransitionPage<void> _buildAuthPage(Widget child, GoRouterState state) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 300),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: animation,
+        child: child,
+      );
+    },
+  );
+}
+
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/home',
+  initialLocation: '/onboarding',
   routes: [
+    // Auth routes (outside shell)
+    GoRoute(
+      path: '/onboarding',
+      pageBuilder: (context, state) => _buildAuthPage(const OnboardingPage(), state),
+      name: 'onboarding',
+    ),
+    GoRoute(
+      path: '/login',
+      pageBuilder: (context, state) => _buildAuthPage(const LoginPage(), state),
+      name: 'login',
+    ),
+    GoRoute(
+      path: '/register',
+      pageBuilder: (context, state) => _buildAuthPage(const RegisterPage(), state),
+      name: 'register',
+    ),
+
+    // Main app routes (inside shell with bottom nav)
     ShellRoute(
       builder: (context, state, child) {
         return MainScaffold(

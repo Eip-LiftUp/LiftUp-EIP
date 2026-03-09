@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/features/home/presentation/pages/home_page.dart';
 import 'package:app/features/movement_analysis/presentation/pages/movement_analysis_page.dart';
-import 'package:app/features/profile/presentation/pages/profile_page.dart';
+import 'package:app/features/profile/presentation/pages/profile_page.dart' show ProfilePage;
 import 'package:app/features/program/presentation/pages/program_page.dart';
 import 'package:app/features/auth/auth.dart';
 

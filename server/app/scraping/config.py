@@ -3,8 +3,8 @@
 Configuration for video scraping operations.
 """
 
-from typing import List, Dict, Optional
-from pydantic import BaseModel, Field
+from typing import List, Dict, Optional, Any
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pathlib import Path
 
 
@@ -15,16 +15,26 @@ class VideoSourceConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether this source is active")
     search_queries: List[str] = Field(default_factory=list, description="Search queries for this source")
     max_videos: int = Field(default=100, description="Maximum videos to scrape from this source")
-    filters: Dict[str, any] = Field(default_factory=dict, description="Additional filters (duration, quality, etc.)")
+    filters: Dict[str, Any] = Field(default_factory=dict, description="Additional filters (duration, quality, etc.)")
 
 
 class ScraperConfig(BaseModel):
     """Main scraper configuration"""
     
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "output_dir": "data/scraped",
+                "video_quality": "720p",
+                "max_concurrent_downloads": 3,
+            }
+        }
+    )
+    
     # Output directories
-    output_dir: Path = Field(default="data/scraped", description="Where to store scraped videos")
-    metadata_dir: Path = Field(default="data/annotations", description="Where to store video metadata")
-    temp_dir: Path = Field(default="data/temp", description="Temporary directory for processing")
+    output_dir: Path = Field(default_factory=lambda: Path("data/scraped"), description="Where to store scraped videos")
+    metadata_dir: Path = Field(default_factory=lambda: Path("data/annotations"), description="Where to store video metadata")
+    temp_dir: Path = Field(default_factory=lambda: Path("data/temp"), description="Temporary directory for processing")
     
     # Video quality settings
     video_format: str = Field(default="mp4", description="Preferred video format")
@@ -79,14 +89,13 @@ class ScraperConfig(BaseModel):
         description="Exercise types to categorize"
     )
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "output_dir": "data/scraped",
-                "video_quality": "720p",
-                "max_concurrent_downloads": 3,
-            }
-        }
+    @field_validator('output_dir', 'metadata_dir', 'temp_dir', mode='before')
+    @classmethod
+    def convert_to_path(cls, v):
+        """Convert string paths to Path objects"""
+        if isinstance(v, str):
+            return Path(v)
+        return v
 
 
 # Default configuration instance

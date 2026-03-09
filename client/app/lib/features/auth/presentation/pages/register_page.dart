@@ -56,15 +56,51 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     // Simulate registration delay (frontend only)
     await Future.delayed(const Duration(seconds: 1));
 
-    // Mock successful registration
-    ref.read(appStateProvider.notifier).setUserToken('mock_token_123');
-    ref.read(appStateProvider.notifier).setIsAuthenticated(true);
+    // Mock successful registration with user data
+    ref.read(appStateProvider.notifier).loginWithMockData(
+      name: _nameController.text,
+      email: _emailController.text,
+    );
 
     setState(() {
       _isLoading = false;
     });
 
     if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Compte créé avec succès !'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+      context.go('/home');
+    }
+  }
+
+  /// Handle social registration
+  Future<void> _socialRegister(String provider) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // Simulate social registration delay
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // Mock successful social registration
+    ref.read(appStateProvider.notifier).loginWithMockData();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Inscription avec $provider réussie !'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
       context.go('/home');
     }
   }
@@ -443,9 +479,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         _SocialRegisterButton(
           icon: Icons.g_mobiledata_rounded,
           label: 'Continuer avec Google',
-          onPressed: () {
-            // TODO: Implement Google signup
-          },
+          onPressed: _isLoading ? () {} : () => _socialRegister('Google'),
         ),
         const SizedBox(height: AppConstants.spacingM),
 
@@ -453,9 +487,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         _SocialRegisterButton(
           icon: Icons.apple,
           label: 'Continuer avec Apple',
-          onPressed: () {
-            // TODO: Implement Apple signup
-          },
+          onPressed: _isLoading ? () {} : () => _socialRegister('Apple'),
         ),
       ],
     );

@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: liftup-postgres_db
+    environment:
+      POSTGRES_DB: liftup_db
+      POSTGRES_USER: liftup_user
+      POSTGRES_PASSWORD: liftup_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liftup_user -d liftup_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - liftup-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Backend API (Rust/Axum)
+  # ============================================================================
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: liftup-backend
+    environment:
+      DATABASE_URL: postgres://liftup_user:liftup_password@postgres:5432/liftup_db
+      DATABASE_MAX_CONNECTIONS: 10
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      RUST_LOG: liftup_backend=debug,tower_http=debug
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - liftup-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  liftup-network:
+    driver: bridge

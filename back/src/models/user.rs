@@ -60,6 +60,7 @@ pub struct CreateUserRequest {
 
 /// DTO — shape of the JSON body returned after successful user creation.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateUserResponse {
     pub id: Uuid,
     pub email: String,

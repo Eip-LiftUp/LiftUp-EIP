@@ -48,4 +48,7 @@ class ApiClient {
 
   /// Get the Dio instance
   Dio get client => dio;
+
+  /// Static getter for easy access to the Dio instance
+  static Dio get instance => ApiClient().client;
 }

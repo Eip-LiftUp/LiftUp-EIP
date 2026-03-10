@@ -1,0 +1,99 @@
+{
+  "output_dir": "data/scraped",
+  "metadata_dir": "data/annotations",
+  "temp_dir": "data/temp",
+  "video_format": "mp4",
+  "video_quality": "720p",
+  "max_duration_seconds": 600,
+  "min_duration_seconds": 30,
+  "extract_frames": true,
+  "frame_rate": 30,
+  "resize_frames": [256, 256],
+  "max_concurrent_downloads": 3,
+  "download_delay_seconds": 2,
+  "sources": [
+    {
+      "name": "Workout YouTube - Squats",
+      "source_type": "youtube",
+      "enabled": false,
+      "search_queries": [
+        "squat form tutorial",
+        "proper squat technique",
+        "barbell squat form check",
+        "squat form analysis"
+      ],
+      "max_videos": 30,
+      "filters": {
+        "min_views": 5000,
+        "language": "en"
+      }
+    },
+    {
+      "name": "Workout YouTube - Deadlifts",
+      "source_type": "youtube",
+      "enabled": false,
+      "search_queries": [
+        "deadlift form tutorial",
+        "proper deadlift technique",
+        "deadlift form check",
+        "conventional deadlift form"
+      ],
+      "max_videos": 30,
+      "filters": {
+        "min_views": 5000,
+        "language": "en"
+      }
+    },
+    {
+      "name": "Workout YouTube - Bench Press",
+      "source_type": "youtube",
+      "enabled": false,
+      "search_queries": [
+        "bench press form tutorial",
+        "proper bench press technique",
+        "bench press form check"
+      ],
+      "max_videos": 20,
+      "filters": {
+        "min_views": 5000,
+        "language": "en"
+      }
+    },
+    {
+      "name": "Workout YouTube - General",
+      "source_type": "youtube",
+      "enabled": false,
+      "search_queries": [
+        "workout form tutorial",
+        "exercise form check",
+        "proper lifting technique"
+      ],
+      "max_videos": 50,
+      "filters": {
+        "min_views": 10000,
+        "language": "en"
+      }
+    }
+  ],
+  "exclude_keywords": [
+    "fail",
+    "injury",
+    "blooper",
+    "worst",
+    "funny",
+    "prank"
+  ],
+  "auto_annotate": true,
+  "exercise_types": [
+    "squat",
+    "deadlift",
+    "bench_press",
+    "overhead_press",
+    "pullup",
+    "row",
+    "lunge",
+    "plank",
+    "bicep_curl",
+    "tricep_extension"
+  ]
+}

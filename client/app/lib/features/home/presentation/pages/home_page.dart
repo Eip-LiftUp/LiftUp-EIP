@@ -33,10 +33,10 @@ class HomePage extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
-        const Icon(
-          Icons.fitness_center,
-          size: 72,
-          color: AppColors.primary,
+        Image.asset(
+          'lib/assets/image.png',
+          width: 72,
+          height: 72,
         ),
         const SizedBox(height: AppConstants.spacingM),
         Text(

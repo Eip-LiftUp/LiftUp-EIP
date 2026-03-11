@@ -14,12 +14,15 @@ mod services;
 
 use config::Config;
 use repositories::user::UserRepository;
+use repositories::workout::WorkoutRepository;
 use services::user::UserService;
+use services::workout::WorkoutService;
 
 /// Shared application state injected into every handler via Axum's `State` extractor.
 #[derive(Clone)]
 pub struct AppState {
     pub user_service: Arc<UserService>,
+    pub workout_service: Arc<WorkoutService>,
 }
 
 #[tokio::main]
@@ -47,7 +50,10 @@ async fn main() -> anyhow::Result<()> {
     let user_repository = UserRepository::new(pool.clone());
     let user_service = Arc::new(UserService::new(user_repository));
 
-    let state = AppState { user_service };
+    let workout_repository = WorkoutRepository::new(pool.clone());
+    let workout_service = Arc::new(WorkoutService::new(workout_repository));
+
+    let state = AppState { user_service, workout_service };
 
     // 6. Build the Axum router with middleware
     let app = routes::build_router(state)

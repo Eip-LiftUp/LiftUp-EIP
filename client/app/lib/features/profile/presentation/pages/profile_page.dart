@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
-import 'package:app/config/providers.dart';
+import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/services/auth_api_service.dart';
+import 'package:app/core/models/user.dart';
 
 /// Profile Page
 ///
@@ -17,33 +19,35 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  /// Mock achievements data
-  final List<_Achievement> _achievements = [
-    _Achievement(
-      title: 'Premier pas',
-      description: 'Complétez votre premier entraînement',
-      icon: Icons.directions_walk,
-      isUnlocked: true,
-    ),
-    _Achievement(
-      title: 'Régularité',
-      description: '7 jours consécutifs d\'entraînement',
-      icon: Icons.local_fire_department,
-      isUnlocked: true,
-    ),
-    _Achievement(
-      title: 'Force brute',
-      description: 'Soulevez 100kg au squat',
-      icon: Icons.fitness_center,
-      isUnlocked: true,
-    ),
-    _Achievement(
-      title: 'Marathonien',
-      description: '30 jours consécutifs d\'entraînement',
-      icon: Icons.emoji_events,
-      isUnlocked: false,
-    ),
-  ];
+  UserProfileResponse? _profileData;
+  bool _isLoadingProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final authState = ref.read(authProvider);
+    if (authState.userId == null) return;
+
+    setState(() => _isLoadingProfile = true);
+
+    try {
+      final api = AuthApiService();
+      final profile = await api.getUserProfile(authState.userId!);
+      setState(() {
+        _profileData = profile;
+        _isLoadingProfile = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingProfile = false);
+      if (mounted) {
+        _showErrorSnackBar('Erreur de chargement du profil: ${e.toString()}');
+      }
+    }
+  }
 
   void _logout() {
     showDialog(
@@ -66,7 +70,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              ref.read(appStateProvider.notifier).logout();
+              ref.read(authProvider.notifier).logout();
               context.go('/onboarding');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -77,17 +81,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  /// Show edit profile dialog
+  /// Show edit profile dialog (Pseudo only)
   void _showEditProfileDialog() {
-    final profile = ref.read(appStateProvider).userProfile;
-    final nameController = TextEditingController(
-      text: profile?.name ?? 'Jean Dupont',
-    );
-    final emailController = TextEditingController(
-      text: profile?.email ?? 'jean.dupont@email.com',
-    );
-    final phoneController = TextEditingController(
-      text: profile?.phone ?? '+33 6 12 34 56 78',
+    final authState = ref.read(authProvider);
+    final displayNameController = TextEditingController(
+      text: _profileData?.displayName ?? authState.username ?? '',
     );
 
     showDialog(
@@ -103,24 +101,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: nameController,
+                controller: displayNameController,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: _inputDecoration(
-                  'Nom complet',
+                  'Pseudo',
                   Icons.person_outline,
                 ),
-              ),
-              const SizedBox(height: AppConstants.spacingM),
-              TextField(
-                controller: emailController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _inputDecoration('Email', Icons.email_outlined),
-              ),
-              const SizedBox(height: AppConstants.spacingM),
-              TextField(
-                controller: phoneController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _inputDecoration('Téléphone', Icons.phone_outlined),
               ),
             ],
           ),
@@ -131,18 +117,47 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () {
-              ref
-                  .read(appStateProvider.notifier)
-                  .updateUserProfile(
-                    name: nameController.text,
-                    email: emailController.text,
-                    phone: phoneController.text,
-                  );
-              Navigator.of(context).pop();
-              _showSuccessSnackBar('Profil mis à jour');
+            onPressed: () async {
+              try {
+                final api = AuthApiService();
+                final userId = authState.userId;
+                
+                if (userId == null) {
+                  _showErrorSnackBar('Erreur: utilisateur non connecté');
+                  return;
+                }
+
+                // Update display name
+                await api.updateProfile(
+                  userId: userId,
+                  displayName: displayNameController.text.isNotEmpty
+                      ? displayNameController.text
+                      : null,
+                );
+
+                // Update auth state
+                if (displayNameController.text.isNotEmpty) {
+                  ref.read(authProvider.notifier).updateDisplayName(
+                        displayNameController.text,
+                      );
+                }
+
+                // Reload profile
+                await _loadUserProfile();
+
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  _showSuccessSnackBar('Pseudo mis à jour avec succès');
+                }
+              } catch (e) {
+                if (mounted) {
+                  _showErrorSnackBar('Erreur: ${e.toString()}');
+                }
+              }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
             child: const Text('Enregistrer'),
           ),
         ],
@@ -150,10 +165,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  /// Show personal info dialog
+  /// Show personal info dialog (Weight, height, fitness level, goals)
   void _showPersonalInfoDialog() {
-    final profile = ref.read(appStateProvider).userProfile;
-    String selectedLevel = profile?.level ?? 'Intermédiaire';
+    final authState = ref.read(authProvider);
+    final weightController = TextEditingController(
+      text: _profileData?.weightKg?.toString() ?? '',
+    );
+    final heightController = TextEditingController(
+      text: _profileData?.heightCm?.toString() ?? '',
+    );
+    String? selectedLevel = _profileData?.fitnessLevel?.name;
+    String? selectedGoal = _profileData?.fitnessGoals;
 
     showDialog(
       context: context,
@@ -167,32 +189,84 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Niveau de fitness',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
+                TextField(
+                  controller: weightController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: _inputDecoration(
+                    'Poids (kg)',
+                    Icons.monitor_weight_outlined,
                   ),
                 ),
-                const SizedBox(height: AppConstants.spacingS),
-                ...['Débutant', 'Intermédiaire', 'Avancé', 'Expert'].map((
-                  level,
-                ) {
-                  return RadioListTile<String>(
-                    title: Text(
-                      level,
-                      style: const TextStyle(color: AppColors.textPrimary),
+                const SizedBox(height: AppConstants.spacingM),
+                TextField(
+                  controller: heightController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: _inputDecoration(
+                    'Taille (cm)',
+                    Icons.height_outlined,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingM),
+                DropdownButtonFormField<String>(
+                  value: selectedLevel,
+                  dropdownColor: AppColors.cardBackground,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: _inputDecoration(
+                    'Niveau de fitness',
+                    Icons.fitness_center_outlined,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'beginner',
+                      child: Text('Débutant'),
                     ),
-                    value: level,
-                    groupValue: selectedLevel,
-                    activeColor: AppColors.primary,
-                    onChanged: (value) {
-                      setDialogState(() => selectedLevel = value!);
-                    },
-                  );
-                }),
+                    DropdownMenuItem(
+                      value: 'intermediate',
+                      child: Text('Intermédiaire'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'advanced',
+                      child: Text('Avancé'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => selectedLevel = value);
+                  },
+                ),
+                const SizedBox(height: AppConstants.spacingM),
+                DropdownButtonFormField<String>(
+                  value: selectedGoal,
+                  dropdownColor: AppColors.cardBackground,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: _inputDecoration(
+                    'Objectifs fitness',
+                    Icons.flag_outlined,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'La sèche',
+                      child: Text('La sèche'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'La prise de masse',
+                      child: Text('La prise de masse'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'La recomposition corporelle',
+                      child: Text('La recomposition corporelle'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'De la force',
+                      child: Text('De la force'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => selectedGoal = value);
+                  },
+                ),
               ],
             ),
           ),
@@ -202,12 +276,61 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               child: const Text('Annuler'),
             ),
             ElevatedButton(
-              onPressed: () {
-                ref
-                    .read(appStateProvider.notifier)
-                    .updateUserProfile(level: selectedLevel);
-                Navigator.of(context).pop();
-                _showSuccessSnackBar('Niveau mis à jour: $selectedLevel');
+              onPressed: () async {
+                try {
+                  final api = AuthApiService();
+                  final userId = authState.userId;
+                  
+                  if (userId == null) {
+                    _showErrorSnackBar('Erreur: utilisateur non connecté');
+                    return;
+                  }
+
+                  // Parse weight and height
+                  final weight = weightController.text.isNotEmpty
+                      ? double.tryParse(weightController.text)
+                      : null;
+                  final height = heightController.text.isNotEmpty
+                      ? int.tryParse(heightController.text)
+                      : null;
+
+                  // Convert fitness level string to enum
+                  FitnessLevel? fitnessLevel;
+                  if (selectedLevel != null) {
+                    switch (selectedLevel) {
+                      case 'beginner':
+                        fitnessLevel = FitnessLevel.beginner;
+                        break;
+                      case 'intermediate':
+                        fitnessLevel = FitnessLevel.intermediate;
+                        break;
+                      case 'advanced':
+                        fitnessLevel = FitnessLevel.advanced;
+                        break;
+                    }
+                  }
+
+                  // Update profile
+                  await api.updateProfile(
+                    userId: userId,
+                    weightKg: weight,
+                    heightCm: height,
+                    fitnessLevel: fitnessLevel,
+                    fitnessGoals: selectedGoal,
+                  );
+
+                  // Reload profile data
+                  await _loadUserProfile();
+
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    _showSuccessSnackBar('Informations mises à jour avec succès');
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    _showErrorSnackBar('Erreur: ${e.toString()}');
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -222,10 +345,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   /// Show notifications settings dialog
   void _showNotificationsDialog() {
-    final profile = ref.read(appStateProvider).userProfile;
-    bool pushEnabled = profile?.notificationsEnabled ?? true;
-    bool emailEnabled = profile?.emailNotifications ?? true;
-    bool remindersEnabled = profile?.workoutReminders ?? true;
+    // TODO: Gérer les préférences de notification dans le backend
+    bool pushEnabled = true;
+    bool emailEnabled = true;
+    bool remindersEnabled = true;
 
     showDialog(
       context: context,
@@ -289,16 +412,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             ElevatedButton(
               onPressed: () {
-                ref
-                    .read(appStateProvider.notifier)
-                    .updateUserProfile(
-                      notificationsEnabled: pushEnabled,
-                      emailNotifications: emailEnabled,
-                      workoutReminders: remindersEnabled,
-                    );
+                // TODO: Sauvegarder les préférences de notification
                 Navigator.of(context).pop();
                 _showSuccessSnackBar(
-                  'Préférences de notifications mises à jour',
+                  'Préférences de notifications (à venir)',
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -786,24 +903,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
               const SizedBox(height: AppConstants.spacingL),
-              Consumer(
-                builder: (context, ref, child) {
-                  final appState = ref.watch(appStateProvider);
-                  return SwitchListTile(
-                    title: const Text(
-                      'Mode sombre',
-                      style: TextStyle(color: AppColors.textPrimary),
-                    ),
-                    secondary: const Icon(
-                      Icons.dark_mode,
-                      color: AppColors.textSecondary,
-                    ),
-                    value: appState.isDarkMode,
-                    activeColor: AppColors.primary,
-                    onChanged: (value) {
-                      ref.read(appStateProvider.notifier).toggleDarkMode();
-                    },
-                  );
+              SwitchListTile(
+                title: const Text(
+                  'Mode sombre',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                secondary: const Icon(
+                  Icons.dark_mode,
+                  color: AppColors.textSecondary,
+                ),
+                value: false, // TODO: Implémenter le dark mode
+                activeColor: AppColors.primary,
+                onChanged: (value) {
+                  _showSuccessSnackBar('Mode sombre (à venir)');
                 },
               ),
               ListTile(
@@ -865,9 +977,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              ref.read(appStateProvider.notifier).logout();
+              // TODO: Implémenter DELETE user dans le backend
+              ref.read(authProvider.notifier).logout();
               context.go('/onboarding');
-              _showSuccessSnackBar('Compte supprimé (mock)');
+              _showSuccessSnackBar('Suppression de compte (à venir)');
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Supprimer'),
@@ -912,10 +1025,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final appState = ref.watch(appStateProvider);
-    final profile = appState.userProfile;
+    final authState = ref.watch(authProvider);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -925,13 +1050,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             _buildHeader(),
 
             // Profile card
-            _buildProfileCard(profile),
+            _buildProfileCard(authState),
 
             // Stats section
-            _buildStatsSection(profile),
-
-            // Achievements section
-            _buildAchievementsSection(),
+            _buildStatsSection(),
 
             // Settings section
             _buildSettingsSection(),
@@ -968,10 +1090,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildProfileCard(UserProfile? profile) {
-    final name = profile?.name ?? 'Jean Dupont';
-    final email = profile?.email ?? 'jean.dupont@email.com';
-    final level = profile?.level ?? 'Intermédiaire';
+  Widget _buildProfileCard(AuthState authState) {
+    final name = _profileData?.displayName ?? authState.username ?? 'Utilisateur';
+    final email = authState.email ?? 'email@example.com';
+    final levelText = _profileData?.fitnessLevel != null
+        ? _getFitnessLevelText(_profileData!.fitnessLevel!)
+        : 'Non défini';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppConstants.spacingL),
@@ -1015,14 +1139,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  email,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
-                  ),
-                ),
                 const SizedBox(height: AppConstants.spacingS),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1036,7 +1152,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                   ),
                   child: Text(
-                    level,
+                    levelText,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -1065,41 +1181,57 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildStatsSection(UserProfile? profile) {
-    final totalWorkouts = profile?.totalWorkouts ?? 47;
-    final totalHours = profile?.totalHours ?? 62;
-    final currentStreak = profile?.currentStreak ?? 5;
-    final longestStreak = profile?.longestStreak ?? 12;
+  Widget _buildStatsSection() {
+    final weight = _profileData?.weightKg;
+    final height = _profileData?.heightCm;
+    final goals = _profileData?.fitnessGoals ?? 'Non défini';
+    final level = _profileData?.fitnessLevel != null
+        ? _getFitnessLevelText(_profileData!.fitnessLevel!)
+        : 'Non défini';
 
     return Padding(
       padding: const EdgeInsets.all(AppConstants.spacingL),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Statistiques',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Mes informations',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_isLoadingProfile)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: AppConstants.spacingM),
           Row(
             children: [
               Expanded(
                 child: _buildStatCard(
-                  icon: Icons.fitness_center,
-                  value: '$totalWorkouts',
-                  label: 'Entraînements',
+                  icon: Icons.monitor_weight_outlined,
+                  value: weight != null ? '${weight.toStringAsFixed(1)} kg' : '-',
+                  label: 'Poids',
                   color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: AppConstants.spacingM),
               Expanded(
                 child: _buildStatCard(
-                  icon: Icons.timer,
-                  value: '${totalHours}h',
-                  label: 'Heures totales',
+                  icon: Icons.height_outlined,
+                  value: height != null ? '$height cm' : '-',
+                  label: 'Taille',
                   color: AppColors.secondary,
                 ),
               ),
@@ -1110,19 +1242,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             children: [
               Expanded(
                 child: _buildStatCard(
-                  icon: Icons.local_fire_department,
-                  value: '$currentStreak',
-                  label: 'Série actuelle',
+                  icon: Icons.fitness_center,
+                  value: level,
+                  label: 'Niveau',
                   color: AppColors.accent,
+                  valueSize: 14,
                 ),
               ),
               const SizedBox(width: AppConstants.spacingM),
               Expanded(
                 child: _buildStatCard(
-                  icon: Icons.emoji_events,
-                  value: '$longestStreak',
-                  label: 'Meilleure série',
+                  icon: Icons.flag_outlined,
+                  value: goals,
+                  label: 'Objectif',
                   color: Colors.purple,
+                  valueSize: 14,
                 ),
               ),
             ],
@@ -1137,6 +1271,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     required String value,
     required String label,
     required Color color,
+    double? valueSize,
   }) {
     return Container(
       padding: const EdgeInsets.all(AppConstants.spacingM),
@@ -1152,12 +1287,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             children: [
               Icon(icon, color: color, size: 24),
               const SizedBox(width: AppConstants.spacingS),
-              Text(
-                value,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: valueSize ?? 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
             ],
@@ -1172,167 +1312,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildAchievementsSection() {
-    final unlockedCount = _achievements.where((a) => a.isUnlocked).length;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Réalisations',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '$unlockedCount/${_achievements.length}',
-                style: TextStyle(
-                  color: AppColors.secondary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppConstants.spacingM),
-          SizedBox(
-            height: 100,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _achievements.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: AppConstants.spacingM),
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () => _showAchievementDetails(_achievements[index]),
-                  child: _buildAchievementCard(_achievements[index]),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAchievementDetails(_Achievement achievement) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Row(
-          children: [
-            Icon(
-              achievement.icon,
-              color: achievement.isUnlocked
-                  ? AppColors.secondary
-                  : AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppConstants.spacingM),
-            Expanded(
-              child: Text(
-                achievement.title,
-                style: const TextStyle(color: AppColors.textPrimary),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              achievement.description,
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.spacingM,
-                vertical: AppConstants.spacingS,
-              ),
-              decoration: BoxDecoration(
-                color: achievement.isUnlocked
-                    ? AppColors.secondary.withOpacity(0.2)
-                    : AppColors.navBarBorder.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
-              ),
-              child: Text(
-                achievement.isUnlocked ? '✓ Débloqué' : '🔒 Verrouillé',
-                style: TextStyle(
-                  color: achievement.isUnlocked
-                      ? AppColors.secondary
-                      : AppColors.textSecondary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAchievementCard(_Achievement achievement) {
-    return Container(
-      width: 100,
-      padding: const EdgeInsets.all(AppConstants.spacingM),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        border: Border.all(
-          color: achievement.isUnlocked
-              ? AppColors.secondary.withOpacity(0.5)
-              : AppColors.navBarBorder,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppConstants.spacingS),
-            decoration: BoxDecoration(
-              color: achievement.isUnlocked
-                  ? AppColors.secondary.withOpacity(0.2)
-                  : AppColors.navBarBorder.withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              achievement.icon,
-              color: achievement.isUnlocked
-                  ? AppColors.secondary
-                  : AppColors.textSecondary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: AppConstants.spacingS),
-          Text(
-            achievement.title,
-            style: TextStyle(
-              color: achievement.isUnlocked
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
+  String _getFitnessLevelText(FitnessLevel level) {
+    switch (level) {
+      case FitnessLevel.beginner:
+        return 'Débutant';
+      case FitnessLevel.intermediate:
+        return 'Intermédiaire';
+      case FitnessLevel.advanced:
+        return 'Avancé';
+    }
   }
 
   Widget _buildSettingsSection() {
@@ -1469,19 +1457,4 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ),
     );
   }
-}
-
-/// Data class for achievement
-class _Achievement {
-  final String title;
-  final String description;
-  final IconData icon;
-  final bool isUnlocked;
-
-  _Achievement({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.isUnlocked,
-  });
 }

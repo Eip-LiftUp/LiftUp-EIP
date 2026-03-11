@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
-import 'package:app/config/providers.dart';
+import 'package:app/core/providers/auth_provider.dart';
 
 /// Register Page
 /// 
@@ -53,56 +53,42 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       _errorMessage = null;
     });
 
-    // Simulate registration delay (frontend only)
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Mock successful registration with user data
-    ref.read(appStateProvider.notifier).loginWithMockData(
-      name: _nameController.text,
-      email: _emailController.text,
+    // Register via backend API
+    final success = await ref.read(authProvider.notifier).register(
+      email: _emailController.text.trim(),
+      username: _nameController.text.trim(),
+      password: _passwordController.text,
+      displayName: _nameController.text.trim(),
     );
 
-    setState(() {
-      _isLoading = false;
-    });
-
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Compte créé avec succès !'),
-          backgroundColor: AppColors.secondary,
-        ),
-      );
-      context.go('/home');
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Compte créé avec succès !'),
+            backgroundColor: AppColors.secondary,
+          ),
+        );
+        context.go('/home');
+      } else {
+        // Error message is in authProvider state
+        final errorMsg = ref.read(authProvider).errorMessage ?? 'Erreur d\'inscription';
+        setState(() {
+          _isLoading = false;
+          _errorMessage = errorMsg;
+        });
+      }
     }
   }
 
-  /// Handle social registration
+  /// Handle social registration (not implemented yet)
   Future<void> _socialRegister(String provider) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    // Simulate social registration delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Mock successful social registration
-    ref.read(appStateProvider.notifier).loginWithMockData();
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Inscription avec $provider réussie !'),
-          backgroundColor: AppColors.secondary,
-        ),
-      );
-      context.go('/home');
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Inscription avec $provider non disponible'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   @override

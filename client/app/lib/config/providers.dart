@@ -1,4 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/services/workout_api_service.dart';
+import 'package:app/core/models/workout.dart' as api_models;
+
+// ==================== API SERVICES ====================
+
+/// Workout API service provider
+final workoutApiServiceProvider = Provider<WorkoutApiService>((ref) {
+  return WorkoutApiService(baseUrl: 'http://10.0.2.2:8080'); // Android emulator
+});
 
 // ==================== USER PROFILE ====================
 

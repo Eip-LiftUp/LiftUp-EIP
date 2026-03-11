@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
-import 'package:app/config/providers.dart';
+import 'package:app/core/providers/auth_provider.dart';
 
 /// Login Page
 /// 
@@ -40,49 +40,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       _errorMessage = null;
     });
 
-    // Simulate login delay (frontend only)
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Mock successful login with user data
-    ref.read(appStateProvider.notifier).loginWithMockData(
-      email: _emailController.text,
+    // Login via backend API
+    final success = await ref.read(authProvider.notifier).login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
     );
 
-    setState(() {
-      _isLoading = false;
-    });
-
     if (mounted) {
-      context.go('/home');
+      if (success) {
+        context.go('/home');
+      } else {
+        // Error message is in authProvider state
+        final errorMsg = ref.read(authProvider).errorMessage ?? 'Erreur de connexion';
+        setState(() {
+          _isLoading = false;
+          _errorMessage = errorMsg;
+        });
+      }
     }
   }
 
-  /// Handle social login
+  /// Handle social login (not implemented yet)
   Future<void> _socialLogin(String provider) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    // Simulate social login delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Mock successful social login
-    ref.read(appStateProvider.notifier).loginWithMockData();
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Connexion avec $provider réussie !'),
-          backgroundColor: AppColors.secondary,
-        ),
-      );
-      context.go('/home');
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Connexion avec $provider non disponible'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   /// Show forgot password dialog

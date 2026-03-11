@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
-import 'package:app/config/providers.dart';
+import 'package:app/core/providers/workout_provider.dart';
+import 'package:app/core/models/workout.dart';
+import 'package:intl/intl.dart';
 
-/// Program/Schedule Page
+/// Program Page - Hevy style workout tracking
 /// 
-/// Displays the user's weekly training schedule with
-/// workout sessions, progress tracking, and exercise management.
+/// Displays workout history and allows creating new workouts with exercises.
+/// Features: create workouts, add exercises, track weight in kg/lbs
 class ProgramPage extends ConsumerStatefulWidget {
   const ProgramPage({super.key});
 

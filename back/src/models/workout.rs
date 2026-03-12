@@ -46,6 +46,7 @@ pub struct Exercise {
     pub order_index: i32,
     pub notes: Option<String>,
     pub is_completed: bool,
+    pub sets_data: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -111,6 +112,7 @@ pub struct UpdateExerciseRequest {
     pub order_index: Option<i32>,
     pub notes: Option<String>,
     pub is_completed: Option<bool>,
+    pub sets_data: Option<serde_json::Value>,
 }
 
 /// Response for workout with exercises
@@ -143,6 +145,7 @@ pub struct ExerciseResponse {
     pub order_index: i32,
     pub notes: Option<String>,
     pub is_completed: bool,
+    pub sets_data: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -159,6 +162,7 @@ impl From<Exercise> for ExerciseResponse {
             order_index: e.order_index,
             notes: e.notes,
             is_completed: e.is_completed,
+            sets_data: e.sets_data,
             created_at: e.created_at,
         }
     }

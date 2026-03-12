@@ -38,6 +38,9 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
   /// Form key for validation
   final _formKey = GlobalKey<FormState>();
 
+  /// Selected exercise type for ideal form comparison
+  String _selectedExerciseType = 'squat';
+
   /// Current upload state
   _UploadState _uploadState = _UploadState.idle;
 
@@ -118,7 +121,7 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
       // Actually upload and analyze the video using the AI service
       final result = await _analysisService.analyzeVideo(
         videoPath: widget.videoPath,
-        exerciseType: _titleController.text.isNotEmpty ? _titleController.text : null,
+        exerciseType: _selectedExerciseType,
         onProgress: (progress) {
           setState(() {
             _uploadProgress = progress;
@@ -369,7 +372,14 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
                 ),
           ),
           const SizedBox(height: AppConstants.spacingS),
-          _ExerciseTypeSelector(),
+          _ExerciseTypeSelector(
+            selectedType: _selectedExerciseType,
+            onSelected: (type) {
+              setState(() {
+                _selectedExerciseType = type;
+              });
+            },
+          ),
           const SizedBox(height: AppConstants.spacingXl * 2),
 
           // Upload button
@@ -718,19 +728,23 @@ enum _UploadState {
 }
 
 /// Exercise type selector widget
-class _ExerciseTypeSelector extends StatefulWidget {
-  @override
-  State<_ExerciseTypeSelector> createState() => _ExerciseTypeSelectorState();
-}
+class _ExerciseTypeSelector extends StatelessWidget {
+  final String selectedType;
+  final ValueChanged<String> onSelected;
 
-class _ExerciseTypeSelectorState extends State<_ExerciseTypeSelector> {
-  String _selectedType = 'squat';
+  const _ExerciseTypeSelector({
+    required this.selectedType,
+    required this.onSelected,
+  });
 
-  final _exerciseTypes = [
+  static const _exerciseTypes = [
     {'id': 'squat', 'name': 'Squat', 'icon': Icons.accessibility_new},
+    {'id': 'pushup', 'name': 'Push Up', 'icon': Icons.sports_gymnastics},
+    {'id': 'lunge', 'name': 'Lunge', 'icon': Icons.directions_walk},
+    {'id': 'bicep_curl', 'name': 'Bicep Curl', 'icon': Icons.fitness_center},
     {'id': 'deadlift', 'name': 'Deadlift', 'icon': Icons.fitness_center},
     {'id': 'bench_press', 'name': 'Bench Press', 'icon': Icons.airline_seat_flat},
-    {'id': 'overhead_press', 'name': 'Overhead Press', 'icon': Icons.upload},
+    {'id': 'shoulder_press', 'name': 'Shoulder Press', 'icon': Icons.upload},
     {'id': 'pull_up', 'name': 'Pull Up', 'icon': Icons.expand_less},
     {'id': 'other', 'name': 'Autre', 'icon': Icons.more_horiz},
   ];
@@ -741,7 +755,7 @@ class _ExerciseTypeSelectorState extends State<_ExerciseTypeSelector> {
       spacing: AppConstants.spacingS,
       runSpacing: AppConstants.spacingS,
       children: _exerciseTypes.map((type) {
-        final isSelected = _selectedType == type['id'];
+        final isSelected = selectedType == type['id'];
         return ChoiceChip(
           label: Row(
             mainAxisSize: MainAxisSize.min,
@@ -758,9 +772,7 @@ class _ExerciseTypeSelectorState extends State<_ExerciseTypeSelector> {
           selected: isSelected,
           onSelected: (selected) {
             if (selected) {
-              setState(() {
-                _selectedType = type['id'] as String;
-              });
+              onSelected(type['id'] as String);
             }
           },
           selectedColor: AppColors.primary,

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from app.api.endpoints import pose, analysis, health
+from app.api.endpoints import pose, analysis, health, video
 from app.core.config import settings
 
 # Initialize FastAPI app
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(pose.router, prefix="/api/v1/pose", tags=["pose"])
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
+app.include_router(video.router, prefix="/api/v1/video", tags=["video"])
 
 
 @app.get("/")

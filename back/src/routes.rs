@@ -2,6 +2,7 @@ use axum::{routing::{get, post, patch}, Router};
 
 use crate::{
     handlers::{
+        analysis::{analyze_video, get_supported_exercises, ai_health_check},
         health::health_check,
         user::{create_user, get_user, login, update_user},
         workout::{
@@ -39,5 +40,9 @@ pub fn build_router(state: AppState) -> Router {
         .route("/users/:user_id/workouts/:workout_id", get(get_workout).patch(update_workout).delete(delete_workout))
         .route("/users/:user_id/workouts/:workout_id/exercises", post(add_exercise))
         .route("/users/:user_id/exercises/:exercise_id", patch(update_exercise).delete(delete_exercise))
+        // AI Analysis routes (proxied to Python service)
+        .route("/ai/analyze", post(analyze_video))
+        .route("/ai/exercises", get(get_supported_exercises))
+        .route("/ai/health", get(ai_health_check))
         .with_state(state)
 }

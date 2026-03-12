@@ -2,12 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/services/workout_api_service.dart';
 import 'package:app/core/models/workout.dart';
 import 'package:app/core/providers/auth_provider.dart';
+<<<<<<< feat/machine-learning
+import 'package:app/config/providers.dart';
+=======
 import 'package:app/core/config/api_config.dart';
 
 /// Workout API service provider
 final workoutApiServiceProvider = Provider<WorkoutApiService>((ref) {
   return WorkoutApiService(baseUrl: ApiConfig.baseUrl);
 });
+>>>>>>> dev
 
 /// State for API workouts
 class ApiWorkoutState {

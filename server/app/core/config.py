@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     
     # ML Model Settings
     POSE_MODEL_PATH: str = "data/models/pose_model.pt"
+    I3D_MODEL_PATH: str = "data/models/i3d_model.pt"
     CONFIDENCE_THRESHOLD: float = 0.5
     
     # Processing Settings

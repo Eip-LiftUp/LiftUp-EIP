@@ -1,0 +1,7 @@
+# Development requirements
+-r requirements.txt
+
+# Additional development tools
+ipython==8.20.0
+jupyter==1.0.0
+debugpy==1.8.0

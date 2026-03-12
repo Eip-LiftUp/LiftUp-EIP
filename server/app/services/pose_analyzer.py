@@ -89,7 +89,31 @@ class PoseAnalyzer:
         }
     }
     
-    def __init__(self):
+    # Skeleton connections for drawing
+    POSE_CONNECTIONS = [
+        # Torso
+        (11, 12), (11, 23), (12, 24), (23, 24),
+        # Left arm
+        (11, 13), (13, 15),
+        # Right arm
+        (12, 14), (14, 16),
+        # Left leg
+        (23, 25), (25, 27), (27, 29), (27, 31),
+        # Right leg
+        (24, 26), (26, 28), (28, 30), (28, 32),
+    ]
+    
+    # Ideal angles for exercises (target ranges)
+    IDEAL_ANGLES = {
+        'squat': {'knee': (80, 100), 'hip': (70, 90)},
+        'lunge': {'knee': (80, 100), 'hip': (80, 110)},
+        'pushup': {'elbow': (80, 100)},
+        'deadlift': {'hip': (90, 120), 'knee': (150, 170)},
+        'bicep_curl': {'elbow': (30, 50)},
+        'shoulder_press': {'elbow': (160, 180)},
+    }
+    
+    def __init__(self, output_dir: str = "/app/data/output"):
         """Initialize MediaPipe Pose detector."""
         self.pose = mp_pose.Pose(
             static_image_mode=False,
@@ -98,6 +122,9 @@ class PoseAnalyzer:
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5
         )
+        self.output_dir = output_dir
+        import os
+        os.makedirs(output_dir, exist_ok=True)
         print("[PoseAnalyzer] MediaPipe Pose initialized")
     
     def _calculate_angle(self, a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
@@ -123,6 +150,312 @@ class PoseAnalyzer:
         """Extract x, y, z coordinates from a landmark."""
         lm = landmarks.landmark[idx]
         return np.array([lm.x, lm.y, lm.z])
+    
+    def _get_score_color(self, score: float) -> Tuple[int, int, int]:
+        """Get BGR color based on score (0-100)."""
+        if score >= 80:
+            return (0, 255, 0)  # Green - good
+        elif score >= 50:
+            return (0, 255, 255)  # Yellow - needs work
+        else:
+            return (0, 0, 255)  # Red - poor
+    
+    def _draw_skeleton(
+        self, 
+        frame: np.ndarray, 
+        landmarks, 
+        angles: Dict[str, float],
+        exercise: str,
+        frame_scores: Dict[str, float]
+    ) -> np.ndarray:
+        """
+        Draw pose skeleton on frame with color-coded feedback.
+        
+        Args:
+            frame: BGR image
+            landmarks: MediaPipe pose landmarks
+            angles: Current joint angles
+            exercise: Detected exercise type
+            frame_scores: Current frame's scores
+        
+        Returns:
+            Annotated frame
+        """
+        h, w = frame.shape[:2]
+        annotated = frame.copy()
+        
+        # Get overall color based on average score
+        avg_score = np.mean(list(frame_scores.values())) if frame_scores else 50
+        main_color = self._get_score_color(avg_score)
+        
+        # Draw connections (skeleton lines)
+        for connection in self.POSE_CONNECTIONS:
+            start_idx, end_idx = connection
+            
+            start = landmarks.landmark[start_idx]
+            end = landmarks.landmark[end_idx]
+            
+            if start.visibility > 0.5 and end.visibility > 0.5:
+                start_point = (int(start.x * w), int(start.y * h))
+                end_point = (int(end.x * w), int(end.y * h))
+                
+                # Color based on body part
+                if start_idx in [23, 24, 25, 26, 27, 28]:  # Legs
+                    color = self._get_score_color(frame_scores.get('depth', 50))
+                elif start_idx in [11, 12, 23, 24]:  # Torso
+                    color = self._get_score_color(frame_scores.get('alignment', 50))
+                else:
+                    color = main_color
+                
+                cv2.line(annotated, start_point, end_point, color, 3)
+        
+        # Draw joint circles
+        for idx in [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]:
+            lm = landmarks.landmark[idx]
+            if lm.visibility > 0.5:
+                point = (int(lm.x * w), int(lm.y * h))
+                cv2.circle(annotated, point, 6, main_color, -1)
+                cv2.circle(annotated, point, 6, (255, 255, 255), 2)
+        
+        # Draw angle annotations at key joints
+        angle_positions = {
+            'left_knee': (25, 'L Knee'),
+            'right_knee': (26, 'R Knee'),
+            'left_elbow': (13, 'L Elbow'),
+            'right_elbow': (14, 'R Elbow'),
+            'left_hip': (23, 'L Hip'),
+            'right_hip': (24, 'R Hip'),
+        }
+        
+        for angle_name, (idx, label) in angle_positions.items():
+            if angle_name in angles:
+                lm = landmarks.landmark[idx]
+                if lm.visibility > 0.5:
+                    point = (int(lm.x * w) + 10, int(lm.y * h) - 10)
+                    angle_val = angles[angle_name]
+                    
+                    # Check if angle is in ideal range
+                    ideal = self.IDEAL_ANGLES.get(exercise, {})
+                    joint_type = angle_name.split('_')[1]  # knee, elbow, hip
+                    ideal_range = ideal.get(joint_type, (0, 180))
+                    
+                    if ideal_range[0] <= angle_val <= ideal_range[1]:
+                        color = (0, 255, 0)  # Green - in range
+                    elif abs(angle_val - ideal_range[0]) < 20 or abs(angle_val - ideal_range[1]) < 20:
+                        color = (0, 255, 255)  # Yellow - close
+                    else:
+                        color = (0, 0, 255)  # Red - out of range
+                    
+                    cv2.putText(annotated, f"{angle_val:.0f}°", point, 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
+        return annotated
+    
+    def _draw_ideal_guide(
+        self,
+        frame: np.ndarray,
+        landmarks,
+        exercise: str,
+        angles: Dict[str, float]
+    ) -> np.ndarray:
+        """
+        Draw ideal form guide lines showing where joints should be.
+        
+        Args:
+            frame: BGR image
+            landmarks: MediaPipe landmarks
+            exercise: Exercise type
+            angles: Current angles
+        
+        Returns:
+            Frame with guide lines
+        """
+        h, w = frame.shape[:2]
+        annotated = frame.copy()
+        
+        ideal = self.IDEAL_ANGLES.get(exercise, {})
+        
+        # Draw guide for squats/lunges (knee angle)
+        if exercise in ['squat', 'lunge'] and 'knee' in ideal:
+            ideal_knee_min, ideal_knee_max = ideal['knee']
+            ideal_knee = (ideal_knee_min + ideal_knee_max) / 2
+            
+            for side, knee_idx, hip_idx, ankle_idx in [
+                ('left', 25, 23, 27), ('right', 26, 24, 28)
+            ]:
+                knee_lm = landmarks.landmark[knee_idx]
+                hip_lm = landmarks.landmark[hip_idx]
+                ankle_lm = landmarks.landmark[ankle_idx]
+                
+                if all(lm.visibility > 0.5 for lm in [knee_lm, hip_lm, ankle_lm]):
+                    knee_pt = np.array([knee_lm.x * w, knee_lm.y * h])
+                    hip_pt = np.array([hip_lm.x * w, hip_lm.y * h])
+                    ankle_pt = np.array([ankle_lm.x * w, ankle_lm.y * h])
+                    
+                    # Calculate where knee should be for ideal angle
+                    # Draw a faint arc showing ideal range
+                    current_angle = angles.get(f'{side}_knee', 90)
+                    
+                    if current_angle > ideal_knee_max:
+                        # Need to go deeper - draw downward arrow
+                        arrow_start = (int(knee_pt[0]), int(knee_pt[1]))
+                        arrow_end = (int(knee_pt[0]), int(knee_pt[1] + 30))
+                        cv2.arrowedLine(annotated, arrow_start, arrow_end, 
+                                       (0, 200, 255), 2, tipLength=0.3)
+                        cv2.putText(annotated, "Go deeper", 
+                                   (int(knee_pt[0]) + 5, int(knee_pt[1]) + 45),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 200, 255), 1)
+        
+        # Draw guide for pushups (elbow angle)
+        if exercise == 'pushup' and 'elbow' in ideal:
+            ideal_elbow_min, ideal_elbow_max = ideal['elbow']
+            
+            for side, elbow_idx in [('left', 13), ('right', 14)]:
+                elbow_lm = landmarks.landmark[elbow_idx]
+                
+                if elbow_lm.visibility > 0.5:
+                    current_angle = angles.get(f'{side}_elbow', 90)
+                    
+                    if current_angle > ideal_elbow_max:
+                        elbow_pt = (int(elbow_lm.x * w), int(elbow_lm.y * h))
+                        cv2.putText(annotated, "Lower", 
+                                   (elbow_pt[0] + 10, elbow_pt[1]),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 200, 255), 1)
+        
+        return annotated
+    
+    def _draw_score_overlay(
+        self,
+        frame: np.ndarray,
+        scores: Dict[str, float],
+        quality_score: float,
+        exercise: str
+    ) -> np.ndarray:
+        """Draw score overlay on frame."""
+        h, w = frame.shape[:2]
+        annotated = frame.copy()
+        
+        # Semi-transparent background for scores
+        overlay = annotated.copy()
+        cv2.rectangle(overlay, (10, 10), (200, 140), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.6, annotated, 0.4, 0, annotated)
+        
+        # Exercise name
+        cv2.putText(annotated, exercise.replace('_', ' ').title(),
+                   (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        
+        # Overall score with color
+        score_color = self._get_score_color(quality_score)
+        cv2.putText(annotated, f"Score: {quality_score:.0f}/100",
+                   (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, score_color, 2)
+        
+        # Individual scores
+        y_offset = 80
+        for aspect, score in list(scores.items())[:3]:  # Show top 3
+            color = self._get_score_color(score)
+            label = aspect.replace('_', ' ').title()[:10]
+            cv2.putText(annotated, f"{label}: {score:.0f}",
+                       (20, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+            y_offset += 18
+        
+        return annotated
+    
+    def _generate_annotated_video(
+        self,
+        video_path: str,
+        exercise: str,
+        form_scores: Dict[str, float],
+        quality_score: float
+    ) -> Optional[str]:
+        """
+        Generate annotated video with pose overlay and feedback.
+        
+        Returns path to the generated video file.
+        """
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            return None
+        
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # Output filename
+        output_filename = f"annotated_{uuid.uuid4().hex[:8]}.mp4"
+        output_path = f"{self.output_dir}/{output_filename}"
+        
+        # Video writer (H.264 codec for web compatibility)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        
+        if not out.isOpened():
+            cap.release()
+            return None
+        
+        frame_count = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Process pose
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = self.pose.process(rgb_frame)
+            
+            if results.pose_landmarks:
+                landmarks = results.pose_landmarks
+                
+                # Calculate angles for this frame
+                angles = {}
+                joints = {}
+                for name, idx in self.LANDMARKS.items():
+                    coords = self._get_landmark_coords(landmarks, idx)
+                    visibility = landmarks.landmark[idx].visibility
+                    joints[name] = {'coords': coords, 'visibility': visibility}
+                
+                # Calculate key angles
+                if all(joints[j]['visibility'] > 0.5 for j in ['left_hip', 'left_knee', 'left_ankle']):
+                    angles['left_knee'] = self._calculate_angle(
+                        joints['left_hip']['coords'],
+                        joints['left_knee']['coords'],
+                        joints['left_ankle']['coords']
+                    )
+                if all(joints[j]['visibility'] > 0.5 for j in ['right_hip', 'right_knee', 'right_ankle']):
+                    angles['right_knee'] = self._calculate_angle(
+                        joints['right_hip']['coords'],
+                        joints['right_knee']['coords'],
+                        joints['right_ankle']['coords']
+                    )
+                if all(joints[j]['visibility'] > 0.5 for j in ['left_shoulder', 'left_elbow', 'left_wrist']):
+                    angles['left_elbow'] = self._calculate_angle(
+                        joints['left_shoulder']['coords'],
+                        joints['left_elbow']['coords'],
+                        joints['left_wrist']['coords']
+                    )
+                if all(joints[j]['visibility'] > 0.5 for j in ['right_shoulder', 'right_elbow', 'right_wrist']):
+                    angles['right_elbow'] = self._calculate_angle(
+                        joints['right_shoulder']['coords'],
+                        joints['right_elbow']['coords'],
+                        joints['right_wrist']['coords']
+                    )
+                
+                # Draw skeleton with colors
+                frame = self._draw_skeleton(frame, landmarks, angles, exercise, form_scores)
+                
+                # Draw ideal guides
+                frame = self._draw_ideal_guide(frame, landmarks, exercise, angles)
+            
+            # Draw score overlay
+            frame = self._draw_score_overlay(frame, form_scores, quality_score, exercise)
+            
+            out.write(frame)
+            frame_count += 1
+        
+        cap.release()
+        out.release()
+        
+        print(f"[PoseAnalyzer] Generated annotated video: {output_path} ({frame_count} frames)")
+        return output_filename
     
     def _extract_pose_data(self, frame: np.ndarray) -> Optional[Dict[str, Any]]:
         """
@@ -766,8 +1099,6 @@ class PoseAnalyzer:
         feedback.sort(key=lambda x: x["severity"], reverse=True)
         
         return feedback
-        
-        return feedback
     
     async def analyze_video(
         self,
@@ -900,16 +1231,28 @@ class PoseAnalyzer:
             {"rom_range": rom_range}
         )
         
+        # Generate annotated video with pose overlay
+        annotated_video = self._generate_annotated_video(
+            video_path, 
+            detected_exercise, 
+            form_scores, 
+            quality_score
+        )
+        
         processing_time = (datetime.utcnow() - start_time).total_seconds()
         
+        analysis_id = str(uuid.uuid4())
+        
         return {
-            "analysis_id": str(uuid.uuid4()),
+            "analysis_id": analysis_id,
             "timestamp": datetime.utcnow().isoformat(),
             "quality_score": round(quality_score, 1),
             "detected_exercise": detected_exercise,
             "detection_confidence": round(confidence * 100, 1),
             "form_scores": form_scores,
             "feedback": feedback,
+            "annotated_video": annotated_video,
+            "annotated_video_url": f"/api/v1/video/playback/{annotated_video}" if annotated_video else None,
             "metrics": {
                 "video_fps": fps,
                 "total_frames": total_frames,

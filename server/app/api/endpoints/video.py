@@ -191,3 +191,31 @@ async def video_analysis_health():
             "status": "unhealthy",
             "error": str(e)
         }
+
+
+@router.get("/playback/{filename}")
+async def get_annotated_video(filename: str):
+    """
+    Stream annotated video file.
+    
+    Returns the video with pose overlay and feedback annotations.
+    """
+    from fastapi.responses import FileResponse
+    import os
+    
+    # Security: only allow specific filenames (annotated_*.mp4)
+    if not filename.startswith("annotated_") or not filename.endswith(".mp4"):
+        raise HTTPException(status_code=400, detail="Invalid video filename")
+    
+    # Clean filename to prevent path traversal
+    clean_filename = os.path.basename(filename)
+    video_path = f"/app/data/output/{clean_filename}"
+    
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        filename=clean_filename
+    )

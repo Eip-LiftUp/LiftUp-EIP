@@ -178,6 +178,7 @@ class VideoAnalysisResult {
   final FormScores formScores;
   final List<FeedbackComment> feedback;
   final AnalysisMetrics metrics;
+  final String? annotatedVideoUrl;
 
   VideoAnalysisResult({
     required this.analysisId,
@@ -188,6 +189,7 @@ class VideoAnalysisResult {
     required this.formScores,
     required this.feedback,
     required this.metrics,
+    this.annotatedVideoUrl,
   });
 
   factory VideoAnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -202,6 +204,7 @@ class VideoAnalysisResult {
           .map((f) => FeedbackComment.fromJson(f))
           .toList(),
       metrics: AnalysisMetrics.fromJson(json['metrics'] ?? {}),
+      annotatedVideoUrl: json['annotated_video_url'],
     );
   }
 

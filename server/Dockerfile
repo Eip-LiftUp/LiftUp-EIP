@@ -25,7 +25,7 @@ COPY ./app ./app
 COPY ./data ./data
 
 # Create data directories if they don't exist
-RUN mkdir -p /app/data/models /app/data/samples
+RUN mkdir -p /app/data/models /app/data/samples /app/data/output
 
 # Expose port
 EXPOSE 8000

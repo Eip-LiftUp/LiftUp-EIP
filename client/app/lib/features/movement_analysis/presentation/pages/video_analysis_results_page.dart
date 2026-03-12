@@ -2,15 +2,17 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/services/video_analysis_service.dart';
+import 'package:video_player/video_player.dart';
 
 /// Video Analysis Results Page
 ///
 /// Displays the I3D analysis results with:
+/// - Annotated video with pose overlay
 /// - Overall quality score
 /// - Form aspect scores (radar chart)
 /// - Detailed feedback comments
 /// - Metrics information
-class VideoAnalysisResultsPage extends StatelessWidget {
+class VideoAnalysisResultsPage extends StatefulWidget {
   final VideoAnalysisResult result;
   final String? videoPath;
 
@@ -19,6 +21,47 @@ class VideoAnalysisResultsPage extends StatelessWidget {
     required this.result,
     this.videoPath,
   });
+
+  @override
+  State<VideoAnalysisResultsPage> createState() => _VideoAnalysisResultsPageState();
+}
+
+class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+  bool _isVideoPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    if (widget.result.annotatedVideoUrl != null) {
+      // Build full URL for annotated video
+      final baseUrl = VideoAnalysisService.aiServiceUrl;
+      final videoUrl = '$baseUrl${widget.result.annotatedVideoUrl}';
+      
+      try {
+        _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+        await _videoController!.initialize();
+        _videoController!.setLooping(true);
+        _videoController!.setVolume(0); // No sound
+        setState(() {
+          _isVideoInitialized = true;
+        });
+      } catch (e) {
+        print('Error initializing video: $e');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +86,8 @@ class VideoAnalysisResultsPage extends StatelessWidget {
           children: [
             _buildScoreCard(),
             const SizedBox(height: 16),
+            if (_isVideoInitialized) _buildAnnotatedVideoPlayer(),
+            if (_isVideoInitialized) const SizedBox(height: 16),
             _buildExerciseInfo(),
             const SizedBox(height: 16),
             _buildFormScores(),
@@ -57,19 +102,155 @@ class VideoAnalysisResultsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildAnnotatedVideoPlayer() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.videocam,
+                    color: Colors.purple,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Movement Analysis',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Pose Tracked',
+                        style: TextStyle(color: Colors.green, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AspectRatio(
+            aspectRatio: _videoController!.value.aspectRatio,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                VideoPlayer(_videoController!),
+                // Play/Pause overlay
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_isVideoPlaying) {
+                        _videoController!.pause();
+                      } else {
+                        _videoController!.play();
+                      }
+                      _isVideoPlaying = !_isVideoPlaying;
+                    });
+                  },
+                  child: Container(
+                    color: Colors.transparent,
+                    child: AnimatedOpacity(
+                      opacity: _isVideoPlaying ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 48,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Video legend
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildLegendItem(Colors.green, 'Good Form'),
+                _buildLegendItem(Colors.yellow, 'Needs Work'),
+                _buildLegendItem(Colors.red, 'Correction Needed'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+      ],
+    );
+  }
+
   Widget _buildScoreCard() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: _getScoreGradient(result.qualityScore),
+          colors: _getScoreGradient(widget.result.qualityScore),
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: _getScoreColor(result.qualityScore).withOpacity(0.3),
+            color: _getScoreColor(widget.result.qualityScore).withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -91,7 +272,7 @@ class VideoAnalysisResultsPage extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                result.qualityScore.toStringAsFixed(1),
+                widget.result.qualityScore.toStringAsFixed(1),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 64,
@@ -114,7 +295,7 @@ class VideoAnalysisResultsPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Grade: ${result.grade}',
+              'Grade: ${widget.result.grade}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -154,7 +335,7 @@ class VideoAnalysisResultsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _formatExerciseName(result.detectedExercise),
+                  _formatExerciseName(widget.result.detectedExercise),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -163,7 +344,7 @@ class VideoAnalysisResultsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Confidence: ${result.detectionConfidence.toStringAsFixed(1)}%',
+                  'Confidence: ${widget.result.detectionConfidence.toStringAsFixed(1)}%',
                   style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 14,
@@ -179,11 +360,11 @@ class VideoAnalysisResultsPage extends StatelessWidget {
 
   Widget _buildFormScores() {
     final scores = [
-      ('Depth', result.formScores.depth, Icons.height),
-      ('Alignment', result.formScores.alignment, Icons.straighten),
-      ('Stability', result.formScores.stability, Icons.balance),
-      ('Tempo', result.formScores.tempo, Icons.timer),
-      ('Range of Motion', result.formScores.rangeOfMotion, Icons.open_with),
+      ('Depth', widget.result.formScores.depth, Icons.height),
+      ('Alignment', widget.result.formScores.alignment, Icons.straighten),
+      ('Stability', widget.result.formScores.stability, Icons.balance),
+      ('Tempo', widget.result.formScores.tempo, Icons.timer),
+      ('Range of Motion', widget.result.formScores.rangeOfMotion, Icons.open_with),
     ];
 
     return Container(
@@ -259,7 +440,7 @@ class VideoAnalysisResultsPage extends StatelessWidget {
 
   Widget _buildFeedbackSection() {
     // Sort feedback by severity (most important first)
-    final sortedFeedback = List<FeedbackComment>.from(result.feedback)
+    final sortedFeedback = List<FeedbackComment>.from(widget.result.feedback)
       ..sort((a, b) => b.severity.compareTo(a.severity));
 
     return Container(
@@ -356,10 +537,10 @@ class VideoAnalysisResultsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _buildMetricRow('Processing Time', '${result.metrics.processingTimeSeconds.toStringAsFixed(2)}s'),
-          _buildMetricRow('Frames Analyzed', '${result.metrics.framesAnalyzed}'),
-          _buildMetricRow('Video FPS', '${result.metrics.videoFps.toStringAsFixed(1)}'),
-          _buildMetricRow('Device', result.metrics.modelDevice),
+          _buildMetricRow('Processing Time', '${widget.result.metrics.processingTimeSeconds.toStringAsFixed(2)}s'),
+          _buildMetricRow('Frames Analyzed', '${widget.result.metrics.framesAnalyzed}'),
+          _buildMetricRow('Video FPS', '${widget.result.metrics.videoFps.toStringAsFixed(1)}'),
+          _buildMetricRow('Device', widget.result.metrics.modelDevice),
         ],
       ),
     );

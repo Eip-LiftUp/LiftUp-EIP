@@ -6,46 +6,143 @@ enum WeightUnit {
   String get displayName => this == WeightUnit.kg ? 'kg' : 'lbs';
 }
 
-/// Exercise model
+/// Individual set model (for Hevy-style tracking)
+class SetModel {
+  final int setNumber;
+  final int reps;
+  final double? weight;
+  final bool isCompleted;
+
+  SetModel({
+    required this.setNumber,
+    required this.reps,
+    this.weight,
+    this.isCompleted = false,
+  });
+
+  factory SetModel.fromJson(Map<String, dynamic> json) {
+    return SetModel(
+      setNumber: json['setNumber'] as int,
+      reps: json['reps'] as int,
+      weight: json['weight'] != null ? (json['weight'] as num).toDouble() : null,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'setNumber': setNumber,
+      'reps': reps,
+      'weight': weight,
+      'isCompleted': isCompleted,
+    };
+  }
+
+  SetModel copyWith({
+    int? setNumber,
+    int? reps,
+    double? weight,
+    bool? isCompleted,
+  }) {
+    return SetModel(
+      setNumber: setNumber ?? this.setNumber,
+      reps: reps ?? this.reps,
+      weight: weight ?? this.weight,
+      isCompleted: isCompleted ?? this.isCompleted,
+    );
+  }
+}
+
+/// Exercise model (Hevy-style with individual sets)
 class ExerciseModel {
   final String id;
   final String workoutId;
   final String exerciseName;
-  final int sets;
-  final int reps;
-  final double? weight;
+  final List<SetModel> sets; // Changed from int to List<SetModel>
   final WeightUnit weightUnit;
   final int orderIndex;
   final String? notes;
-  final bool isCompleted;
   final DateTime createdAt;
+
+  // Computed properties for backward compatibility
+  int get setsCount => sets.length;
+  bool get isCompleted => sets.isNotEmpty && sets.every((s) => s.isCompleted);
+  
+  // Helper getters for display (uses first set or average)
+  int get reps => sets.isNotEmpty ? sets.first.reps : 0;
+  double? get weight => sets.isNotEmpty ? sets.first.weight : null;
+  
+  // Get summary string (e.g., "3 sets x 10 reps • 100 kg")
+  String getSummary() {
+    if (sets.isEmpty) return '0 séries';
+    
+    final allSame = sets.every((s) => 
+      s.reps == sets.first.reps && s.weight == sets.first.weight
+    );
+    
+    if (allSame) {
+      final firstSet = sets.first;
+      final weightStr = firstSet.weight != null 
+        ? ' • ${firstSet.weight} ${weightUnit.displayName}' 
+        : '';
+      return '${sets.length} sets × ${firstSet.reps} reps$weightStr';
+    } else {
+      // Show range if sets differ
+      return '${sets.length} sets (variable)';
+    }
+  }
 
   ExerciseModel({
     required this.id,
     required this.workoutId,
     required this.exerciseName,
     required this.sets,
-    required this.reps,
-    this.weight,
     this.weightUnit = WeightUnit.kg,
     required this.orderIndex,
     this.notes,
-    this.isCompleted = false,
     required this.createdAt,
   });
 
   factory ExerciseModel.fromJson(Map<String, dynamic> json) {
+    // Handle different formats for sets data
+    List<SetModel> parsedSets;
+    
+    // Priority 1: Check for setsData (new format from backend)
+    if (json['setsData'] != null && json['setsData'] is List) {
+      parsedSets = (json['setsData'] as List)
+          .map((s) => SetModel.fromJson(s as Map<String, dynamic>))
+          .toList();
+    }
+    // Priority 2: Check for sets as List (old format)
+    else if (json['sets'] is List) {
+      parsedSets = (json['sets'] as List)
+          .map((s) => SetModel.fromJson(s as Map<String, dynamic>))
+          .toList();
+    }
+    // Priority 3: Backward compatibility with integer sets
+    else {
+      final int setsCount = json['sets'] as int? ?? 3;
+      final int reps = json['reps'] as int? ?? 10;
+      final double? weight = json['weight'] != null ? (json['weight'] as num).toDouble() : null;
+      parsedSets = List.generate(
+        setsCount,
+        (index) => SetModel(
+          setNumber: index + 1,
+          reps: reps,
+          weight: weight,
+          isCompleted: false,
+        ),
+      );
+    }
+
     return ExerciseModel(
       id: json['id'] as String,
       workoutId: json['workoutId'] as String,
       exerciseName: json['exerciseName'] as String,
-      sets: json['sets'] as int,
-      reps: json['reps'] as int,
-      weight: json['weight'] != null ? (json['weight'] as num).toDouble() : null,
+      sets: parsedSets,
       weightUnit: json['weightUnit'] == 'lbs' ? WeightUnit.lbs : WeightUnit.kg,
       orderIndex: json['orderIndex'] as int,
       notes: json['notes'] as String?,
-      isCompleted: json['isCompleted'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
@@ -55,9 +152,7 @@ class ExerciseModel {
       'id': id,
       'workoutId': workoutId,
       'exerciseName': exerciseName,
-      'sets': sets,
-      'reps': reps,
-      'weight': weight,
+      'sets': sets.map((s) => s.toJson()).toList(),
       'weightUnit': weightUnit.name,
       'orderIndex': orderIndex,
       'notes': notes,
@@ -70,13 +165,10 @@ class ExerciseModel {
     String? id,
     String? workoutId,
     String? exerciseName,
-    int? sets,
-    int? reps,
-    double? weight,
+    List<SetModel>? sets,
     WeightUnit? weightUnit,
     int? orderIndex,
     String? notes,
-    bool? isCompleted,
     DateTime? createdAt,
   }) {
     return ExerciseModel(
@@ -84,12 +176,9 @@ class ExerciseModel {
       workoutId: workoutId ?? this.workoutId,
       exerciseName: exerciseName ?? this.exerciseName,
       sets: sets ?? this.sets,
-      reps: reps ?? this.reps,
-      weight: weight ?? this.weight,
       weightUnit: weightUnit ?? this.weightUnit,
       orderIndex: orderIndex ?? this.orderIndex,
       notes: notes ?? this.notes,
-      isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -275,6 +364,7 @@ class UpdateExerciseRequest {
   final int? orderIndex;
   final String? notes;
   final bool? isCompleted;
+  final List<SetModel>? setsData;
 
   UpdateExerciseRequest({
     this.exerciseName,
@@ -285,6 +375,7 @@ class UpdateExerciseRequest {
     this.orderIndex,
     this.notes,
     this.isCompleted,
+    this.setsData,
   });
 
   Map<String, dynamic> toJson() {
@@ -297,6 +388,7 @@ class UpdateExerciseRequest {
       if (orderIndex != null) 'orderIndex': orderIndex,
       if (notes != null) 'notes': notes,
       if (isCompleted != null) 'isCompleted': isCompleted,
+      if (setsData != null) 'setsData': setsData!.map((s) => s.toJson()).toList(),
     };
   }
 }

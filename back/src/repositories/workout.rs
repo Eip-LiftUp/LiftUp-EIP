@@ -191,8 +191,9 @@ impl WorkoutRepository {
                 weight_unit = COALESCE($5, weight_unit),
                 order_index = COALESCE($6, order_index),
                 notes = COALESCE($7, notes),
-                is_completed = COALESCE($8, is_completed)
-            WHERE id = $9
+                is_completed = COALESCE($8, is_completed),
+                sets_data = COALESCE($9, sets_data)
+            WHERE id = $10
             RETURNING *
             "#,
         )
@@ -204,6 +205,7 @@ impl WorkoutRepository {
         .bind(req.order_index)
         .bind(&req.notes)
         .bind(req.is_completed)
+        .bind(&req.sets_data)
         .bind(exercise_id)
         .fetch_one(&self.pool)
         .await

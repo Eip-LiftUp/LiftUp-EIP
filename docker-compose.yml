@@ -38,6 +38,7 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8080
       RUST_LOG: liftup_backend=debug,tower_http=debug
+      AI_SERVICE_URL: http://ai-service:8000
     ports:
       - "8080:8080"
     depends_on:
@@ -46,6 +47,33 @@ services:
     networks:
       - liftup-network
     restart: unless-stopped
+
+  # ============================================================================
+  # AI/ML Service (Python/FastAPI) - I3D Video Analysis
+  # ============================================================================
+  ai-service:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: liftup-ai-service
+    environment:
+      DEBUG: "True"
+      HOST: 0.0.0.0
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server/app:/app/app
+      - ./server/data:/app/data
+    networks:
+      - liftup-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
   postgres_data:

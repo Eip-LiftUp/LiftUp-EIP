@@ -4,6 +4,7 @@ import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/core/providers/workout_provider.dart';
 import 'package:app/core/models/workout.dart';
+import 'package:app/config/providers.dart';
 import 'package:intl/intl.dart';
 
 /// Program Page - Hevy style workout tracking

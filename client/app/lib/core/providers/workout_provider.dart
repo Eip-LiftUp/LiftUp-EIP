@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/services/workout_api_service.dart';
 import 'package:app/core/models/workout.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/config/providers.dart';
 
 /// State for API workouts
 class ApiWorkoutState {

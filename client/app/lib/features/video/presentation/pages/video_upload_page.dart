@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
+import 'package:app/core/services/video_analysis_service.dart';
+import 'package:app/features/movement_analysis/presentation/pages/video_analysis_results_page.dart';
 import '../../domain/entities/video_entity.dart';
 
 /// Video Upload Page
@@ -48,6 +50,12 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
   /// Video file info
   int _fileSizeBytes = 0;
   String _fileName = '';
+
+  /// Analysis result
+  VideoAnalysisResult? _analysisResult;
+
+  /// Video analysis service
+  final _analysisService = VideoAnalysisService();
 
   /// Timer for simulating upload progress (frontend only)
   Timer? _progressTimer;
@@ -106,24 +114,47 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
       _errorMessage = null;
     });
 
-    // Simulate upload progress for frontend demonstration
-    // In a real app, this would be replaced with actual API calls
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (_uploadProgress >= 1.0) {
-        timer.cancel();
-        setState(() {
-          _uploadState = _UploadState.success;
-        });
-        widget.onUploadComplete?.call('https://api.liftup.com/videos/mock-id');
-        return;
-      }
+    try {
+      // Actually upload and analyze the video using the AI service
+      final result = await _analysisService.analyzeVideo(
+        videoPath: widget.videoPath,
+        exerciseType: _titleController.text.isNotEmpty ? _titleController.text : null,
+        onProgress: (progress) {
+          setState(() {
+            _uploadProgress = progress;
+          });
+        },
+      );
 
       setState(() {
-        // Simulate variable upload speed
-        _uploadProgress += 0.01 + (0.02 * (1 - _uploadProgress));
-        if (_uploadProgress > 1.0) _uploadProgress = 1.0;
+        _uploadState = _UploadState.success;
+        _analysisResult = result;
       });
-    });
+
+      widget.onUploadComplete?.call(result.analysisId);
+
+      // Navigate to results page
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => VideoAnalysisResultsPage(
+              result: result,
+              videoPath: widget.videoPath,
+            ),
+          ),
+        );
+      }
+    } on VideoAnalysisException catch (e) {
+      setState(() {
+        _uploadState = _UploadState.failed;
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      setState(() {
+        _uploadState = _UploadState.failed;
+        _errorMessage = 'Analysis failed: $e';
+      });
+    }
   }
 
   /// Cancel the upload

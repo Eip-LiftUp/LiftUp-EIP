@@ -1,7 +1,7 @@
 """
 Video Analysis Endpoints
 
-Handles video uploads and I3D-based movement analysis
+Handles video uploads and pose-based movement analysis using MediaPipe
 """
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime
 
-from app.services.i3d_analyzer import get_i3d_analyzer, I3DVideoAnalyzer
+from app.services.pose_analyzer import get_pose_analyzer, PoseAnalyzer
 from app.core.config import settings
 
 
@@ -88,7 +88,7 @@ async def analyze_video(
     
     # Analyze the video
     try:
-        analyzer = get_i3d_analyzer()
+        analyzer = get_pose_analyzer()
         result = await analyzer.analyze_video_bytes(
             video_bytes=content,
             filename=video.filename or "video.mp4",
@@ -141,7 +141,7 @@ async def analyze_video_from_url(
         filename = video_url.split("/")[-1].split("?")[0] or "video.mp4"
         
         # Analyze
-        analyzer = get_i3d_analyzer()
+        analyzer = get_pose_analyzer()
         result = await analyzer.analyze_video_bytes(
             video_bytes=content,
             filename=filename,
@@ -161,12 +161,13 @@ async def get_supported_exercises():
     """
     Get list of exercises that can be analyzed
     
-    Returns the list of exercise types that the I3D model can recognize and analyze.
+    Returns the list of exercise types the analyzer can recognize.
     """
+    exercises = list(PoseAnalyzer.EXERCISE_PATTERNS.keys())
     return {
-        "exercises": I3DVideoAnalyzer.EXERCISE_CLASSES,
-        "total": len(I3DVideoAnalyzer.EXERCISE_CLASSES),
-        "form_aspects": I3DVideoAnalyzer.FORM_ASPECTS
+        "exercises": exercises,
+        "total": len(exercises),
+        "form_aspects": ["depth", "alignment", "stability", "tempo", "range_of_motion"]
     }
 
 
@@ -175,17 +176,15 @@ async def video_analysis_health():
     """
     Health check for the video analysis service
     
-    Returns status of the I3D analyzer.
+    Returns status of the Pose analyzer.
     """
     try:
-        analyzer = get_i3d_analyzer()
+        analyzer = get_pose_analyzer()
         return {
             "status": "healthy",
-            "device": str(analyzer.device),
-            "model_loaded": analyzer.model is not None,
-            "num_frames": analyzer.num_frames,
-            "frame_size": f"{analyzer.frame_width}x{analyzer.frame_height}",
-            "supported_exercises": len(I3DVideoAnalyzer.EXERCISE_CLASSES)
+            "analyzer": "MediaPipe Pose",
+            "pose_detector_loaded": analyzer.pose is not None,
+            "supported_exercises": len(PoseAnalyzer.EXERCISE_PATTERNS)
         }
     except Exception as e:
         return {

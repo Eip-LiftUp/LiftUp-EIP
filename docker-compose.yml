@@ -61,7 +61,7 @@ services:
       HOST: 0.0.0.0
       PORT: 8000
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./server/app:/app/app
       - ./server/data:/app/data

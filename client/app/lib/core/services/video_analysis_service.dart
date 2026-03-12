@@ -13,20 +13,20 @@ class VideoAnalysisService {
   /// Base URL for the AI/ML service (Python FastAPI)
   static String get aiServiceUrl {
     if (kIsWeb) {
-      return 'http://localhost:8000';
+      return 'http://localhost:8001';
     }
 
     try {
       if (Platform.isAndroid) {
-        // Android Physical Device: Same IP as backend, port 8000
-        return 'http://10.73.189.87:8000';
+        // Android Physical Device: Same IP as backend, port 8001
+        return 'http://10.73.190.49:8001';
       } else if (Platform.isIOS) {
-        return 'http://localhost:8000';
+        return 'http://localhost:8001';
       } else {
-        return 'http://localhost:8000';
+        return 'http://localhost:8001';
       }
     } catch (e) {
-      return 'http://localhost:8000';
+      return 'http://localhost:8001';
     }
   }
 

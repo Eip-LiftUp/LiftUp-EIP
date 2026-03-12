@@ -18,8 +18,8 @@ opencv-python>=4.8.0
 numpy>=1.24.0
 pillow>=10.0.0
 
-# Optional ML frameworks (commented out)
-# mediapipe==0.10.9
+# Pose Estimation
+mediapipe==0.10.9
 
 # Video Processing and Data Collection
 yt-dlp>=2024.1.0

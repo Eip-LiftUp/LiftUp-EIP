@@ -49,6 +49,9 @@ client/app/macos/.symlinks/
 *.iml
 *.ipr
 *.iws
+*.mp4
+*.csv
+*.task
 
 # ─────────────────────────────────────────────
 # OS

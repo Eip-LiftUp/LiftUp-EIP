@@ -1,0 +1,57 @@
+[package]
+name = "liftup-backend"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "liftup-backend"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "compression-gzip", "trace"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "rust_decimal", "macros"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Validation
+validator = { version = "0.18", features = ["derive"] }
+
+# Password hashing
+bcrypt = "0.15"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Identifiers
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Decimal numbers (for weight_kg) — also pulled in by sqlx's rust_decimal feature
+rust_decimal = { version = "1", features = ["serde"] }
+
+# Date & Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Config / Env
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# HTTP Client (for AI service proxy)
+reqwest = { version = "0.11", features = ["json", "multipart", "stream"] }
+
+# Multipart handling
+axum-extra = { version = "0.9", features = ["multipart"] }
+
+[dev-dependencies]
+axum-test = "14"

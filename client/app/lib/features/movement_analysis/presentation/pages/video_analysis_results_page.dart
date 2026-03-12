@@ -203,12 +203,23 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
           // Video legend
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
               children: [
-                _buildLegendItem(Colors.green, 'Good Form'),
-                _buildLegendItem(Colors.yellow, 'Needs Work'),
-                _buildLegendItem(Colors.red, 'Correction Needed'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildLegendItem(Colors.green, 'Good Form'),
+                    _buildLegendItem(Colors.yellow, 'Needs Work'),
+                    _buildLegendItem(Colors.red, 'Correction Needed'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildDashedLegendItem(Colors.cyanAccent, 'Ideal Form (Offset)'),
+                  ],
+                ),
               ],
             ),
           ),
@@ -233,6 +244,26 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
         Text(
           label,
           style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDashedLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 20,
+          height: 12,
+          child: CustomPaint(
+            painter: DashedLinePainter(color: color),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -796,4 +827,36 @@ class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
       ),
     );
   }
+}
+
+/// Custom painter for dashed line in legend
+class DashedLinePainter extends CustomPainter {
+  final Color color;
+  
+  DashedLinePainter({required this.color});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    
+    const dashWidth = 4.0;
+    const dashSpace = 3.0;
+    double startX = 0;
+    final y = size.height / 2;
+    
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, y),
+        Offset(startX + dashWidth, y),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

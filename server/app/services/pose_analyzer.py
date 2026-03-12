@@ -275,10 +275,25 @@ class PoseAnalyzer:
         
         ideal = self.IDEAL_ANGLES.get(exercise, {})
         
-        # Draw guide for squats/lunges (knee angle)
+        # ALWAYS draw ideal "ghost" skeleton showing correct form
+        # Bright cyan color for high visibility (BGR format)
+        IDEAL_COLOR = (255, 255, 0)  # Bright cyan
+        IDEAL_THICKNESS = 4  # Thicker for visibility
+        
+        # Debug: print exercise being processed
+        print(f"[DEBUG] _draw_ideal_guide called - exercise: '{exercise}', ideal keys: {ideal.keys()}")
+        
+        # Add "IDEAL FORM" label in top-right
+        cv2.putText(annotated, "--- Ideal Form", 
+                   (w - 150, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, IDEAL_COLOR, 2)
+        
+        # Lower visibility threshold to 0.3 for better detection
+        MIN_VISIBILITY = 0.3
+        
         if exercise in ['squat', 'lunge'] and 'knee' in ideal:
+            print(f"[DEBUG] Drawing squat/lunge ideal form")
             ideal_knee_min, ideal_knee_max = ideal['knee']
-            ideal_knee = (ideal_knee_min + ideal_knee_max) / 2
+            target_knee_angle = (ideal_knee_min + ideal_knee_max) / 2  # ~90 degrees
             
             for side, knee_idx, hip_idx, ankle_idx in [
                 ('left', 25, 23, 27), ('right', 26, 24, 28)
@@ -287,42 +302,310 @@ class PoseAnalyzer:
                 hip_lm = landmarks.landmark[hip_idx]
                 ankle_lm = landmarks.landmark[ankle_idx]
                 
-                if all(lm.visibility > 0.5 for lm in [knee_lm, hip_lm, ankle_lm]):
+                # Use lower visibility threshold
+                vis_ok = all(lm.visibility > MIN_VISIBILITY for lm in [knee_lm, hip_lm, ankle_lm])
+                print(f"[DEBUG] {side} leg visibility - knee: {knee_lm.visibility:.2f}, hip: {hip_lm.visibility:.2f}, ankle: {ankle_lm.visibility:.2f}, OK: {vis_ok}")
+                
+                if vis_ok:
+                    # Get ACTUAL positions from user
                     knee_pt = np.array([knee_lm.x * w, knee_lm.y * h])
                     hip_pt = np.array([hip_lm.x * w, hip_lm.y * h])
                     ankle_pt = np.array([ankle_lm.x * w, ankle_lm.y * h])
                     
-                    # Calculate where knee should be for ideal angle
-                    # Draw a faint arc showing ideal range
-                    current_angle = angles.get(f'{side}_knee', 90)
+                    # Calculate actual segment lengths
+                    thigh_length = np.linalg.norm(knee_pt - hip_pt)
+                    shin_length = np.linalg.norm(ankle_pt - knee_pt)
                     
-                    if current_angle > ideal_knee_max:
-                        # Need to go deeper - draw downward arrow
-                        arrow_start = (int(knee_pt[0]), int(knee_pt[1]))
-                        arrow_end = (int(knee_pt[0]), int(knee_pt[1] + 30))
-                        cv2.arrowedLine(annotated, arrow_start, arrow_end, 
-                                       (0, 200, 255), 2, tipLength=0.3)
-                        cv2.putText(annotated, "Go deeper", 
-                                   (int(knee_pt[0]) + 5, int(knee_pt[1]) + 45),
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 200, 255), 1)
-        
-        # Draw guide for pushups (elbow angle)
-        if exercise == 'pushup' and 'elbow' in ideal:
-            ideal_elbow_min, ideal_elbow_max = ideal['elbow']
+                    # IDEAL FORM: Anchor at user's ACTUAL hip
+                    # Follow the DIRECTION of user's leg but show proper squat depth
+                    
+                    ideal_hip_pt = hip_pt.copy()
+                    
+                    # Get direction vectors from user's actual pose
+                    hip_to_knee_dir = knee_pt - hip_pt
+                    hip_to_knee_unit = hip_to_knee_dir / (np.linalg.norm(hip_to_knee_dir) + 1e-6)
+                    
+                    knee_to_ankle_dir = ankle_pt - knee_pt
+                    knee_to_ankle_unit = knee_to_ankle_dir / (np.linalg.norm(knee_to_ankle_dir) + 1e-6)
+                    
+                    # Ideal knee: follow same direction as user's thigh but ensure proper depth
+                    # For 90-deg squat, knee should be lower (thigh more horizontal)
+                    # Blend user's direction with more vertical drop
+                    ideal_knee_pt = ideal_hip_pt + hip_to_knee_unit * thigh_length
+                    # Adjust: move knee slightly more outward and down for better squat depth
+                    ideal_knee_pt[1] = max(ideal_knee_pt[1], hip_pt[1] + thigh_length * 0.7)
+                    
+                    # Ideal ankle: follow same general direction as user's shin
+                    # For proper squat, shin should be more vertical
+                    ideal_ankle_pt = ideal_knee_pt + knee_to_ankle_unit * shin_length
+                    
+                    # Draw ideal skeleton - SOLID cyan lines
+                    # Hip to ideal knee (thigh)
+                    cv2.line(annotated, 
+                            (int(ideal_hip_pt[0]), int(ideal_hip_pt[1])),
+                            (int(ideal_knee_pt[0]), int(ideal_knee_pt[1])),
+                            IDEAL_COLOR, IDEAL_THICKNESS)
+                    
+                    # Ideal knee to ideal ankle (shin)
+                    cv2.line(annotated, 
+                            (int(ideal_knee_pt[0]), int(ideal_knee_pt[1])),
+                            (int(ideal_ankle_pt[0]), int(ideal_ankle_pt[1])),
+                            IDEAL_COLOR, IDEAL_THICKNESS)
+                    
+                    # Draw ideal joint circles
+                    cv2.circle(annotated, (int(ideal_hip_pt[0]), int(ideal_hip_pt[1])), 
+                              10, IDEAL_COLOR, 2)
+                    cv2.circle(annotated, (int(ideal_knee_pt[0]), int(ideal_knee_pt[1])), 
+                              14, IDEAL_COLOR, 3)
+                    cv2.circle(annotated, (int(ideal_ankle_pt[0]), int(ideal_ankle_pt[1])), 
+                              10, IDEAL_COLOR, 2)
+                    
+                    # Show target angle label near knee
+                    cv2.putText(annotated, f"{target_knee_angle:.0f}°", 
+                               (int(ideal_knee_pt[0]) + 10, int(ideal_knee_pt[1]) - 10),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, IDEAL_COLOR, 2)
+                    print(f"[DEBUG] Drew ideal form for {side} leg")
+                else:
+                    # Visibility too low - add a text indicator
+                    cv2.putText(annotated, f"({side[0].upper()}) Low visibility", 
+                               (20, h - 50 if side == 'left' else h - 30),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 165, 255), 1)
             
-            for side, elbow_idx in [('left', 13), ('right', 14)]:
-                elbow_lm = landmarks.landmark[elbow_idx]
+            # UPPER BODY ideal form for squat - show upright torso
+            # Landmarks: 11/12 = shoulders, 23/24 = hips, 0 = nose
+            left_shoulder = landmarks.landmark[11]
+            right_shoulder = landmarks.landmark[12]
+            left_hip = landmarks.landmark[23]
+            right_hip = landmarks.landmark[24]
+            nose = landmarks.landmark[0]
+            
+            # Check visibility
+            upper_vis_ok = all(lm.visibility > MIN_VISIBILITY for lm in 
+                              [left_shoulder, right_shoulder, left_hip, right_hip])
+            print(f"[DEBUG] upper body visibility - shoulders: {left_shoulder.visibility:.2f}/{right_shoulder.visibility:.2f}, hips: {left_hip.visibility:.2f}/{right_hip.visibility:.2f}, OK: {upper_vis_ok}")
+            
+            if upper_vis_ok:
+                # Get actual positions
+                l_shoulder_pt = np.array([left_shoulder.x * w, left_shoulder.y * h])
+                r_shoulder_pt = np.array([right_shoulder.x * w, right_shoulder.y * h])
+                l_hip_pt = np.array([left_hip.x * w, left_hip.y * h])
+                r_hip_pt = np.array([right_hip.x * w, right_hip.y * h])
                 
-                if elbow_lm.visibility > 0.5:
-                    current_angle = angles.get(f'{side}_elbow', 90)
+                # Calculate midpoints
+                mid_shoulder = (l_shoulder_pt + r_shoulder_pt) / 2
+                mid_hip = (l_hip_pt + r_hip_pt) / 2
+                
+                # Torso length (hip to shoulder)
+                torso_length = np.linalg.norm(mid_shoulder - mid_hip)
+                
+                # IDEAL: Anchor at user's ACTUAL shoulder X positions
+                # Only adjust Y to show proper upright posture
+                # For proper squat: shoulders should be nearly above hips
+                
+                # Ideal Y: shoulders should be ~torso_length above hips (upright)
+                ideal_shoulder_y = mid_hip[1] - torso_length * 0.95
+                
+                # Keep X positions SAME as actual shoulders (anchored to user's body)
+                ideal_l_shoulder = np.array([l_shoulder_pt[0], ideal_shoulder_y])
+                ideal_r_shoulder = np.array([r_shoulder_pt[0], ideal_shoulder_y])
+                ideal_mid_shoulder = (ideal_l_shoulder + ideal_r_shoulder) / 2
+                
+                # Draw ideal shoulder line (anchored to actual shoulder X positions)
+                cv2.line(annotated,
+                        (int(ideal_l_shoulder[0]), int(ideal_l_shoulder[1])),
+                        (int(ideal_r_shoulder[0]), int(ideal_r_shoulder[1])),
+                        IDEAL_COLOR, IDEAL_THICKNESS)
+                
+                # Draw ideal torso spine (mid hip to mid shoulder)
+                cv2.line(annotated,
+                        (int(mid_hip[0]), int(mid_hip[1])),
+                        (int(ideal_mid_shoulder[0]), int(ideal_mid_shoulder[1])),
+                        IDEAL_COLOR, IDEAL_THICKNESS)
+                
+                # Draw ideal hip line
+                cv2.line(annotated,
+                        (int(l_hip_pt[0]), int(l_hip_pt[1])),
+                        (int(r_hip_pt[0]), int(r_hip_pt[1])),
+                        IDEAL_COLOR, IDEAL_THICKNESS)
+                
+                # Connect shoulders to corresponding hips
+                cv2.line(annotated,
+                        (int(ideal_l_shoulder[0]), int(ideal_l_shoulder[1])),
+                        (int(l_hip_pt[0]), int(l_hip_pt[1])),
+                        IDEAL_COLOR, IDEAL_THICKNESS)
+                cv2.line(annotated,
+                        (int(ideal_r_shoulder[0]), int(ideal_r_shoulder[1])),
+                        (int(r_hip_pt[0]), int(r_hip_pt[1])),
+                        IDEAL_COLOR, IDEAL_THICKNESS)
+                
+                # Head position - above mid shoulder
+                if nose.visibility > MIN_VISIBILITY:
+                    nose_pt = np.array([nose.x * w, nose.y * h])
+                    head_to_shoulder = np.linalg.norm(nose_pt - mid_shoulder)
+                    ideal_head_pt = ideal_mid_shoulder + np.array([0, -head_to_shoulder * 0.8])
                     
-                    if current_angle > ideal_elbow_max:
-                        elbow_pt = (int(elbow_lm.x * w), int(elbow_lm.y * h))
-                        cv2.putText(annotated, "Lower", 
-                                   (elbow_pt[0] + 10, elbow_pt[1]),
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 200, 255), 1)
+                    cv2.line(annotated,
+                            (int(ideal_mid_shoulder[0]), int(ideal_mid_shoulder[1])),
+                            (int(ideal_head_pt[0]), int(ideal_head_pt[1])),
+                            IDEAL_COLOR, IDEAL_THICKNESS)
+                    cv2.circle(annotated, (int(ideal_head_pt[0]), int(ideal_head_pt[1])),
+                              12, IDEAL_COLOR, 2)
+                
+                # Joint circles
+                cv2.circle(annotated, (int(ideal_mid_shoulder[0]), int(ideal_mid_shoulder[1])),
+                          8, IDEAL_COLOR, 2)
+                cv2.circle(annotated, (int(ideal_l_shoulder[0]), int(ideal_l_shoulder[1])),
+                          10, IDEAL_COLOR, 2)
+                cv2.circle(annotated, (int(ideal_r_shoulder[0]), int(ideal_r_shoulder[1])),
+                          10, IDEAL_COLOR, 2)
+                
+                # Label
+                cv2.putText(annotated, "Chest up!", 
+                           (int(ideal_mid_shoulder[0]) + 15, int(ideal_mid_shoulder[1])),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, IDEAL_COLOR, 2)
+                print(f"[DEBUG] Drew ideal form for upper body (squat)")
+        
+        elif exercise == 'pushup' and 'elbow' in ideal:
+            print(f"[DEBUG] Drawing pushup ideal form")
+            ideal_elbow_min, ideal_elbow_max = ideal['elbow']
+            target_elbow = (ideal_elbow_min + ideal_elbow_max) / 2  # ~90 degrees
+            
+            for side, elbow_idx, shoulder_idx, wrist_idx in [
+                ('left', 13, 11, 15), ('right', 14, 12, 16)
+            ]:
+                elbow_lm = landmarks.landmark[elbow_idx]
+                shoulder_lm = landmarks.landmark[shoulder_idx]
+                wrist_lm = landmarks.landmark[wrist_idx]
+                
+                # Use lower visibility threshold
+                vis_ok = all(lm.visibility > MIN_VISIBILITY for lm in [elbow_lm, shoulder_lm, wrist_lm])
+                print(f"[DEBUG] {side} arm visibility - elbow: {elbow_lm.visibility:.2f}, shoulder: {shoulder_lm.visibility:.2f}, wrist: {wrist_lm.visibility:.2f}, OK: {vis_ok}")
+                
+                if vis_ok:
+                    # Get ACTUAL positions
+                    elbow_pt = np.array([elbow_lm.x * w, elbow_lm.y * h])
+                    shoulder_pt = np.array([shoulder_lm.x * w, shoulder_lm.y * h])
+                    wrist_pt = np.array([wrist_lm.x * w, wrist_lm.y * h])
+                    
+                    upper_arm_length = np.linalg.norm(elbow_pt - shoulder_pt)
+                    forearm_length = np.linalg.norm(wrist_pt - elbow_pt)
+                    
+                    # IDEAL FORM: Anchor at user's ACTUAL wrist (hands stay on ground)
+                    # For proper pushup at 90 degrees:
+                    # - Forearm should be vertical (pointing up)
+                    # - Upper arm should be roughly horizontal (pointing toward body)
+                    
+                    ideal_wrist_pt = wrist_pt.copy()
+                    
+                    # Calculate ideal elbow: straight up from wrist
+                    ideal_elbow_x = ideal_wrist_pt[0]
+                    ideal_elbow_y = ideal_wrist_pt[1] - forearm_length  # Straight up
+                    ideal_elbow_pt = np.array([ideal_elbow_x, ideal_elbow_y])
+                    
+                    # Calculate ideal shoulder: horizontal from elbow toward body
+                    direction = 1 if side == 'left' else -1  # Point toward center
+                    ideal_shoulder_x = ideal_elbow_pt[0] + upper_arm_length * direction
+                    ideal_shoulder_y = ideal_elbow_pt[1]  # Same height as elbow
+                    ideal_shoulder_pt = np.array([ideal_shoulder_x, ideal_shoulder_y])
+                    
+                    # Draw ideal arm
+                    cv2.line(annotated,
+                            (int(ideal_wrist_pt[0]), int(ideal_wrist_pt[1])),
+                            (int(ideal_elbow_pt[0]), int(ideal_elbow_pt[1])),
+                            IDEAL_COLOR, IDEAL_THICKNESS)
+                    
+                    cv2.line(annotated,
+                            (int(ideal_elbow_pt[0]), int(ideal_elbow_pt[1])),
+                            (int(ideal_shoulder_pt[0]), int(ideal_shoulder_pt[1])),
+                            IDEAL_COLOR, IDEAL_THICKNESS)
+                    
+                    # Draw ideal joint circles
+                    cv2.circle(annotated, (int(ideal_wrist_pt[0]), int(ideal_wrist_pt[1])),
+                              10, IDEAL_COLOR, 2)
+                    cv2.circle(annotated, (int(ideal_elbow_pt[0]), int(ideal_elbow_pt[1])),
+                              14, IDEAL_COLOR, 3)
+                    cv2.circle(annotated, (int(ideal_shoulder_pt[0]), int(ideal_shoulder_pt[1])),
+                              10, IDEAL_COLOR, 2)
+                    
+                    cv2.putText(annotated, f"{target_elbow:.0f}°",
+                               (int(ideal_elbow_pt[0]) + 10, int(ideal_elbow_pt[1]) - 10),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, IDEAL_COLOR, 2)
+                    print(f"[DEBUG] Drew ideal form for {side} arm (pushup)")
+                else:
+                    # Visibility too low
+                    cv2.putText(annotated, f"({side[0].upper()}) Low arm visibility", 
+                               (20, h - 50 if side == 'left' else h - 30),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 165, 255), 1)
+        
+        elif exercise == 'bicep_curl' and 'elbow' in ideal:
+            print(f"[DEBUG] Drawing bicep_curl ideal form")
+            ideal_elbow_min, ideal_elbow_max = ideal['elbow']
+            target_elbow = (ideal_elbow_min + ideal_elbow_max) / 2
+            
+            for side, elbow_idx, shoulder_idx, wrist_idx in [
+                ('left', 13, 11, 15), ('right', 14, 12, 16)
+            ]:
+                elbow_lm = landmarks.landmark[elbow_idx]
+                shoulder_lm = landmarks.landmark[shoulder_idx]
+                wrist_lm = landmarks.landmark[wrist_idx]
+                
+                if all(lm.visibility > MIN_VISIBILITY for lm in [elbow_lm, shoulder_lm, wrist_lm]):
+                    elbow_pt = np.array([elbow_lm.x * w, elbow_lm.y * h])
+                    shoulder_pt = np.array([shoulder_lm.x * w, shoulder_lm.y * h])
+                    wrist_pt = np.array([wrist_lm.x * w, wrist_lm.y * h])
+                    
+                    forearm_length = np.linalg.norm(wrist_pt - elbow_pt)
+                    
+                    # Offset for visibility
+                    offset_x = 30 if side == 'right' else -30
+                    
+                    ideal_elbow_pt = elbow_pt + np.array([offset_x, 0])
+                    # Ideal wrist position (fully curled - wrist up near shoulder)
+                    ideal_wrist_pt = ideal_elbow_pt + np.array([0, -forearm_length * 0.85])
+                    
+                    # Draw ideal forearm
+                    cv2.line(annotated,
+                            (int(ideal_elbow_pt[0]), int(ideal_elbow_pt[1])),
+                            (int(ideal_wrist_pt[0]), int(ideal_wrist_pt[1])),
+                            IDEAL_COLOR, IDEAL_THICKNESS)
+                    
+                    cv2.circle(annotated, (int(ideal_elbow_pt[0]), int(ideal_elbow_pt[1])),
+                              12, IDEAL_COLOR, 3)
+                    cv2.circle(annotated, (int(ideal_wrist_pt[0]), int(ideal_wrist_pt[1])),
+                              10, IDEAL_COLOR, 3)
+                    
+                    cv2.putText(annotated, f"~{target_elbow:.0f}°",
+                               (int(ideal_wrist_pt[0]) + 10, int(ideal_wrist_pt[1])),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, IDEAL_COLOR, 2)
+        
+        else:
+            # Unknown exercise - show debug text
+            print(f"[DEBUG] Unknown exercise for ideal form: '{exercise}'")
+            cv2.putText(annotated, f"Exercise: {exercise}", 
+                       (w - 200, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         
         return annotated
+    
+    def _draw_dashed_line(self, img: np.ndarray, pt1: Tuple[int, int], pt2: Tuple[int, int], 
+                          color: Tuple[int, int, int], thickness: int, dash_length: int = 10):
+        """Draw a dashed line between two points."""
+        dist = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1] - pt1[1])**2)
+        if dist < 1:
+            return
+        dashes = int(dist / dash_length)
+        if dashes < 1:
+            dashes = 1
+        
+        for i in range(0, dashes, 2):
+            start = (
+                int(pt1[0] + (pt2[0] - pt1[0]) * i / dashes),
+                int(pt1[1] + (pt2[1] - pt1[1]) * i / dashes)
+            )
+            end = (
+                int(pt1[0] + (pt2[0] - pt1[0]) * min(i + 1, dashes) / dashes),
+                int(pt1[1] + (pt2[1] - pt1[1]) * min(i + 1, dashes) / dashes)
+            )
+            cv2.line(img, start, end, color, thickness)
     
     def _draw_score_overlay(
         self,
@@ -337,7 +620,7 @@ class PoseAnalyzer:
         
         # Semi-transparent background for scores
         overlay = annotated.copy()
-        cv2.rectangle(overlay, (10, 10), (200, 140), (0, 0, 0), -1)
+        cv2.rectangle(overlay, (10, 10), (200, 180), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.6, annotated, 0.4, 0, annotated)
         
         # Exercise name
@@ -357,6 +640,32 @@ class PoseAnalyzer:
             cv2.putText(annotated, f"{label}: {score:.0f}",
                        (20, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
             y_offset += 18
+        
+        # Legend for skeleton colors
+        y_offset += 10
+        cv2.putText(annotated, "Legend:", (20, y_offset), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
+        y_offset += 15
+        
+        # Actual skeleton colors
+        cv2.line(annotated, (20, y_offset - 3), (40, y_offset - 3), (0, 255, 0), 2)
+        cv2.putText(annotated, "Good", (45, y_offset), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.3, (200, 200, 200), 1)
+        
+        cv2.line(annotated, (85, y_offset - 3), (105, y_offset - 3), (0, 255, 255), 2)
+        cv2.putText(annotated, "OK", (110, y_offset), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.3, (200, 200, 200), 1)
+        
+        cv2.line(annotated, (135, y_offset - 3), (155, y_offset - 3), (0, 0, 255), 2)
+        cv2.putText(annotated, "Fix", (160, y_offset), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.3, (200, 200, 200), 1)
+        
+        y_offset += 15
+        # Ideal form legend (dashed cyan/blue)
+        for i in range(0, 20, 4):
+            cv2.line(annotated, (20 + i, y_offset - 3), (22 + i, y_offset - 3), (255, 180, 0), 2)
+        cv2.putText(annotated, "Ideal form", (45, y_offset), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 180, 0), 1)
         
         return annotated
     

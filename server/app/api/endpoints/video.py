@@ -88,6 +88,7 @@ async def analyze_video(
     
     # Analyze the video
     try:
+        print(f"[DEBUG] /analyze endpoint received exercise_type: '{exercise_type}'")
         analyzer = get_pose_analyzer()
         result = await analyzer.analyze_video_bytes(
             video_bytes=content,

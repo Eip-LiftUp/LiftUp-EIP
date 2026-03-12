@@ -8,14 +8,24 @@ class WorkoutApiService {
   WorkoutApiService({String baseUrl = 'http://10.0.2.2:8080'}) : _dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 90),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
     ),
-  );
+  ) {
+    // Add interceptor for debugging
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        error: true,
+        logPrint: (obj) => print('[API] $obj'),
+      ),
+    );
+  }
 
   // ==================== WORKOUTS ====================
 

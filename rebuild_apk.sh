@@ -40,24 +40,36 @@ BACKEND_URL="http://$BACKEND_IP:8080"
 echo ""
 echo "Updating backend URL to: $BACKEND_URL"
 
-# Update the config file
+# Update the config files
 CONFIG_FILE="client/app/lib/core/config/api_config.dart"
+CONSTANTS_FILE="client/app/lib/core/constants/app_constants.dart"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Config file not found: $CONFIG_FILE"
     exit 1
 fi
 
-# Backup original file
-cp "$CONFIG_FILE" "$CONFIG_FILE.bak"
+if [ ! -f "$CONSTANTS_FILE" ]; then
+    echo "Error: Constants file not found: $CONSTANTS_FILE"
+    exit 1
+fi
 
-# Replace the baseUrl line
+# Backup original files
+cp "$CONFIG_FILE" "$CONFIG_FILE.bak"
+cp "$CONSTANTS_FILE" "$CONSTANTS_FILE.bak"
+
+# Replace the baseUrl in ApiConfig
 sed -i "s|static const String baseUrl = '.*';|static const String baseUrl = '$BACKEND_URL';|g" "$CONFIG_FILE"
+
+# Replace the baseUrl in AppConstants (Android section)
+sed -i "s|return 'http://[0-9.]*:8080';  // Android|return '$BACKEND_URL';  // Android|g" "$CONSTANTS_FILE"
 
 echo "✓ Configuration updated"
 echo ""
-echo "Updated file: $CONFIG_FILE"
-echo "(Backup saved as: $CONFIG_FILE.bak)"
+echo "Updated files:"
+echo "  - $CONFIG_FILE"
+echo "  - $CONSTANTS_FILE"
+echo "(Backups saved as .bak files)"
 echo ""
 echo "Now building APK..."
 echo ""

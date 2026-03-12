@@ -6,11 +6,7 @@ import 'package:app/core/providers/workout_provider.dart';
 import 'package:app/core/providers/auth_provider.dart';
 import 'package:app/core/providers/exercise_provider.dart';
 import 'package:app/core/models/workout.dart';
-<<<<<<< feat/machine-learning
-import 'package:app/config/providers.dart';
-=======
 import 'package:app/core/utils/workout_timer.dart';
->>>>>>> dev
 import 'package:intl/intl.dart';
 
 /// Program Page - Hevy style workout tracking with automatic timer

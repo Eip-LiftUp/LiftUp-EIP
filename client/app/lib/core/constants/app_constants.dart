@@ -19,7 +19,7 @@ class AppConstants {
     try {
       if (Platform.isAndroid) {
         // Android Physical Device: IP du PC Windows sur le réseau local
-        return 'http://10.73.190.49:8080';
+        return 'http://10.73.189.87:8080';  // Android
       } else if (Platform.isIOS) {
         // iOS Simulator
         return 'http://localhost:8080';
@@ -33,8 +33,8 @@ class AppConstants {
     }
   }
   
-  static const int connectionTimeout = 30;
-  static const int receiveTimeout = 30;
+  static const int connectionTimeout = 60;
+  static const int receiveTimeout = 90;
 
   // Spacing
   static const double spacingXs = 4.0;

@@ -1,0 +1,7 @@
+# Requirements pour les benchmarks ML
+# Installation: pip install -r requirements.txt
+
+# Bibliothèques de base
+mediapipe>=0.10.13
+opencv-python>=4.8.0
+numpy>=2.0.0

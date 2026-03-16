@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────
+# Secrets & Environment
+# ─────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─────────────────────────────────────────────
+# Rust / Cargo (back/)
+# ─────────────────────────────────────────────
+back/target/
+# Cargo.lock is intentionally kept for binary projects (reproducible builds)
+
+# ─────────────────────────────────────────────
+# Flutter / Dart (client/)
+# ─────────────────────────────────────────────
+client/app/.dart_tool/
+client/app/.flutter-plugins
+client/app/.flutter-plugins-dependencies
+client/app/.packages
+client/app/build/
+client/app/.pub-cache/
+
+# Generated files
+client/app/**/*.g.dart
+client/app/**/*.freezed.dart
+client/app/**/*.mocks.dart
+
+# iOS
+client/app/ios/Pods/
+client/app/ios/.symlinks/
+client/app/ios/Flutter/flutter_export_environment.sh
+
+# Android
+client/app/android/.gradle/
+client/app/android/local.properties
+client/app/android/key.properties
+client/app/android/app/google-services.json
+
+# macOS
+client/app/macos/Pods/
+client/app/macos/.symlinks/
+
+# ─────────────────────────────────────────────
+# IDEs & Editors
+# ─────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.iml
+*.ipr
+*.iws
+*.mp4
+*.csv
+*.task
+
+# ─────────────────────────────────────────────
+# OS
+# ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────────
+# Logs & temp files
+# ─────────────────────────────────────────────
+*.log
+*.tmp
+*.bak
+
+# ─────────────────────────────────────────────
+# Docker & Database
+# ─────────────────────────────────────────────
+backup_*.sql
+*.dump
+
+# ─────────────────────────────────────────────
+# Development files
+# ─────────────────────────────────────────────
+.vscode/
+.fleet/

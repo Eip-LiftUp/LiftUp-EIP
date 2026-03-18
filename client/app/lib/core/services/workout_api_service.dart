@@ -5,7 +5,7 @@ import 'package:app/core/models/workout.dart';
 class WorkoutApiService {
   final Dio _dio;
 
-  WorkoutApiService({String baseUrl = 'http://10.73.189.64:8080'}) : _dio = Dio(
+  WorkoutApiService({String baseUrl = 'http://10.73.190.241:8080'}) : _dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),

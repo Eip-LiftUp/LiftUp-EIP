@@ -5,7 +5,6 @@ import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/core/services/video_analysis_service.dart';
 import 'package:app/features/movement_analysis/presentation/pages/video_analysis_results_page.dart';
-import '../../domain/entities/video_entity.dart';
 
 /// Video Upload Page
 /// 
@@ -53,9 +52,6 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
   /// Video file info
   int _fileSizeBytes = 0;
   String _fileName = '';
-
-  /// Analysis result
-  VideoAnalysisResult? _analysisResult;
 
   /// Video analysis service
   final _analysisService = VideoAnalysisService();
@@ -131,7 +127,6 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
 
       setState(() {
         _uploadState = _UploadState.success;
-        _analysisResult = result;
       });
 
       widget.onUploadComplete?.call(result.analysisId);
@@ -189,6 +184,7 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
           style: TextStyle(color: AppColors.textPrimary),
         ),
         leading: IconButton(
+          tooltip: 'Retour',
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () {
             if (_uploadState == _UploadState.uploading) {
@@ -225,9 +221,11 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
   }
 
   Widget _buildUploadForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
+    return Semantics(
+      label: 'Formulaire de téléversement vidéo',
+      child: Form(
+        key: _formKey,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // File info card
@@ -276,6 +274,7 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Fichier prêt',
                   icon: const Icon(
                     Icons.check_circle,
                     color: AppColors.secondary,
@@ -399,6 +398,7 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

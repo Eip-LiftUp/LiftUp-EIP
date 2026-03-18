@@ -93,7 +93,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
     if (!cameraStatus.isGranted || !microphoneStatus.isGranted) {
       setState(() {
         _hasPermission = false;
-        _errorMessage = 'Camera and microphone permissions are required';
+        _errorMessage = 'Les autorisations caméra et microphone sont requises';
       });
       return;
     }
@@ -106,7 +106,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
         setState(() {
-          _errorMessage = 'No cameras available on this device';
+          _errorMessage = 'Aucune caméra disponible sur cet appareil';
         });
         return;
       }
@@ -114,7 +114,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       await _setupCameraController(_cameras[_selectedCameraIndex]);
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to initialize camera: $e';
+        _errorMessage = 'Impossible d\'initialiser la caméra: $e';
       });
     }
   }
@@ -142,7 +142,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to setup camera: $e';
+        _errorMessage = 'Impossible de configurer la caméra: $e';
       });
     }
   }
@@ -223,7 +223,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to start recording: $e';
+        _errorMessage = 'Impossible de démarrer l\'enregistrement: $e';
       });
     }
   }
@@ -250,7 +250,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
     } catch (e) {
       setState(() {
         _isRecording = false;
-        _errorMessage = 'Failed to stop recording: $e';
+        _errorMessage = 'Impossible d\'arrêter l\'enregistrement: $e';
       });
     }
   }
@@ -368,6 +368,8 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             // Close button
             _buildControlButton(
               icon: Icons.close,
+              semanticLabel: 'Fermer la caméra',
+              tooltip: 'Fermer',
               onPressed: () => Navigator.of(context).pop(),
             ),
 
@@ -375,6 +377,8 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             if (_isInitialized)
               _buildControlButton(
                 icon: _getFlashIcon(),
+                semanticLabel: 'Modifier le mode flash',
+                tooltip: 'Flash',
                 onPressed: _toggleFlash,
               ),
           ],
@@ -402,6 +406,8 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             // Switch camera button
             _buildControlButton(
               icon: Icons.cameraswitch_rounded,
+              semanticLabel: 'Changer de caméra',
+              tooltip: 'Changer de caméra',
               onPressed: _cameras.length > 1 ? _switchCamera : null,
             ),
           ],
@@ -411,25 +417,29 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
   }
 
   Widget _buildRecordButton() {
-    return GestureDetector(
-      onTap: _isRecording ? _stopRecording : _startRecording,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white,
-            width: 4,
-          ),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+    return Semantics(
+      button: true,
+      label: _isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement',
+      child: GestureDetector(
+        onTap: _isRecording ? _stopRecording : _startRecording,
+        child: Container(
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: _isRecording ? Colors.red : Colors.red.withOpacity(0.8),
-            shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
-            borderRadius: _isRecording ? BorderRadius.circular(8) : null,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 4,
+            ),
+          ),
+          padding: const EdgeInsets.all(4),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: _isRecording ? Colors.red : Colors.red.withOpacity(0.8),
+              shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius: _isRecording ? BorderRadius.circular(8) : null,
+            ),
           ),
         ),
       ),
@@ -438,18 +448,25 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
 
   Widget _buildControlButton({
     required IconData icon,
+    required String semanticLabel,
+    required String tooltip,
     VoidCallback? onPressed,
   }) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white),
-        onPressed: onPressed,
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          tooltip: tooltip,
+          icon: Icon(icon, color: Colors.white),
+          onPressed: onPressed,
+        ),
       ),
     );
   }
@@ -501,19 +518,23 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       bottom: 150,
       left: AppConstants.spacingL,
       right: AppConstants.spacingL,
-      child: Container(
-        padding: const EdgeInsets.all(AppConstants.spacingM),
-        decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        ),
-        child: Text(
-          _errorMessage!,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
+      child: Semantics(
+        liveRegion: true,
+        label: 'Erreur: $_errorMessage',
+        child: Container(
+          padding: const EdgeInsets.all(AppConstants.spacingM),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
           ),
-          textAlign: TextAlign.center,
+          child: Text(
+            _errorMessage!,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );

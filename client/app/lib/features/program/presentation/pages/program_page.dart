@@ -178,6 +178,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Afficher la séance en cours',
                   onPressed: () => _showActiveWorkoutSheet(_activeWorkout!),
                   icon: const Icon(Icons.open_in_full, color: Colors.white),
                 ),
@@ -209,12 +210,15 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Programme',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          'Programme',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -244,15 +248,18 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: ElevatedButton.icon(
-                      onPressed: _showCreateWorkoutDialog,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Nouveau'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        elevation: 0,
+                    child: Tooltip(
+                      message: 'Créer un entraînement',
+                      child: ElevatedButton.icon(
+                        onPressed: _showCreateWorkoutDialog,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Nouveau'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                        ),
                       ),
                     ),
                   ),
@@ -408,87 +415,94 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
   }
 
   Widget _buildWorkoutCard(WorkoutModel workout) {
-    return Card(
-      color: AppColors.cardBackground,
-      margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        side: BorderSide(
-          color: workout.isCompleted
-              ? AppColors.secondary.withOpacity(0.3)
-              : AppColors.navBarBorder,
+    return Semantics(
+      button: true,
+      label: 'Entraînement ${workout.name}',
+      hint: workout.isCompleted
+          ? 'Séance terminée. Appuyer pour voir les détails'
+          : 'Appuyer pour voir les détails de la séance',
+      child: Card(
+        color: AppColors.cardBackground,
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+          side: BorderSide(
+            color: workout.isCompleted
+                ? AppColors.secondary.withOpacity(0.3)
+                : AppColors.navBarBorder,
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: () => _showWorkoutDetails(workout),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppConstants.spacingS),
-                    decoration: BoxDecoration(
-                      color: workout.isCompleted
-                          ? AppColors.secondary.withOpacity(0.2)
-                          : AppColors.primary.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+        child: InkWell(
+          onTap: () => _showWorkoutDetails(workout),
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+          child: Padding(
+            padding: const EdgeInsets.all(AppConstants.spacingM),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppConstants.spacingS),
+                      decoration: BoxDecoration(
+                        color: workout.isCompleted
+                            ? AppColors.secondary.withOpacity(0.2)
+                            : AppColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+                      ),
+                      child: Icon(
+                        workout.isCompleted ? Icons.check_circle : Icons.fitness_center,
+                        color: workout.isCompleted ? AppColors.secondary : AppColors.primary,
+                        size: 24,
+                      ),
                     ),
-                    child: Icon(
-                      workout.isCompleted ? Icons.check_circle : Icons.fitness_center,
-                      color: workout.isCompleted ? AppColors.secondary : AppColors.primary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.spacingM),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          workout.name,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(width: AppConstants.spacingM),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            workout.name,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            if (workout.durationMinutes != null) ...[
-                              const Icon(Icons.timer, size: 14, color: AppColors.textSecondary),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              if (workout.durationMinutes != null) ...[
+                                const Icon(Icons.timer, size: 14, color: AppColors.textSecondary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${workout.durationMinutes} min',
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: AppConstants.spacingM),
+                              ],
+                              const Icon(Icons.calendar_today, size: 14, color: AppColors.textSecondary),
                               const SizedBox(width: 4),
                               Text(
-                                '${workout.durationMinutes} min',
+                                _formatTime(workout.workoutDate),
                                 style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 13,
                                 ),
                               ),
-                              const SizedBox(width: AppConstants.spacingM),
                             ],
-                            const Icon(Icons.calendar_today, size: 14, color: AppColors.textSecondary),
-                            const SizedBox(width: 4),
-                            Text(
-                              _formatTime(workout.workoutDate),
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                    PopupMenuButton<String>(
+                      tooltip: 'Actions de la séance',
+                      icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
                     color: AppColors.cardBackground,
                     onSelected: (value) {
                       switch (value) {
@@ -680,6 +694,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

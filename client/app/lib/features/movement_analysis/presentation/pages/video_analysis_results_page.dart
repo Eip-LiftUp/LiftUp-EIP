@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/services/video_analysis_service.dart';
 import 'package:video_player/video_player.dart';
 
@@ -70,10 +68,11 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1E1E),
         title: const Text(
-          'Analysis Results',
+          'Résultats d\'analyse',
           style: TextStyle(color: Colors.white),
         ),
         leading: IconButton(
+          tooltip: 'Retour',
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -103,13 +102,15 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
   }
 
   Widget _buildAnnotatedVideoPlayer() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Column(
+    return Semantics(
+      label: 'Vidéo annotée avec suivi de posture',
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
@@ -166,32 +167,38 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
               children: [
                 VideoPlayer(_videoController!),
                 // Play/Pause overlay
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (_isVideoPlaying) {
-                        _videoController!.pause();
-                      } else {
-                        _videoController!.play();
-                      }
-                      _isVideoPlaying = !_isVideoPlaying;
-                    });
-                  },
-                  child: Container(
-                    color: Colors.transparent,
-                    child: AnimatedOpacity(
-                      opacity: _isVideoPlaying ? 0.0 : 1.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                          size: 48,
+                Semantics(
+                  button: true,
+                  label: _isVideoPlaying
+                      ? 'Mettre en pause la vidéo annotée'
+                      : 'Lire la vidéo annotée',
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_isVideoPlaying) {
+                          _videoController!.pause();
+                        } else {
+                          _videoController!.play();
+                        }
+                        _isVideoPlaying = !_isVideoPlaying;
+                      });
+                    },
+                    child: Container(
+                      color: Colors.transparent,
+                      child: AnimatedOpacity(
+                        opacity: _isVideoPlaying ? 0.0 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow,
+                            color: Colors.white,
+                            size: 48,
+                          ),
                         ),
                       ),
                     ),
@@ -224,6 +231,7 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -270,27 +278,30 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
   }
 
   Widget _buildScoreCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: _getScoreGradient(widget.result.qualityScore),
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: _getScoreColor(widget.result.qualityScore).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return Semantics(
+      label: 'Score global ${widget.result.qualityScore.toStringAsFixed(1)} sur 100, note ${widget.result.grade}',
+      readOnly: true,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: _getScoreGradient(widget.result.qualityScore),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: Column(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: _getScoreColor(widget.result.qualityScore).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
         children: [
           const Text(
-            'Overall Score',
+            'Score global',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 16,
@@ -326,7 +337,7 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Grade: ${widget.result.grade}',
+              'Note: ${widget.result.grade}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -335,6 +346,7 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -678,9 +690,8 @@ class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
   
   bool _isAnalyzing = false;
   double _progress = 0.0;
-  String _statusMessage = 'Preparing video...';
+  String _statusMessage = 'Préparation de la vidéo...';
   String? _errorMessage;
-  VideoAnalysisResult? _result;
 
   @override
   void initState() {
@@ -692,7 +703,7 @@ class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
     setState(() {
       _isAnalyzing = true;
       _progress = 0.0;
-      _statusMessage = 'Uploading video...';
+      _statusMessage = 'Téléversement de la vidéo...';
       _errorMessage = null;
     });
 
@@ -704,16 +715,15 @@ class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
           setState(() {
             _progress = progress;
             if (progress < 1.0) {
-              _statusMessage = 'Uploading: ${(progress * 100).toInt()}%';
+              _statusMessage = 'Téléversement: ${(progress * 100).toInt()}%';
             } else {
-              _statusMessage = 'Analyzing movement with AI...';
+              _statusMessage = 'Analyse du mouvement par IA...';
             }
           });
         },
       );
 
       setState(() {
-        _result = result;
         _isAnalyzing = false;
       });
 
@@ -735,7 +745,7 @@ class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Analysis failed: $e';
+        _errorMessage = 'Échec de l\'analyse: $e';
         _isAnalyzing = false;
       });
     }

@@ -17,10 +17,14 @@ class HomePage extends StatelessWidget {
             _buildHeader(context),
             const Spacer(),
             // Version
-            Text(
-              'Version ${AppConstants.appVersion}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+            Semantics(
+              label: 'Version de l\'application ${AppConstants.appVersion}',
+              readOnly: true,
+              child: Text(
+                'Version ${AppConstants.appVersion}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
             const SizedBox(height: AppConstants.spacingM),
@@ -33,10 +37,14 @@ class HomePage extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
-        Image.asset(
-          'lib/assets/image.png',
-          width: 72,
-          height: 72,
+        Semantics(
+          label: 'Logo LiftUp',
+          image: true,
+          child: Image.asset(
+            'lib/assets/image.png',
+            width: 72,
+            height: 72,
+          ),
         ),
         const SizedBox(height: AppConstants.spacingM),
         Text(

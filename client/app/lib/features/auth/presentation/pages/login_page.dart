@@ -145,6 +145,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
+                  tooltip: 'Retour',
                   onPressed: () => context.go('/onboarding'),
                   icon: const Icon(
                     Icons.arrow_back,
@@ -245,6 +246,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               hint: '••••••••',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
+                tooltip: _obscurePassword
+                    ? 'Afficher le mot de passe'
+                    : 'Masquer le mot de passe',
                 onPressed: () {
                   setState(() {
                     _obscurePassword = !_obscurePassword;
@@ -319,25 +323,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Widget _buildErrorMessage() {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.spacingM),
-      margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
-      decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 20),
-          const SizedBox(width: AppConstants.spacingS),
-          Expanded(
-            child: Text(
-              _errorMessage!,
-              style: const TextStyle(color: Colors.red),
+    return Semantics(
+      liveRegion: true,
+      label: 'Erreur de connexion: $_errorMessage',
+      child: Container(
+        padding: const EdgeInsets.all(AppConstants.spacingM),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+          border: Border.all(color: Colors.red.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 20),
+            const SizedBox(width: AppConstants.spacingS),
+            Expanded(
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

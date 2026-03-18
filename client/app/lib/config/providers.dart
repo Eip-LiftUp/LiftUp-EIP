@@ -182,12 +182,18 @@ class WorkoutDay {
 
 class AppState {
   final bool isDarkMode;
+  final double textScaleFactor;
+  final bool highContrast;
+  final bool reduceMotion;
   final String? userToken;
   final bool isAuthenticated;
   final UserProfile? userProfile;
 
   AppState({
     this.isDarkMode = false,
+    this.textScaleFactor = 1.0,
+    this.highContrast = false,
+    this.reduceMotion = false,
     this.userToken,
     this.isAuthenticated = false,
     this.userProfile,
@@ -199,12 +205,18 @@ class AppState {
 
   AppState copyWith({
     bool? isDarkMode,
+    double? textScaleFactor,
+    bool? highContrast,
+    bool? reduceMotion,
     String? userToken,
     bool? isAuthenticated,
     UserProfile? userProfile,
   }) {
     return AppState(
       isDarkMode: isDarkMode ?? this.isDarkMode,
+      textScaleFactor: textScaleFactor ?? this.textScaleFactor,
+      highContrast: highContrast ?? this.highContrast,
+      reduceMotion: reduceMotion ?? this.reduceMotion,
       userToken: userToken ?? this.userToken,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       userProfile: userProfile ?? this.userProfile,
@@ -217,6 +229,27 @@ class AppStateNotifier extends StateNotifier<AppState> {
 
   void toggleDarkMode() {
     state = state.copyWith(isDarkMode: !state.isDarkMode);
+  }
+
+  void setTextScaleFactor(double value) {
+    final clampedValue = value.clamp(0.8, 1.6);
+    state = state.copyWith(textScaleFactor: clampedValue);
+  }
+
+  void toggleHighContrast() {
+    state = state.copyWith(highContrast: !state.highContrast);
+  }
+
+  void toggleReduceMotion() {
+    state = state.copyWith(reduceMotion: !state.reduceMotion);
+  }
+
+  void resetAccessibilitySettings() {
+    state = state.copyWith(
+      textScaleFactor: 1.0,
+      highContrast: false,
+      reduceMotion: false,
+    );
   }
 
   void setUserToken(String token) {
@@ -284,7 +317,12 @@ class AppStateNotifier extends StateNotifier<AppState> {
   }
 
   void logout() {
-    state = AppState(isDarkMode: state.isDarkMode);
+    state = AppState(
+      isDarkMode: state.isDarkMode,
+      textScaleFactor: state.textScaleFactor,
+      highContrast: state.highContrast,
+      reduceMotion: state.reduceMotion,
+    );
   }
 
   /// Login with mock data

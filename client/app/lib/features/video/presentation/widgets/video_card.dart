@@ -31,35 +31,55 @@ class VideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.cardBackground,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        side: const BorderSide(color: AppColors.navBarBorder),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingM),
-          child: Row(
-            children: [
-              // Thumbnail
-              _buildThumbnail(),
-              const SizedBox(width: AppConstants.spacingM),
+    return Semantics(
+      button: true,
+      label: 'Vidéo ${video.title}, durée ${video.formattedDuration}, statut ${_statusSemanticText(video.uploadStatus)}',
+      hint: 'Appuyer pour ouvrir les détails de la vidéo',
+      child: Card(
+        color: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+          side: const BorderSide(color: AppColors.navBarBorder),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+          child: Padding(
+            padding: const EdgeInsets.all(AppConstants.spacingM),
+            child: Row(
+              children: [
+                // Thumbnail
+                _buildThumbnail(),
+                const SizedBox(width: AppConstants.spacingM),
 
-              // Info
-              Expanded(
-                child: _buildVideoInfo(context),
-              ),
+                // Info
+                Expanded(
+                  child: _buildVideoInfo(context),
+                ),
 
-              // Actions
-              _buildActions(),
-            ],
+                // Actions
+                _buildActions(),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String _statusSemanticText(VideoUploadStatus status) {
+    switch (status) {
+      case VideoUploadStatus.pending:
+        return 'en attente';
+      case VideoUploadStatus.uploading:
+        return 'en cours de téléversement';
+      case VideoUploadStatus.uploaded:
+        return 'téléversée';
+      case VideoUploadStatus.failed:
+        return 'échec de téléversement';
+      case VideoUploadStatus.cancelled:
+        return 'téléversement annulé';
+    }
   }
 
   Widget _buildThumbnail() {
@@ -79,6 +99,7 @@ class VideoCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
               child: Image.asset(
                 video.thumbnailPath!,
+                semanticLabel: 'Aperçu de la vidéo ${video.title}',
                 width: 80,
                 height: 60,
                 fit: BoxFit.cover,
@@ -234,6 +255,7 @@ class VideoCard extends StatelessWidget {
             video.uploadStatus == VideoUploadStatus.cancelled)
           IconButton(
             onPressed: onUpload,
+            tooltip: 'Téléverser ${video.title}',
             icon: const Icon(
               Icons.cloud_upload,
               color: AppColors.primary,
@@ -244,6 +266,7 @@ class VideoCard extends StatelessWidget {
           ),
         IconButton(
           onPressed: onDelete,
+          tooltip: 'Supprimer ${video.title}',
           icon: const Icon(
             Icons.delete_outline,
             color: AppColors.textSecondary,

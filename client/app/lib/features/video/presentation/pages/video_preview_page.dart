@@ -126,6 +126,7 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Retour',
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -155,66 +156,81 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
 
   Widget _buildVideoPlayer() {
     if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingL),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 64,
-              ),
-              const SizedBox(height: AppConstants.spacingM),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            ],
+      return Semantics(
+        liveRegion: true,
+        label: 'Erreur de lecture vidéo: $_errorMessage',
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppConstants.spacingL),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 64,
+                ),
+                const SizedBox(height: AppConstants.spacingM),
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     if (!_isInitialized || _controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+      return Semantics(
+        liveRegion: true,
+        label: 'Chargement de la vidéo',
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
-    return GestureDetector(
-      onTap: _togglePlayback,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Video
-          Center(
-            child: AspectRatio(
-              aspectRatio: _controller!.value.aspectRatio,
-              child: VideoPlayer(_controller!),
+    return Semantics(
+      button: true,
+      label: 'Aperçu vidéo',
+      hint: _isPlaying
+          ? 'Appuyer pour mettre en pause'
+          : 'Appuyer pour lire la vidéo',
+      child: GestureDetector(
+        onTap: _togglePlayback,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Video
+            Center(
+              child: AspectRatio(
+                aspectRatio: _controller!.value.aspectRatio,
+                child: VideoPlayer(_controller!),
+              ),
             ),
-          ),
 
-          // Play/pause overlay
-          AnimatedOpacity(
-            opacity: _isPlaying ? 0 : 1,
-            duration: const Duration(milliseconds: 200),
-            child: Container(
-              padding: const EdgeInsets.all(AppConstants.spacingL),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
-                size: 64,
+            // Play/pause overlay
+            AnimatedOpacity(
+              opacity: _isPlaying ? 0 : 1,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                padding: const EdgeInsets.all(AppConstants.spacingL),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 64,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -272,6 +288,7 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
             children: [
               // Replay 10 seconds
               IconButton(
+                tooltip: 'Reculer de 10 secondes',
                 onPressed: () {
                   final position = _controller!.value.position;
                   _controller!.seekTo(position - const Duration(seconds: 10));
@@ -286,6 +303,7 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
 
               // Play/pause
               IconButton(
+                tooltip: _isPlaying ? 'Mettre en pause' : 'Lire la vidéo',
                 onPressed: _togglePlayback,
                 icon: Icon(
                   _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
@@ -297,6 +315,7 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
 
               // Forward 10 seconds
               IconButton(
+                tooltip: 'Avancer de 10 secondes',
                 onPressed: () {
                   final position = _controller!.value.position;
                   _controller!.seekTo(position + const Duration(seconds: 10));
@@ -326,6 +345,7 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.close),
               label: const Text('Annuler'),
+              iconAlignment: IconAlignment.start,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.textPrimary,
                 side: const BorderSide(color: AppColors.textSecondary),
@@ -344,6 +364,7 @@ class _VideoPreviewPageState extends State<VideoPreviewPage> {
               onPressed: _proceedToUpload,
               icon: const Icon(Icons.check),
               label: const Text('Continuer'),
+              iconAlignment: IconAlignment.start,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

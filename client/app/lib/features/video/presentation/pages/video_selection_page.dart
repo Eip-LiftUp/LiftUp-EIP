@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -31,9 +30,11 @@ class VideoSelectionPage extends StatelessWidget {
       );
 
       if (pickedFile != null) {
+        if (!context.mounted) return;
         _handleVideoSelected(context, pickedFile.path);
       }
     } catch (e) {
+      if (!context.mounted) return;
       _showErrorSnackBar(context, 'Erreur lors de la sélection: $e');
     }
   }
@@ -49,10 +50,12 @@ class VideoSelectionPage extends StatelessWidget {
       if (result != null && result.files.isNotEmpty) {
         final path = result.files.first.path;
         if (path != null) {
+          if (!context.mounted) return;
           _handleVideoSelected(context, path);
         }
       }
     } catch (e) {
+      if (!context.mounted) return;
       _showErrorSnackBar(context, 'Erreur lors de la sélection: $e');
     }
   }
@@ -70,6 +73,7 @@ class VideoSelectionPage extends StatelessWidget {
     );
 
     if (result != null) {
+      if (!context.mounted) return;
       _handleVideoSelected(context, result);
     }
   }
@@ -111,6 +115,7 @@ class VideoSelectionPage extends StatelessWidget {
           style: TextStyle(color: AppColors.textPrimary),
         ),
         leading: IconButton(
+          tooltip: 'Retour',
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -234,59 +239,67 @@ class _VideoOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        child: Container(
-          padding: const EdgeInsets.all(AppConstants.spacingL),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
+    return Semantics(
+      button: true,
+      label: title,
+      hint: description,
+      child: Tooltip(
+        message: title,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppConstants.spacingM),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 32,
-                ),
+            child: Container(
+              padding: const EdgeInsets.all(AppConstants.spacingL),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+                border: Border.all(color: color.withOpacity(0.3)),
               ),
-              const SizedBox(width: AppConstants.spacingM),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppConstants.spacingM),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
                     ),
-                    const SizedBox(height: AppConstants.spacingXs),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                    child: Icon(
+                      icon,
+                      color: color,
+                      size: 32,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: AppConstants.spacingM),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: AppConstants.spacingXs),
+                        Text(
+                          description,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: color,
+                  ),
+                ],
               ),
-              Icon(
-                Icons.chevron_right,
-                color: color,
-              ),
-            ],
+            ),
           ),
         ),
       ),

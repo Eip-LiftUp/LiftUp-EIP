@@ -107,6 +107,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
+                  tooltip: 'Retour',
                   onPressed: () => context.go('/onboarding'),
                   icon: const Icon(
                     Icons.arrow_back,
@@ -234,6 +235,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               hint: '••••••••',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
+                tooltip: _obscurePassword
+                    ? 'Afficher le mot de passe'
+                    : 'Masquer le mot de passe',
                 onPressed: () {
                   setState(() {
                     _obscurePassword = !_obscurePassword;
@@ -273,6 +277,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               hint: '••••••••',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
+                tooltip: _obscureConfirmPassword
+                    ? 'Afficher la confirmation'
+                    : 'Masquer la confirmation',
                 onPressed: () {
                   setState(() {
                     _obscureConfirmPassword = !_obscureConfirmPassword;
@@ -334,79 +341,91 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Widget _buildTermsCheckbox() {
-    return Row(
-      children: [
-        SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: _acceptTerms,
-            onChanged: (value) {
-              setState(() {
-                _acceptTerms = value ?? false;
-                if (_acceptTerms) {
-                  _errorMessage = null;
-                }
-              });
-            },
-            activeColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.textSecondary),
-          ),
-        ),
-        const SizedBox(width: AppConstants.spacingS),
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _acceptTerms = !_acceptTerms;
-                if (_acceptTerms) {
-                  _errorMessage = null;
-                }
-              });
-            },
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                children: [
-                  const TextSpan(text: 'J\'accepte les '),
-                  TextSpan(
-                    text: 'conditions d\'utilisation',
-                    style: TextStyle(color: AppColors.primary),
-                  ),
-                  const TextSpan(text: ' et la '),
-                  TextSpan(
-                    text: 'politique de confidentialité',
-                    style: TextStyle(color: AppColors.primary),
-                  ),
-                ],
+    return MergeSemantics(
+      child: Semantics(
+        checked: _acceptTerms,
+        label: 'Accepter les conditions d\'utilisation et la politique de confidentialité',
+        hint: 'Appuyer pour ${_acceptTerms ? 'désactiver' : 'activer'}',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
+          onTap: () {
+            setState(() {
+              _acceptTerms = !_acceptTerms;
+              if (_acceptTerms) {
+                _errorMessage = null;
+              }
+            });
+          },
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: _acceptTerms,
+                  onChanged: (value) {
+                    setState(() {
+                      _acceptTerms = value ?? false;
+                      if (_acceptTerms) {
+                        _errorMessage = null;
+                      }
+                    });
+                  },
+                  activeColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.textSecondary),
+                ),
               ),
-            ),
+              const SizedBox(width: AppConstants.spacingS),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    children: [
+                      const TextSpan(text: 'J\'accepte les '),
+                      TextSpan(
+                        text: 'conditions d\'utilisation',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                      const TextSpan(text: ' et la '),
+                      TextSpan(
+                        text: 'politique de confidentialité',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildErrorMessage() {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.spacingM),
-      margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
-      decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 20),
-          const SizedBox(width: AppConstants.spacingS),
-          Expanded(
-            child: Text(
-              _errorMessage!,
-              style: const TextStyle(color: Colors.red),
+    return Semantics(
+      liveRegion: true,
+      label: 'Erreur d\'inscription: $_errorMessage',
+      child: Container(
+        padding: const EdgeInsets.all(AppConstants.spacingM),
+        margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+          border: Border.all(color: Colors.red.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 20),
+            const SizedBox(width: AppConstants.spacingS),
+            Expanded(
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

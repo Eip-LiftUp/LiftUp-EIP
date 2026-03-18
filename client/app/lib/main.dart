@@ -22,6 +22,24 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       routerConfig: appRouter,
+      themeAnimationDuration: appState.reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 250),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return FocusTraversalGroup(
+          policy: OrderedTraversalPolicy(),
+          child: MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: TextScaler.linear(appState.textScaleFactor),
+              highContrast: appState.highContrast,
+              boldText: appState.highContrast,
+              disableAnimations: appState.reduceMotion,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       debugShowCheckedModeBanner: false,
     );
   }

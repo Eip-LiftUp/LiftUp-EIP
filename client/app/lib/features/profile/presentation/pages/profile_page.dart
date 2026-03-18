@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app/config/providers.dart';
 import 'package:app/core/constants/app_constants.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/core/providers/auth_provider.dart';
@@ -576,6 +577,126 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  /// Show accessibility settings dialog
+  void _showAccessibilityDialog() {
+    final appState = ref.read(appStateProvider);
+    double textScaleFactor = appState.textScaleFactor;
+    bool highContrast = appState.highContrast;
+    bool reduceMotion = appState.reduceMotion;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
+          backgroundColor: AppColors.cardBackground,
+          title: const Text(
+            'Accessibilité',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Taille du texte',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppConstants.spacingS),
+              Text(
+                '${(textScaleFactor * 100).round()}% ',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              Slider(
+                value: textScaleFactor,
+                min: 0.8,
+                max: 1.6,
+                divisions: 8,
+                activeColor: AppColors.primary,
+                label: '${(textScaleFactor * 100).round()}%',
+                onChanged: (value) {
+                  setDialogState(() => textScaleFactor = value);
+                },
+              ),
+              const SizedBox(height: AppConstants.spacingM),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Contraste renforcé',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Améliore la lisibilité des éléments',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                value: highContrast,
+                activeColor: AppColors.primary,
+                onChanged: (value) {
+                  setDialogState(() => highContrast = value);
+                },
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Réduire les animations',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'Diminue les effets de transition',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                value: reduceMotion,
+                activeColor: AppColors.primary,
+                onChanged: (value) {
+                  setDialogState(() => reduceMotion = value);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                ref.read(appStateProvider.notifier).resetAccessibilitySettings();
+                Navigator.of(context).pop();
+                _showSuccessSnackBar('Paramètres d\'accessibilité réinitialisés');
+              },
+              child: const Text('Réinitialiser'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final notifier = ref.read(appStateProvider.notifier);
+                final current = ref.read(appStateProvider);
+
+                notifier.setTextScaleFactor(textScaleFactor);
+
+                if (current.highContrast != highContrast) {
+                  notifier.toggleHighContrast();
+                }
+                if (current.reduceMotion != reduceMotion) {
+                  notifier.toggleReduceMotion();
+                }
+
+                Navigator.of(context).pop();
+                _showSuccessSnackBar('Paramètres d\'accessibilité appliqués');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Enregistrer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHelpItem({
     required IconData icon,
     required String title,
@@ -1091,6 +1212,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ),
           IconButton(
+            tooltip: 'Ouvrir les paramètres rapides',
             onPressed: _showSettingsMenu,
             icon: const Icon(Icons.settings, color: AppColors.textSecondary),
           ),
@@ -1101,7 +1223,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildProfileCard(AuthState authState) {
     final name = _profileData?.displayName ?? authState.username ?? 'Utilisateur';
-    final email = authState.email ?? 'email@example.com';
     final levelText = _profileData?.fitnessLevel != null
         ? _getFitnessLevelText(_profileData!.fitnessLevel!)
         : 'Non défini';
@@ -1120,17 +1241,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Row(
         children: [
           // Avatar
-          GestureDetector(
-            onTap: () => _showSuccessSnackBar('Changer la photo (à venir)'),
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
+          Semantics(
+            button: true,
+            label: 'Photo de profil',
+            hint: 'Appuyer pour changer la photo',
+            child: GestureDetector(
+              onTap: () => _showSuccessSnackBar('Changer la photo (à venir)'),
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                ),
+                child: const Icon(Icons.person, size: 40, color: Colors.white),
               ),
-              child: const Icon(Icons.person, size: 40, color: Colors.white),
             ),
           ),
           const SizedBox(width: AppConstants.spacingM),
@@ -1175,6 +1301,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           // Edit button
           IconButton(
+            tooltip: 'Modifier le profil',
             onPressed: _showEditProfileDialog,
             icon: Container(
               padding: const EdgeInsets.all(AppConstants.spacingS),
@@ -1373,6 +1500,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 _buildSettingsDivider(),
                 _buildSettingItem(
+                  icon: Icons.accessibility_new,
+                  title: 'Accessibilité',
+                  subtitle: 'Texte, contraste, animations',
+                  onTap: _showAccessibilityDialog,
+                ),
+                _buildSettingsDivider(),
+                _buildSettingItem(
                   icon: Icons.help_outline,
                   title: 'Aide & Support',
                   onTap: _showHelpDialog,
@@ -1398,38 +1532,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     String? subtitle,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacingM),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.textSecondary, size: 24),
-            const SizedBox(width: AppConstants.spacingM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (subtitle != null)
+    return Semantics(
+      button: true,
+      label: title,
+      hint: subtitle ?? 'Ouvrir $title',
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppConstants.spacingM),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.textSecondary, size: 24),
+              const SizedBox(width: AppConstants.spacingM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
+                      title,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
                       ),
                     ),
-                ],
+                    if (subtitle != null)
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ],
+              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            ],
+          ),
         ),
       ),
     );

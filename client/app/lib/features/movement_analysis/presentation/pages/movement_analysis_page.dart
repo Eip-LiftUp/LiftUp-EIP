@@ -123,6 +123,7 @@ class _MovementAnalysisPageState extends State<MovementAnalysisPage> {
           ),
           if (_videos.isNotEmpty)
             IconButton(
+              tooltip: 'Ajouter une vidéo',
               onPressed: _addVideo,
               icon: const Icon(
                 Icons.add_circle,
@@ -155,12 +156,15 @@ class _MovementAnalysisPageState extends State<MovementAnalysisPage> {
               ),
             ),
             const SizedBox(height: AppConstants.spacingL),
-            Text(
-              'Analyse de Mouvement',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-              textAlign: TextAlign.center,
+            Semantics(
+              header: true,
+              child: Text(
+                'Analyse de Mouvement',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: AppConstants.spacingM),
             Text(
@@ -171,19 +175,22 @@ class _MovementAnalysisPageState extends State<MovementAnalysisPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppConstants.spacingXl),
-            ElevatedButton.icon(
-              onPressed: _addVideo,
-              icon: const Icon(Icons.add),
-              label: const Text('Ajouter une vidéo'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingXl,
-                  vertical: AppConstants.spacingM,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+            Tooltip(
+              message: 'Ajouter une vidéo à analyser',
+              child: ElevatedButton.icon(
+                onPressed: _addVideo,
+                icon: const Icon(Icons.add),
+                label: const Text('Ajouter une vidéo'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppConstants.spacingXl,
+                    vertical: AppConstants.spacingM,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+                  ),
                 ),
               ),
             ),

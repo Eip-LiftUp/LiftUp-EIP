@@ -13,7 +13,7 @@ class AppColors {
   static const Color secondary = Color(0xFF10B981);
   static const Color accent = Color(0xFFF59E0B);
   static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Colors.white54;
+  static const Color textSecondary = Colors.white70;
 }
 
 class MainScaffold extends StatelessWidget {
@@ -96,27 +96,41 @@ class MainScaffold extends StatelessWidget {
   }) {
     final color = isSelected ? AppColors.primary : AppColors.textSecondary;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: 'Onglet $label',
+      hint: isSelected ? 'Onglet actuel' : 'Appuyer pour ouvrir $label',
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+          child: SizedBox(
+            width: 80,
+            height: 52,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

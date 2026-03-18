@@ -52,19 +52,23 @@ class VideoList extends StatelessWidget {
   }
 
   Widget _buildLoadingState() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(AppConstants.spacingXl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: AppConstants.spacingL),
-            Text(
-              'Chargement des vidéos...',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ],
+    return Semantics(
+      label: 'Chargement des vidéos en cours',
+      liveRegion: true,
+      child: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(AppConstants.spacingXl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: AppColors.primary),
+              SizedBox(height: AppConstants.spacingL),
+              Text(
+                'Chargement des vidéos...',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -106,16 +110,19 @@ class VideoList extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppConstants.spacingXl),
-            ElevatedButton.icon(
-              onPressed: onAddVideo,
-              icon: const Icon(Icons.add),
-              label: const Text('Ajouter une vidéo'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingL,
-                  vertical: AppConstants.spacingM,
+            Tooltip(
+              message: 'Ajouter une vidéo',
+              child: ElevatedButton.icon(
+                onPressed: onAddVideo,
+                icon: const Icon(Icons.add),
+                label: const Text('Ajouter une vidéo'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppConstants.spacingL,
+                    vertical: AppConstants.spacingM,
+                  ),
                 ),
               ),
             ),

@@ -19,7 +19,7 @@ class VideoAnalysisService {
     try {
       if (Platform.isAndroid) {
         // Android Physical Device: Same IP as backend, port 8001
-        return 'http://10.73.190.49:8001';
+        return 'http://10.73.189.64:8001';
       } else if (Platform.isIOS) {
         return 'http://localhost:8001';
       } else {

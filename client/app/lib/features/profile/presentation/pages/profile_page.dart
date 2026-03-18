@@ -354,6 +354,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
           backgroundColor: AppColors.cardBackground,
           title: const Text(
             'Notifications',
@@ -439,6 +440,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
           backgroundColor: AppColors.cardBackground,
           title: const Text(
             'Confidentialité',
@@ -587,14 +589,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             Icon(icon, color: AppColors.primary),
             const SizedBox(width: AppConstants.spacingM),
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: AppConstants.spacingS),
             const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
@@ -738,6 +742,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          scrollable: true,
           backgroundColor: AppColors.cardBackground,
           title: const Text(
             'Feedback',
@@ -801,6 +806,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         backgroundColor: AppColors.cardBackground,
         title: Row(
           children: [
@@ -813,9 +819,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               child: const Icon(Icons.fitness_center, color: AppColors.primary),
             ),
             const SizedBox(width: AppConstants.spacingM),
-            const Text(
-              'LiftUp',
-              style: TextStyle(color: AppColors.textPrimary),
+            const Expanded(
+              child: Text(
+                'LiftUp',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
             ),
           ],
         ),
@@ -838,8 +847,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: AppConstants.spacingM),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: AppConstants.spacingS,
+              runSpacing: AppConstants.spacingS,
               children: [
                 TextButton(
                   onPressed: () {
@@ -889,7 +900,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textSecondary.withOpacity(0.3),
+                  color: AppColors.navBarBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1048,11 +1059,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           children: [
             // Header
             _buildHeader(),
-
             // Profile card
             _buildProfileCard(authState),
 
-            // Stats section
             _buildStatsSection(),
 
             // Settings section

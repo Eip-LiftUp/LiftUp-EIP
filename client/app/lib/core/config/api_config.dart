@@ -12,7 +12,7 @@ class ApiConfig {
   /// - Linux: ip addr show (look for inet on your main network interface)
   /// 
   /// Your phone is on 10.73.189.188, so your machine should be on 10.73.189.x
-  static const String baseUrl = 'http://10.73.189.87:8080'; // CHANGE THIS to your machine's IP
+  static const String baseUrl = 'http://10.73.189.64:8080'; // CHANGE THIS to your machine's IP
   
   /// Alternative: Auto-detect based on platform
   /// Uncomment this and remove the above line if you want auto-detection

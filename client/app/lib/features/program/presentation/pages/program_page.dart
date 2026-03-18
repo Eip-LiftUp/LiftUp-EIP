@@ -6,11 +6,7 @@ import 'package:app/core/providers/workout_provider.dart';
 import 'package:app/core/providers/auth_provider.dart';
 import 'package:app/core/providers/exercise_provider.dart';
 import 'package:app/core/models/workout.dart';
-<<<<<<< feat/machine-learning
-import 'package:app/config/providers.dart';
-=======
 import 'package:app/core/utils/workout_timer.dart';
->>>>>>> dev
 import 'package:intl/intl.dart';
 
 /// Program Page - Hevy style workout tracking with automatic timer
@@ -208,28 +204,30 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Programme',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$workoutCount entraînements',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Programme',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '$workoutCount entraînements',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: AppConstants.spacingM),
                 Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
@@ -244,15 +242,18 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                       ),
                     ],
                   ),
-                  child: ElevatedButton.icon(
-                    onPressed: _showCreateWorkoutDialog,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Nouveau'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Colors.white,
-                      shadowColor: Colors.transparent,
-                      elevation: 0,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: ElevatedButton.icon(
+                      onPressed: _showCreateWorkoutDialog,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Nouveau'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.transparent,
+                        elevation: 0,
+                      ),
                     ),
                   ),
                 ),
@@ -1294,10 +1295,12 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                 const SizedBox(height: AppConstants.spacingM),
 
                 // Weight Unit Toggle
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: AppConstants.spacingM,
+                  runSpacing: AppConstants.spacingS,
                   children: [
                     const Text('Unité: ', style: TextStyle(color: AppColors.textSecondary)),
-                    const SizedBox(width: AppConstants.spacingM),
                     SegmentedButton<WeightUnit>(
                       segments: const [
                         ButtonSegment(value: WeightUnit.kg, label: Text('KG')),
@@ -1388,32 +1391,37 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         backgroundColor: AppColors.cardBackground,
         title: Text(
           exercise.exerciseName,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Séries', '${exercise.setsCount}'),
-            _buildDetailRow('Répétitions', '${exercise.reps}'),
-            if (exercise.weight != null)
-              _buildDetailRow(
-                'Poids',
-                '${exercise.weight} ${exercise.weightUnit.displayName}',
-              ),
-            if (exercise.notes != null && exercise.notes!.isNotEmpty) ...[
-              const SizedBox(height: AppConstants.spacingM),
-              const Text('Notes:', style: TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: AppConstants.spacingS),
-              Text(
-                exercise.notes!,
-                style: const TextStyle(color: AppColors.textPrimary),
-              ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Séries', '${exercise.setsCount}'),
+              _buildDetailRow('Répétitions', '${exercise.reps}'),
+              if (exercise.weight != null)
+                _buildDetailRow(
+                  'Poids',
+                  '${exercise.weight} ${exercise.weightUnit.displayName}',
+                ),
+              if (exercise.notes != null && exercise.notes!.isNotEmpty) ...[
+                const SizedBox(height: AppConstants.spacingM),
+                const Text('Notes:', style: TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(height: AppConstants.spacingS),
+                Text(
+                  exercise.notes!,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         actions: [
           TextButton(
@@ -2084,10 +2092,12 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                   },
                 ),
                 const SizedBox(height: AppConstants.spacingM),
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: AppConstants.spacingM,
+                  runSpacing: AppConstants.spacingS,
                   children: [
                     const Text('Unité: ', style: TextStyle(color: AppColors.textSecondary)),
-                    const SizedBox(width: AppConstants.spacingM),
                     SegmentedButton<WeightUnit>(
                       segments: const [
                         ButtonSegment(value: WeightUnit.kg, label: Text('KG')),
@@ -2192,14 +2202,22 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: AppConstants.spacingM),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

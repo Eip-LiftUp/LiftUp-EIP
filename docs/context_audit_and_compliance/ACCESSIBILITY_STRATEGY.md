@@ -1,279 +1,279 @@
-# Accessibility Strategy (A11y) - LiftUp-EIP
+# Stratégie d'Accessibilité (A11y) - LiftUp-EIP
 
-**Document Version:** 1.0  
-**Last Updated:** February 10, 2026  
-**Target Compliance:** WCAG 2.1 Level AA / RGAA 4.1  
-**Status:** Pre-Development Accessibility Planning
+**Version du document:** 1.0  
+**Dernière mise à jour:** 10 Février 2026  
+**Cible de conformité:** WCAG 2.1 Niveau AA / RGAA 4.1  
+**Statut:** Planification de l'Accessibilité Pré-Développement
 
 ---
 
-## Executive Summary
+## Résumé Exécutif
 
-LiftUp is committed to providing an inclusive fitness coaching experience accessible to all users, including persons with disabilities (PSH - Personnes en Situation de Handicap). This document outlines our accessibility strategy, compliance targets, and implementation guidelines to ensure the app is usable by people with visual, motor, auditory, and cognitive impairments.
+LiftUp s'engage à offrir une expérience de coaching fitness inclusive et accessible à tous les utilisateurs, y compris les personnes en situation de handicap (PSH). Ce document détaille notre stratégie d'accessibilité, nos objectifs de conformité et nos directives d'implémentation pour garantir l'utilisation de l'application par des personnes souffrant de déficiences visuelles, motrices, auditives et cognitives.
 
-**Key Commitments:**
-- **WCAG 2.1 Level AA compliance** (international standard)
-- **RGAA 4.1 compliance** (French regulation for public digital services)
-- **iOS VoiceOver** and **Android TalkBack** full support
-- **4.5:1 minimum contrast ratio** for all text
-- **Touch target minimum 44x44pt** for all interactive elements
-- **Keyboard/switch navigation** support
+**Engagements Clés:**
+- **Conformité WCAG 2.1 Niveau AA** (norme internationale)
+- **Conformité RGAA 4.1** (référentiel français des services publics)
+- Support intégral **iOS VoiceOver** et **Android TalkBack**
+- **Ratio de contraste minimal de 4.5:1** pour tout texte
+- **Taille de cible tactile minimale de 44x44pt** pour les éléments interactifs
+- Support de la **navigation clavier/contacteur (switch)**
 
 **Impact:**
-- **15% of global population** has some form of disability (WHO)
-- **2.2 billion people** worldwide have vision impairment
-- **1.3 billion people** experience significant disability
-- **Mobile accessibility** is critical for fitness independence
+- **15% de la population mondiale** vit avec une forme de handicap (OMS)
+- **2,2 milliards de personnes** ont une déficience visuelle dans le monde
+- **1,3 milliard de personnes** vivent avec un handicap sévère
+- **L'accessibilité mobile** est primordiale pour l'autonomie en matière de santé/sport
 
 ---
 
-## 1. Accessibility Standards
+## 1. Normes d'Accessibilité
 
-### 1.1 International Standards: WCAG 2.1
+### 1.1 Normes Internationales : WCAG 2.1
 
-**Web Content Accessibility Guidelines (WCAG) 2.1**  
-Published by: W3C Web Accessibility Initiative (WAI)  
-Current Version: WCAG 2.1 (2018), WCAG 2.2 (2023)  
-Legal Status: International standard, legally binding in EU under EN 301 549
+**Règles pour l'accessibilité des contenus Web (WCAG) 2.1**  
+Éditeur : W3C Web Accessibility Initiative (WAI)  
+Version Actuelle : WCAG 2.1 (2018), WCAG 2.2 (2023)  
+Statut Légal : Norme internationale, légalement contraignante au sein de l'UE sous la norme EN 301 549
 
-**Four Core Principles (POUR):**
+**Quatre Principes Fondamentaux (POUR) :**
 
-#### 1.1.1 Perceivable
-*Information and user interface components must be presentable to users in ways they can perceive.*
+#### 1.1.1 Perceptible
+*L'information et les composants de l'interface utilisateur doivent être présentés à l'utilisateur de façon à ce qu'il puisse les percevoir.*
 
-**Requirements for LiftUp:**
-- Text alternatives for non-text content (images, icons, charts)
-- Captions and alternatives for multimedia (workout videos)
-- Content presented in different ways without losing information
-- Sufficient color contrast and resizable text
-- No reliance on color alone to convey information
+**Exigences pour LiftUp :**
+- Alternatives textuelles pour les contenus non-textuels (images, icônes, graphiques)
+- Sous-titres et alternatives pour les médias (vidéos de workout)
+- Contenu présentable de différentes façons sans perte d'information
+- Contraste de couleur suffisant et texte redimensionnable
+- L'information ne doit pas reposer uniquement sur la couleur
 
-#### 1.1.2 Operable
-*User interface components and navigation must be operable.*
+#### 1.1.2 Utilisable
+*Les composants de l'interface utilisateur et la navigation doivent être utilisables.*
 
-**Requirements for LiftUp:**
-- All functionality available via keyboard/screen reader
-- Users have enough time to read and use content
-- No content that causes seizures (flashing < 3 times per second)
-- Multiple ways to navigate and find content
-- Clear focus indicators on interactive elements
+**Exigences pour LiftUp :**
+- Toutes les fonctionnalités doivent être accessibles au clavier/lecteur d'écran
+- Les utilisateurs doivent avoir assez de temps pour lire et utiliser le contenu
+- Aucun contenu ne doit provoquer de crises (clignotement < 3 fois par seconde)
+- Plusieurs moyens de naviguer et de trouver du contenu
+- Indicateurs de focus clairement visibles sur les éléments interactifs
 
-#### 1.1.3 Understandable
-*Information and the operation of user interface must be understandable.*
+#### 1.1.3 Compréhensible
+*Les informations et l'utilisation de l'interface utilisateur doivent être compréhensibles.*
 
-**Requirements for LiftUp:**
-- Text is readable and understandable
-- Content appears and operates in predictable ways
-- Users are helped to avoid and correct mistakes
-- Clear error messages with suggestions
+**Exigences pour LiftUp :**
+- Le texte est lisible et compréhensible
+- Le contenu apparaît et s'utilise de manière prévisible
+- Les utilisateurs sont aidés dans l'évitement et la correction des erreurs
+- Messages d'errreur clairs avec suggestions
 
-#### 1.1.4 Robust
-*Content must be robust enough to be interpreted by a wide variety of user agents, including assistive technologies.*
+#### 1.1.4 Robuste
+*Le contenu doit être suffisamment robuste pour être interprété de manière fiable par une grande variété d'agents utilisateurs, y compris les technologies d'assistance.*
 
-**Requirements for LiftUp:**
-- Compatible with current and future assistive technologies
-- Valid semantic markup (equivalent in native mobile)
-- Programmatically determinable names, roles, and values
+**Exigences pour LiftUp :**
+- Compatible avec les technologies d'assistance actuelles et futures
+- Balisage sémantique valide (équivalent en mobile natif)
+- Noms, rôles et valeurs identifiables programmatiquement
 
-### 1.2 French Standard: RGAA 4.1
+### 1.2 Norme Française : RGAA 4.1
 
 **Référentiel Général d'Amélioration de l'Accessibilité (RGAA)**  
-Published by: DINUM (Direction Interministérielle du Numérique)  
-Current Version: RGAA 4.1 (2021)  
-Legal Basis: Article 47 of French Law n° 2005-102 (February 11, 2005)
+Éditeur : DINUM (Direction Interministérielle du Numérique)  
+Version Actuelle : RGAA 4.1 (2021)  
+Base Légale : Article 47 de la Loi n° 2005-102 (11 Février 2005)
 
-**Applicability to LiftUp:**
+**Applicabilité à LiftUp :**
 
-| Question | Answer | RGAA Requirement |
+| Question | Réponse | Obligation RGAA |
 |----------|--------|------------------|
-| Is LiftUp a public service? | No | Not legally required |
-| Is LiftUp a private service open to public? | Yes | Optional but recommended |
-| Annual revenue > €250M? | No (startup) | Not mandatory |
-| **Voluntary Compliance?** | **Yes** | **Competitive advantage** |
+| LiftUp est-elle un service public ? | Non | Non requis légalement |
+| LiftUp est-elle ouverte au public ? | Oui | Facultatif mais recommandé |
+| Chiffre d'affaires > 250M€ ? | Non (startup) | Non obligatoire |
+| **Conformité volontaire ?** | **Oui** | **Avantage concurrentiel** |
 
-**RGAA Compliance Benefits:**
-- French market credibility and trust
-- Label "Accessibilité Numérique" eligibility
-- Larger addressable market (disability inclusion)
-- Future-proofing against regulatory changes
+**Avantages d'une conformité RGAA :**
+- Crédibilité et confiance sur le marché Français
+- Éligibilité au label "Accessibilité Numérique"
+- Marché adressable élargi (inclusion du handicap)
+- Pérennité face aux évolutions réglementaires
 
-**RGAA vs WCAG:**
+**RGAA vs WCAG :**
 ```yaml
-Alignment:
-  - RGAA 4.1 is based on WCAG 2.1
-  - 106 criteria mapped to WCAG success criteria
-  - Additional French-specific requirements:
-    * French language accessibility
-    * Government communication standards
+Alignement:
+  - RGAA 4.1 est basé sur WCAG 2.1
+  - 106 critères calqués sur les critères de réussite WCAG
+  - Exigences additionnelles spécifiques (France):
+    * Accessibilité relative à la langue française
+    * Normes de communication gouvernementale
     
-Key Differences:
-  - RGAA has more prescriptive testing methodology
-  - RGAA includes specific test cases (258 tests)
-  - RGAA compliance declaration format specified
+Différences Clés:
+  - RGAA possède une méthodologie de test très stricte
+  - RGAA inclut des cas de tests spécifiques (258 tests)
+  - Le format de la déclaration de conformité est imposé
 ```
 
-### 1.3 Target Compliance Level
+### 1.3 Niveau de Conformité Cible
 
-**WCAG Conformance Levels:**
+**Niveaux de Conformité WCAG :**
 
-| Level | Requirements | LiftUp Target |
+| Niveau | Exigences | Cible LiftUp |
 |-------|-------------|---------------|
-| **Level A** | Minimum accessibility<br>Basic support for assistive tech | Must have (baseline) |
-| **Level AA** | Removes significant barriers<br>Industry standard | **Primary target** |
-| **Level AAA** | Highest accessibility<br>Not always possible for all content | Partial (where feasible) |
+| **Niveau A** | Accessibilité minimale<br>Support de base tech | Obligatoire (socle) |
+| **Niveau AA** | Dépasse les gros blocages<br>Standard de l'industrie | **Cible Actuelle** |
+| **Niveau AAA** | Accessibilité maximale<br>Pas toujours possible | Partiel (selon faisabilité) |
 
-**LiftUp Compliance Target:**
+**Cible de Conformité LiftUp :**
 
 ```yaml
-Official Target: WCAG 2.1 Level AA
+Cible Officielle: WCAG 2.1 Niveau AA
 
-Rationale:
-  - Level AA is internationally recognized industry standard
-  - Required for EU public procurement
-  - Achievable for mobile fitness app
-  - Covers 99% of accessibility needs
+Justifications:
+  - Le Niveau AA est le standard industriel mondialement reconnu
+  - Requis pour les appels d'offres publics de l'UE
+  - Réalisable pour une app fitness mobile
+  - Couvre 99% des besoins d'accès
   
-Level AAA Considerations:
-  - Where feasible without compromising core UX
-  - Advanced sign language interpretation: Not planned (cost-prohibitive)
-  - Extended audio descriptions: Planned for video content
-  - Enhanced contrast (7:1 ratio): Option in settings
+Considérations Niveau AAA:
+  - Intégré là où c'est possible sans casser l'UX cœur
+  - Langue des signes avancée : Non prévu (coût rédhibitoire)
+  - Audio descriptions avancées : Prévu pour les vidéos
+  - Contraste accru (ratio 7:1) : Option "High Contrast" dans les settings
 ```
 
-**Compliance Timeline:**
+**Calendrier de Conformité :**
 ```
-Phase 1 (MVP): Level A + partial AA (80%)
-Phase 2 (v1.0): Full Level AA compliance
-Phase 3 (v2.0+): Selected Level AAA features
-Ongoing: Maintain compliance with updates
+Phase 1 (MVP): Conformité Niveau A + partiellement AA (80%)
+Phase 2 (v1.0): Pleine conformité Niveau AA
+Phase 3 (v2.0+): Sélection de fonctionnalités Niveau AAA
+Continu: Maintien de l'accessibilité lors des updates
 ```
 
-### 1.4 EN 301 549 (European Standard)
+### 1.4 EN 301 549 (Norme Européenne)
 
-**Accessibility requirements for ICT products and services**
+**Exigences d'accessibilité pour les produits et services TIC**
 
-**Relevance to LiftUp:**
-- Mobile applications covered under Section 11 (Mobile applications)
-- Harmonized with WCAG 2.1 Level AA
-- Required for EU public sector procurement
-- Voluntary adoption for private sector (recommended)
+**Pertinence pour LiftUp :**
+- Les applications mobiles relèvent de la section 11 (Applications Mobiles)
+- Harmonisé avec WCAG 2.1 Niveau AA
+- Requis pour répondre aux marchés publics de l'Union Européenne
+- Adoption volontaire pour le domaine privé fortement recommandée
 
-**Additional EN 301 549 Requirements:**
-- Documentation must be accessible
-- Support services must be accessible
-- Assistive technology compatibility
+**Exigences supplémentaires EN 301 549 :**
+- La documentation doit être accessible
+- Le SAV/Support technique doit être accessible
+- Obligation de compatibilité avec les technologies d'assistance
 
 ---
 
-## 2. Disability Types & Accessibility Needs
+## 2. Types de Handicaps & Besoins d'Accessibilité
 
-### 2.1 Visual Impairments
+### 2.1 Déficiences Visuelles
 
-#### 2.1.1 Blindness (Total Vision Loss)
+#### 2.1.1 Cécité (Perte de vue totale)
 
-**User Personas:**
+**Profils Utilisateurs :**
 ```
-Marie, 32, Blind Powerlifter
-- Assistive Tech: iPhone with VoiceOver
-- Navigation: Swipe gestures, voice commands
-- Challenges: Recognizing exercises, understanding form cues
-- Needs: Clear audio descriptions, logical navigation order
+Marie, 32 ans, Powerlifteuse aveugle
+- Technologies d'assistance : iPhone avec VoiceOver
+- Navigation : Gestes de balayage, commandes vocales
+- Défis : Reconnaître les exercices, comprendre les indications de posture
+- Besoins : Audiodescriptions claires, ordre de navigation logique
 ```
 
-**Accessibility Requirements:**
+**Exigences d'Accessibilité :**
 
-**Screen Reader Support:**
+**Support du Lecteur d'Écran :**
 ```dart
-// Flutter Example: Semantic labels
+// Exemple Flutter : Labels sémantiques
 Semantics(
-  label: 'Squat exercise, 4 sets of 8 reps at 100 kilograms',
-  hint: 'Double tap to view exercise details',
+  label: 'Exercice de squat, 4 séries de 8 répétitions à 100 kilos',
+  hint: 'Touchez deux fois pour voir les détails de l\'exercice',
   button: true,
   enabled: true,
   child: ExerciseCard(exercise: squat),
 )
 
-// Meaningful content descriptions
+// Descriptions de contenu explicites
 Semantics(
-  label: 'Current workout progress: 3 out of 5 exercises completed',
-  value: '60 percent',
+  label: 'Progression de l\'entraînement actuel : 3 sur 5 exercices terminés',
+  value: '60 pourcent',
   child: CircularProgressIndicator(value: 0.6),
 )
 ```
 
-**Implementation Checklist:**
-- [ ] All UI elements have semantic labels
-- [ ] Images have descriptive alt text (not "image1.png")
-- [ ] Charts and graphs have text alternatives
-- [ ] Form fields have proper labels (not just placeholders)
-- [ ] Navigation order is logical (top to bottom, left to right)
-- [ ] Screen reader announces dynamic content changes
-- [ ] Custom components have accessibility traits
-- [ ] Decorative images marked as such (semantics hidden)
+**Checklist d'Implémentation :**
+- [ ] Tous les éléments de l'UI ont des labels sémantiques
+- [ ] Les images ont un texte alternatif descriptif (pas "image1.png")
+- [ ] Les graphiques ont des alternatives textuelles
+- [ ] Les champs de formulaire ont des étiquettes appropriées (pas juste des placeholders)
+- [ ] L'ordre de navigation est logique (de haut en bas, de gauche à droite)
+- [ ] Le lecteur d'écran annonce les changements de contenu dynamique
+- [ ] Les composants personnalisés ont des traits d'accessibilité
+- [ ] Les images décoratives sont marquées comme telles (sémantique masquée)
 
-**Exercise Descriptions:**
+**Descriptions d'Exercices :**
 ```dart
-// Detailed audio descriptions for screen reader users
+// Descriptions audio détaillées pour les utilisateurs de lecteurs d'écran
 class ExerciseDescriptor {
-  String name: "Barbell Back Squat",
+  String name: "Squat Arrière (Barbell Back Squat)",
   String audioDescription: """
-    Stand with feet shoulder-width apart. 
-    Bar rests on upper back across trapezius muscles.
-    Bend knees and hips to lower body until thighs are parallel to ground.
-    Drive through heels to return to starting position.
-    This is one repetition.
+    Tenez-vous debout, les pieds écartés de la largeur des épaules. 
+    La barre repose sur le haut du dos, en travers des trapèzes.
+    Pliez les genoux et les hanches pour abaisser le corps jusqu'à ce que les cuisses soient parallèles au sol.
+    Poussez sur vos talons pour revenir à la position de départ.
+    Ceci est une répétition.
   """,
   String formCues: [
-    "Keep chest up and core engaged",
-    "Knees track over toes, not caving inward",
-    "Full depth: hip crease below knee"
+    "Gardez la poitrine haute et le tronc engagé",
+    "Les genoux suivent la direction des orteils, sans rentrer vers l'intérieur",
+    "Profondeur complète : le pli de la hanche sous le genou"
   ],
 }
 ```
 
-**Navigation Patterns:**
+**Modèles de Navigation :**
 ```yaml
-Home Screen (VoiceOver Order):
-  1. "LiftUp logo, header"
-  2. "Today's workout button, double tap to start"
-  3. "Nutrition summary, 1,850 out of 2,200 calories consumed"
-  4. "Progress chart heading"
-  5. "Weight progress, increased 2 kilograms this month"
-  6. "Tab bar, 5 items: Home selected, Workouts, Nutrition, Progress, Settings"
+Écran d'Accueil (Ordre VoiceOver) :
+  1. "Logo LiftUp, en-tête"
+  2. "Bouton Entraînement du jour, touchez deux fois pour démarrer"
+  3. "Résumé nutritionnel, 1 850 sur 2 200 calories consommées"
+  4. "Titre du graphique de progression"
+  5. "Progression du poids, augmentation de 2 kilos ce mois-ci"
+  6. "Barre d'onglets, 5 éléments : Accueil sélectionné, Entraînements, Nutrition, Progression, Paramètres"
 ```
 
-**Testing Requirements:**
-- [ ] Full app navigation possible with VoiceOver (iOS) / TalkBack (Android)
-- [ ] All features accessible without seeing screen
-- [ ] Timer and rep counters announced automatically
-- [ ] Workout completion confirmed with audio feedback
-- [ ] No keyboard traps (user can navigate away from any element)
+**Exigences de Test :**
+- [ ] Navigation complète de l'application possible avec VoiceOver (iOS) / TalkBack (Android)
+- [ ] Toutes les fonctionnalités accessibles sans voir l'écran
+- [ ] Les minuteurs et compteurs de répétitions annoncés automatiquement
+- [ ] L'achèvement de l'entraînement confirmé avec retour audio
+- [ ] Pas de piège au clavier (l'utilisateur peut s'éloigner de n'importe quel élément)
 
-#### 2.1.2 Low Vision
+#### 2.1.2 Basse Vision
 
-**User Personas:**
+**Profils Utilisateurs :**
 ```
-Jean, 67, Retired with Macular Degeneration
-- Vision: 20/200, peripheral vision only
-- Assistive Tech: Large text, zoom, high contrast mode
-- Challenges: Reading small text, distinguishing UI elements
-- Needs: Scalable UI, strong contrast, clear visual hierarchy
+Jean, 67 ans, Retraité avec Dégénérescence Maculaire
+- Vision : 20/200, vision périphérique uniquement
+- Technologies d'assistance : Grand texte, loupe, mode contraste élevé
+- Défis : Lire les petits textes, distinguer les éléments de l'UI
+- Besoins : UI évolutive, fort contraste, hiérarchie visuelle claire
 ```
 
-**Accessibility Requirements:**
+**Exigences d'Accessibilité :**
 
-**Dynamic Type Support:**
+**Support Typographie Dynamique (Dynamic Type) :**
 ```dart
-// Respect system text scaling
+// Respecter la mise à l'échelle du texte du système
 Text(
-  'Bench Press',
+  'Développé Couché (Bench Press)',
   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-    // Do NOT use fixed font sizes
-    // fontSize: 24,  // BAD: Doesn't scale
+    // NE PAS utiliser de tailles de police fixes
+    // fontSize: 24,  // MAUVAIS : Ne se met pas à l'échelle
   ),
 )
 
-// Allow text scaling up to 200%
+// Autoriser la mise à l'échelle du texte jusqu'à 200%
 MaterialApp(
   builder: (context, child) {
     return MediaQuery(
@@ -286,74 +286,74 @@ MaterialApp(
 )
 ```
 
-**Minimum Text Sizes:**
+**Tailles de Texte Minimales :**
 ```yaml
-Body Text: 16sp minimum (iOS: 17pt)
-Captions: 12sp minimum (iOS: 13pt)
-Interactive Labels: 14sp minimum (iOS: 15pt)
-Critical Info: 18sp minimum (iOS: 19pt)
+Texte Principal : 16sp minimum (iOS: 17pt)
+Légendes : 12sp minimum (iOS: 13pt)
+Labels Interactifs : 14sp minimum (iOS: 15pt)
+Infos Critiques : 18sp minimum (iOS: 19pt)
 
-# All text must scale with system settings
-# No rasterized text in images
+# Tous les textes doivent s'adapter aux paramètres du système
+# Pas de texte tramé (dans les images)
 ```
 
-**Color Contrast (WCAG AA):**
+**Contraste des Couleurs (WCAG AA) :**
 ```yaml
-Normal Text (< 18pt):
-  Contrast Ratio: Minimum 4.5:1
-  Examples:
-    - Black (#000000) on White (#FFFFFF): 21:1
-    - Dark Gray (#595959) on White: 7:1
-    - Light Gray (#767676) on White: 4.5:1 (minimum)
-    - Light Gray (#777777) on White: 4.49:1 (fails)
+Texte Normal (< 18pt):
+  Ratio de Contraste : Minimum 4.5:1
+  Exemples :
+    - Noir (#000000) sur Blanc (#FFFFFF) : 21:1
+    - Gris Foncé (#595959) sur Blanc : 7:1
+    - Gris Clair (#767676) sur Blanc : 4.5:1 (minimum)
+    - Gris Clair (#777777) sur Blanc : 4.49:1 (échec)
 
-Large Text (≥ 18pt or bold ≥ 14pt):
-  Contrast Ratio: Minimum 3:1
-  Examples:
-    - Medium Gray (#595959) on White: 7:1
-    - Light Gray (#999999) on White: 3:1 (minimum)
+Grand Texte (≥ 18pt ou gras ≥ 14pt):
+  Ratio de Contraste : Minimum 3:1
+  Exemples :
+    - Gris Moyen (#595959) sur Blanc : 7:1
+    - Gris Clair (#999999) sur Blanc : 3:1 (minimum)
 
-UI Components (buttons, inputs):
-  Contrast Ratio: Minimum 3:1 with adjacent colors
+Composants UI (boutons, inputs):
+  Ratio de Contraste : Minimum 3:1 avec les couleurs adjacentes
   
-LiftUp Color Palette:
-  Primary (Action):
-    - Color: #1976D2 (Blue)
-    - On White: 4.8:1
-    - Use for: Buttons, links, interactive elements
+Palette de Couleurs LiftUp :
+  Primaire (Action):
+    - Couleur : #1976D2 (Bleu)
+    - Sur Blanc : 4.8:1
+    - Usage : Boutons, liens, éléments interactifs
   
-  Success (Completed):
-    - Color: #388E3C (Green)
-    - On White: 5.2:1
-    - Use for: Progress indicators, achievements
+  Succès (Terminé):
+    - Couleur : #388E3C (Vert)
+    - Sur Blanc : 5.2:1
+    - Usage : Indicateurs de progression, accomplissements
   
-  Warning (Attention):
-    - Color: #F57C00 (Orange)
-    - On White: 3.8:1
-    - Use for: Important notices, form validation
+  Avertissement (Attention):
+    - Couleur : #F57C00 (Orange)
+    - Sur Blanc : 3.8:1
+    - Usage : Notices importantes, validation des formulaires
   
-  Error (Failure):
-    - Color: #D32F2F (Red)
-    - On White: 5.9:1
-    - Use for: Errors, deletion warnings
+  Erreur (Échec):
+    - Couleur : #D32F2F (Rouge)
+    - Sur Blanc : 5.9:1
+    - Usage : Erreurs, avertissements de suppression
   
-  Text:
-    - Primary: #212121 (Almost Black) - 18.7:1
-    - Secondary: #757575 (Gray) - 4.6:1
-    - Disabled: #BDBDBD (Light Gray) - 3:1 (minimum)
+  Texte:
+    - Primaire : #212121 (Presque Noir) - 18.7:1
+    - Secondaire : #757575 (Gris) - 4.6:1
+    - Désactivé : #BDBDBD (Gris Clair) - 3:1 (minimum)
 ```
 
-**Contrast Testing:**
+**Tests de Contraste :**
 ```dart
-// Automated contrast testing in CI
+ // Test de contraste automatisé dans la CI
 void testContrastRatio(Color foreground, Color background) {
   double ratio = calculateContrastRatio(foreground, background);
   
   expect(ratio, greaterThanOrEqualTo(4.5),
-    reason: 'Text contrast must be at least 4.5:1 for WCAG AA compliance');
+    reason: 'Le contraste du texte doit être au moins 4.5:1 pour la conformité WCAG AA');
 }
 
-// Contrast calculation (WCAG formula)
+// Calcul de contraste (Formule WCAG)
 double calculateContrastRatio(Color c1, Color c2) {
   double l1 = relativeLuminance(c1);
   double l2 = relativeLuminance(c2);
@@ -365,14 +365,14 @@ double calculateContrastRatio(Color c1, Color c2) {
 }
 ```
 
-**High Contrast Mode:**
+**Mode Contraste Élevé :**
 ```dart
-// Detect system high contrast settings
+// Détecter les paramètres système de contraste élevé
 bool isHighContrastEnabled() {
   return MediaQuery.of(context).highContrast;
 }
 
-// Enhanced contrast theme
+// Thème contraste amélioré
 ThemeData highContrastTheme = ThemeData(
   brightness: Brightness.light,
   primaryColor: Colors.black,
@@ -380,63 +380,63 @@ ThemeData highContrastTheme = ThemeData(
   textTheme: TextTheme(
     bodyMedium: TextStyle(
       color: Colors.black,
-      fontSize: 18,  // Larger base size
-      height: 1.5,   // Increased line height
-      fontWeight: FontWeight.w600,  // Bolder
+      fontSize: 18,  // Taille de base plus grande
+      height: 1.5,   // Hauteur de ligne augmentée
+      fontWeight: FontWeight.w600,  // Plus gras
     ),
   ),
-  // 7:1 contrast ratio for AAA compliance
+  // 7:1 ratio de contraste pour la conformité AAA
 );
 ```
 
-**Zoom and Magnification:**
+**Zoom et Grossissement :**
 ```dart
-// Support platform magnification gestures
-// iOS: Triple-tap with three fingers
-// Android: Magnification shortcut
+// Supporter les gestes système de grossissement
+// iOS : Triple tap avec trois doigts
+// Android : Raccourci de grossissement
 
-// Ensure UI doesn't break when zoomed to 200%
-// - Horizontal scrolling for wide content
-// - Text reflow (no truncation)
-// - Touch targets remain accessible
+// S'assurer que l'UI ne se casse pas agrandie à 200%
+// - Défilement horizontal pour le contenu large
+// - Écoulement du texte (pas de troncature)
+// - Cibles tactiles qui restent accessibles
 ```
 
-**Implementation Checklist:**
-- [ ] All text scales with system font size settings
-- [ ] App tested at 200% text scale
-- [ ] All color combinations meet 4.5:1 contrast minimum
-- [ ] High contrast mode supported
-- [ ] Color is not the only means of conveying information
-- [ ] UI tested with iOS Zoom and Android Magnification
-- [ ] Focus indicators have 3:1 contrast with background
+**Checklist d'Implémentation :**
+- [ ] Tous les textes s'adaptent selon les réglages de police du système
+- [ ] L'application est testée avec un texte mis à l'échelle de 200%
+- [ ] Toutes les combinaisons de couleurs atteignent le minimum 4.5:1 de contraste
+- [ ] Le mode de contraste élevé est supporté
+- [ ] La couleur n'est pas le seul moyen de transmettre de l'information
+- [ ] L'UI est testée avec le Zoom iOS et le Zoom d'Android
+- [ ] Les indicateurs de focus atteignent 3:1 de contraste avec l'arrière-plan
 
-#### 2.1.3 Color Blindness
+#### 2.1.3 Daltonisme
 
-**Types and Prevalence:**
+**Types et Prévalence :**
 ```
-Deuteranomaly (Red-Green): 6% of males, 0.4% of females
-Protanomaly (Red-Green): 2% of males, 0.01% of females
-Tritanomaly (Blue-Yellow): 0.01% of population (rare)
-Achromatopsia (Complete): 0.003% of population (very rare)
+Deutéranomalie (Rouge-Vert) : 6% des hommes, 0.4% des femmes
+Protanomalie (Rouge-Vert) : 2% des hommes, 0.01% des femmes
+Tritanomalie (Bleu-Jaune) : 0.01% de la population (rare)
+Achromatopsie (Complète) : 0.003% de la population (très rare)
 ```
 
-**Accessibility Requirements:**
+**Exigences d'Accessibilité :**
 
-**Never Rely on Color Alone:**
+**Ne Jamais s'Appuyer Seulement sur la Couleur :**
 ```dart
-// BAD: Color-only indicators
+// MAUVAIS : Indicateurs uniquement via de la couleur
 Container(
   color: isCompleted ? Colors.green : Colors.red,
-  child: Text('Set'),
+  child: Text('Série'),
 )
 
-// GOOD: Color + icon + text
+// BON : Couleur + icône + texte
 Row(
   children: [
     Icon(isCompleted ? Icons.check_circle : Icons.cancel),
     SizedBox(width: 8),
-    Text(isCompleted ? 'Completed' : 'Failed'),
-    // Color provides additional reinforcement
+    Text(isCompleted ? 'Terminé' : 'Échoué'),
+    // La couleur apporte un renfort additionnel
   ],
 )
 ```
@@ -463,16 +463,16 @@ class WorkoutSetIndicator extends StatelessWidget {
           Icon(
             completed ? Icons.check_circle : Icons.circle_outlined,
             color: completed ? Colors.green : Colors.grey,
-            semanticLabel: completed ? 'Completed' : 'Incomplete',
+            semanticLabel: completed ? 'Terminé' : 'Incomplet',
           ),
-          // Text provides explicit information
+          // Le texte fournit une information explicite
           Text(
-            completed ? 'Done' : 'To Do',
+            completed ? 'Fait' : 'À faire',
             style: TextStyle(
               fontWeight: completed ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-          // Pattern fill (for extreme cases)
+          // Remplissage par motif (pour cas extrêmes)
           if (completed) PatternFill(pattern: 'checkered'),
         ],
       ),
@@ -481,9 +481,9 @@ class WorkoutSetIndicator extends StatelessWidget {
 }
 ```
 
-**Chart Accessibility:**
+**Accessibilité des Graphiques :**
 ```dart
-// Line charts with multiple differentiators
+// Graphiques en courbes avec de multiples différenciateurs
 class AccessibleLineChart extends StatelessWidget {
   final List<WorkoutData> data;
   
@@ -495,8 +495,8 @@ class AccessibleLineChart extends StatelessWidget {
           LineChartBarData(
             colors: [Colors.blue],
             spots: data.map((d) => FlSpot(d.x, d.y)).toList(),
-            dotData: FlDotData(show: true),  // Data points visible
-            dashArray: null,  // Solid line
+            dotData: FlDotData(show: true),  // Points de données visibles
+            dashArray: null,  // Ligne pleine
             barWidth: 3,
           ),
           LineChartBarData(
@@ -505,11 +505,11 @@ class AccessibleLineChart extends StatelessWidget {
             dotData: FlDotData(
               show: true,
               getDotPainter: (spot, percent, barData, index) {
-                // Different shapes for different lines
-                return FlDotSquarePainter();  // Square dots vs circular
+                // Formes différentes pour lignes différentes
+                return FlDotSquarePainter();  // Points carrés vs circulaires
               },
             ),
-            dashArray: [5, 5],  // Dashed line (different pattern)
+            dashArray: [5, 5],  // Ligne pointillée (motif différent)
             barWidth: 3,
           ),
         ],
@@ -518,20 +518,20 @@ class AccessibleLineChart extends StatelessWidget {
   }
 }
 
-// Legend with patterns, not just colors
+// Légende avec motifs, pas seulement des couleurs
 class ChartLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         LegendItem(
-          label: 'Body Weight',
+          label: 'Poids Corporel',
           color: Colors.blue,
           pattern: LinePattern.solid,
           shape: ShapeType.circle,
         ),
         LegendItem(
-          label: 'Target Weight',
+          label: 'Poids Cible',
           color: Colors.red,
           pattern: LinePattern.dashed,
           shape: ShapeType.square,
@@ -542,47 +542,47 @@ class ChartLegend extends StatelessWidget {
 }
 ```
 
-**Implementation Checklist:**
-- [ ] No information conveyed by color alone
-- [ ] Icons, patterns, or text labels supplement color
-- [ ] Charts use line patterns, shapes, or labels
-- [ ] Form validation shows icons with error colors
-- [ ] Success/error messages include icons
-- [ ] Color blindness simulator testing (Sim Daltonism, Color Oracle)
+**Checklist d'Implémentation :**
+- [ ] Aucune information transmise uniquement par la couleur
+- [ ] Des icônes, motifs, ou labels textes complètent la couleur
+- [ ] Les graphiques utilisent des motifs de ligne, formes, ou labels
+- [ ] La validation de formulaire montre des icônes avec les couleurs d'erreur
+- [ ] Les messages de succès/erreur incluent des icônes
+- [ ] Tests avec simulateur de daltonisme (Sim Daltonism, Color Oracle)
 
-### 2.2 Motor Impairments
+### 2.2 Déficiences Motrices
 
-#### 2.2.1 Limited Hand Dexterity
+#### 2.2.1 Dextérité Manuelle Limitée
 
-**User Personas:**
+**Profils Utilisateurs :**
 ```
-Carlos, 45, Arthritis
-- Condition: Rheumatoid arthritis, limited finger mobility
-- Challenges: Small tap targets, precise gestures, long presses
-- Needs: Large buttons, simple gestures, voice input
-- Assistive Tech: Voice Control, Switch Control
+Carlos, 45 ans, Arthrite
+- Condition : Polyarthrite rhumatoïde, mobilité des doigts limitée
+- Défis : Petites cibles tactiles, gestes précis, appuis longs
+- Besoins : Grands boutons, gestes simples, saisie vocale
+- Technologies d'assistance : Contrôle Vocal, Contacteur (Switch Control)
 ```
 
-**Accessibility Requirements:**
+**Exigences d'Accessibilité :**
 
-**Touch Target Size (WCAG 2.5.5):**
+**Taille des Cibles Tactiles (WCAG 2.5.5) :**
 ```yaml
-Minimum Target Size: 44x44pt (iOS) / 48x48dp (Android)
-Recommended: 48x48pt minimum for critical actions
+Taille de Cible Minimale : 44x44pt (iOS) / 48x48dp (Android)
+Recommandé : 48x48pt minimum pour les actions critiques
 
-Spacing Between Targets: Minimum 8pt spacing
-Recommended: 16pt spacing for comfortable use
+Espacement entre les Cibles : Minimum 8pt
+Recommandé : Espacement de 16pt pour un usage confortable
 
-Examples:
-  - Buttons: 48x48pt minimum
-  - Tab bar items: 44x44pt minimum
-  - List item tap areas: Full width, 56pt height minimum
-  - Icon buttons: 48x48pt touch area (icon can be smaller)
+Exemples:
+  - Boutons : 48x48pt minimum
+  - Éléments de barre d'onglets : 44x44pt minimum
+  - Zones interactives de liste : Pleine largeur, hauteur 56pt minimum
+  - Boutons icônes : Zone tactile 48x48pt (l'icône peut être plus petite)
 ```
 
-**Implementation:**
+**Implémentation :**
 ```dart
-// Ensure minimum touch target size
+// Assurer la taille minimale de zone tactile
 class AccessibleButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -595,7 +595,7 @@ class AccessibleButton extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         child: Container(
-          // Enforce minimum size
+          // Forcer la taille minimale
           constraints: BoxConstraints(
             minWidth: 48,
             minHeight: 48,
@@ -609,7 +609,7 @@ class AccessibleButton extends StatelessWidget {
   }
 }
 
-// Expandable touch area for small icons
+// Zone tactile élargie pour les petites icônes
 class ExpandedTouchArea extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
@@ -622,8 +622,8 @@ class ExpandedTouchArea extends StatelessWidget {
       child: Center(
         child: IconButton(
           icon: child,
-          iconSize: 24,  // Visual size
-          padding: EdgeInsets.all(12),  // Touch area padding
+          iconSize: 24,  // Taille visuelle
+          padding: EdgeInsets.all(12),  // Padding de la zone tactile
           onPressed: onTap,
         ),
       ),
@@ -632,11 +632,11 @@ class ExpandedTouchArea extends StatelessWidget {
 }
 ```
 
-**Gesture Alternatives:**
+**Alternatives aux Gestes :**
 ```dart
-// Provide alternatives to complex gestures
+// Fournir des alternatives aux gestes complexes
 
-// BAD: Swipe-only actions
+// MAUVAIS : Actions par glissement uniquement
 ListView(
   children: items.map((item) => Dismissible(
     key: Key(item.id),
@@ -645,7 +645,7 @@ ListView(
   )).toList(),
 )
 
-// GOOD: Swipe + button alternative
+// BON : Glissement + alternative bouton
 ListView(
   children: items.map((item) => Row(
     children: [
@@ -1704,284 +1704,284 @@ Qualitative:
 
 ---
 
-## 5. Compliance Checklist
+## 5. Checklist de Conformité
 
-### 5.1 WCAG 2.1 Level AA Checklist
+### 5.1 Checklist WCAG 2.1 Niveau AA
 
-#### Perceivable
+#### Perceptible
 
-**1.1 Text Alternatives**
-- [ ] All images have alt text (1.1.1 Level A)
-- [ ] Decorative images excluded from accessibility tree
-- [ ] Charts have text descriptions
-- [ ] Icons have labels or aria-labels
+**1.1 Alternatives Textuelles**
+- [ ] Toutes les images ont un texte alternatif (1.1.1 Niveau A)
+- [ ] Les images décoratives sont exclues de l'arborescence d'accessibilité
+- [ ] Les graphiques ont des descriptions textuelles
+- [ ] Les icônes ont des libellés (labels ou aria-labels)
 
-**1.2 Time-based Media**
-- [ ] Videos have captions (1.2.2 Level A)
-- [ ] Audio descriptions provided for video (1.2.5 Level AA)
-- [ ] Live captions for live video (1.2.4 Level AA)
+**1.2 Médias temporels**
+- [ ] Les vidéos sont sous-titrées (1.2.2 Niveau A)
+- [ ] Audiodescription fournie pour la vidéo (1.2.5 Niveau AA)
+- [ ] Sous-titres en direct pour la vidéo en direct (1.2.4 Niveau AA)
 
 **1.3 Adaptable**
-- [ ] Information not lost when presented differently (1.3.1 Level A)
-- [ ] Reading sequence is logical (1.3.2 Level A)
-- [ ] Instructions don't rely on sensory characteristics (1.3.3 Level A)
-- [ ] Content reflows to 320px width (1.3.4 Level AA)
-- [ ] Purpose of input fields identified (1.3.5 Level AA)
+- [ ] L'information n'est pas perdue lorsqu'elle est présentée différemment (1.3.1 Niveau A)
+- [ ] L'ordre de lecture est logique (1.3.2 Niveau A)
+- [ ] Les instructions ne reposent pas sur des caractéristiques sensorielles (1.3.3 Niveau A)
+- [ ] Le contenu se place au format 320px de large (1.3.4 Niveau AA)
+- [ ] La finalité des champs de saisie est identifiée (1.3.5 Niveau AA)
 
-**1.4 Distinguishable**
-- [ ] Color not sole means of conveying information (1.4.1 Level A)
-- [ ] Audio control available (1.4.2 Level A)
-- [ ] Text contrast minimum 4.5:1 (1.4.3 Level AA)
-- [ ] Text resizes to 200% (1.4.4 Level AA)
-- [ ] No images of text (1.4.5 Level AA)
-- [ ] Reflow content works (1.4.10 Level AA)
-- [ ] Non-text contrast 3:1 (1.4.11 Level AA)
-- [ ] Text spacing adjustable (1.4.12 Level AA)
-- [ ] Hover/focus content dismissible (1.4.13 Level AA)
+**1.4 Discernable**
+- [ ] La couleur n'est pas le seul moyen de transmettre de l'information (1.4.1 Niveau A)
+- [ ] Un contrôle audio est disponible (1.4.2 Niveau A)
+- [ ] Le contraste du texte est d'au moins 4.5:1 (1.4.3 Niveau AA)
+- [ ] Le texte est redimensionnable à 200% (1.4.4 Niveau AA)
+- [ ] Pas d'images de texte (1.4.5 Niveau AA)
+- [ ] Le redimensionnement du contenu fonctionne (1.4.10 Niveau AA)
+- [ ] Contraste non-textuel à 3:1 (1.4.11 Niveau AA)
+- [ ] Espacement du texte ajustable (1.4.12 Niveau AA)
+- [ ] Le contenu au survol/au focus peut être rejeté (1.4.13 Niveau AA)
 
-#### Operable
+#### Utilisable
 
-**2.1 Keyboard Accessible**
-- [ ] All functionality via keyboard (2.1.1 Level A)
-- [ ] No keyboard traps (2.1.2 Level A)
-- [ ] Character key shortcuts (2.1.4 Level A)
+**2.1 Accessible au Clavier**
+- [ ] Toute fonctionnalité accessible via un clavier (2.1.1 Niveau A)
+- [ ] Pas de blocage au clavier (2.1.2 Niveau A)
+- [ ] Raccourcis avec touches de caractères (2.1.4 Niveau A)
 
-**2.2 Enough Time**
-- [ ] Time limits adjustable (2.2.1 Level A)
-- [ ] Pause, stop, hide for moving content (2.2.2 Level A)
-- [ ] Timing not essential (2.2.3 Level AAA - optional)
+**2.2 Délai Suffisant**
+- [ ] Les limites de temps sont ajustables (2.2.1 Niveau A)
+- [ ] Pause, arrêt, masquer pour les contenus en mouvement (2.2.2 Niveau A)
+- [ ] Le temps n'est pas essentiel (2.2.3 Niveau AAA - optionnel)
 
-**2.3 Seizures**
-- [ ] No flashing more than 3 times per second (2.3.1 Level A)
+**2.3 Crises**
+- [ ] Pas de clignotement plus de 3 fois par seconde (2.3.1 Niveau A)
 
 **2.4 Navigable**
-- [ ] Skip navigation links (2.4.1 Level A)
-- [ ] Page titled (2.4.2 Level A)
-- [ ] Focus order is logical (2.4.3 Level A)
-- [ ] Link purpose clear from context (2.4.4 Level A)
-- [ ] Multiple ways to navigate (2.4.5 Level AA)
-- [ ] Headings and labels descriptive (2.4.6 Level AA)
-- [ ] Focus visible (2.4.7 Level AA)
+- [ ] Liens d'évitement (skip nav) (2.4.1 Niveau A)
+- [ ] Les pages ont un titre (2.4.2 Niveau A)
+- [ ] L'ordre de focus est logique (2.4.3 Niveau A)
+- [ ] La fonction du lien est claire (2.4.4 Niveau A)
+- [ ] Multiples façons de naviguer (2.4.5 Niveau AA)
+- [ ] En-têtes et étiquettes descriptifs (2.4.6 Niveau AA)
+- [ ] Focus visible (2.4.7 Niveau AA)
 
-**2.5 Input Modalities**
-- [ ] Pointer gestures have alternatives (2.5.1 Level A)
-- [ ] Pointer cancellation (2.5.2 Level A)
-- [ ] Label in name (2.5.3 Level A)
-- [ ] Motion actuation (2.5.4 Level A)
-- [ ] Target size 44x44pt minimum (2.5.5 Level AAA - aim for)
+**2.5 Modalités de Saisie**
+- [ ] Les gestes ont des alternatives (2.5.1 Niveau A)
+- [ ] Annulation du pointeur (2.5.2 Niveau A)
+- [ ] Nom dans l'étiquette visible (2.5.3 Niveau A)
+- [ ] Actionnement par le mouvement (2.5.4 Niveau A)
+- [ ] Cibles tactiles de 44x44pt minimum (2.5.5 Niveau AAA - objectif visé)
 
-#### Understandable
+#### Compréhensible
 
-**3.1 Readable**
-- [ ] Language of page identified (3.1.1 Level A)
-- [ ] Language of parts identified (3.1.2 Level AA)
+**3.1 Lisible**
+- [ ] Langue de la page identifiée (3.1.1 Niveau A)
+- [ ] Langue de base et des passages/articles identifiée (3.1.2 Niveau AA)
 
-**3.2 Predictable**
-- [ ] On focus doesn't cause change (3.2.1 Level A)
-- [ ] On input doesn't cause unexpected change (3.2.2 Level A)
-- [ ] Consistent navigation (3.2.3 Level AA)
-- [ ] Consistent identification (3.2.4 Level AA)
+**3.2 Prévisible**
+- [ ] Lors du focus, ne provoque pas de changement de contexte (3.2.1 Niveau A)
+- [ ] Lors de la saisie, ne provoque pas de changement inattendu (3.2.2 Niveau A)
+- [ ] Navigation cohérente (3.2.3 Niveau AA)
+- [ ] Identification cohérente (3.2.4 Niveau AA)
 
-**3.3 Input Assistance**
-- [ ] Error identification (3.3.1 Level A)
-- [ ] Labels or instructions provided (3.3.2 Level A)
-- [ ] Error suggestions provided (3.3.3 Level AA)
-- [ ] Error prevention for legal/financial (3.3.4 Level AA)
+**3.3 Assistance à la Saisie**
+- [ ] Identification des erreurs (3.3.1 Niveau A)
+- [ ] Étiquettes ou instructions fournies (3.3.2 Niveau A)
+- [ ] Suggestions pour l'erreur fournies (3.3.3 Niveau AA)
+- [ ] Prévention des erreurs (médicales/financières) (3.3.4 Niveau AA)
 
-#### Robust
+#### Robuste
 
 **4.1 Compatible**
-- [ ] Valid parsing (4.1.1 Level A)
-- [ ] Name, role, value programmatically determined (4.1.2 Level A)
-- [ ] Status messages (4.1.3 Level AA)
+- [ ] Décodage valide/Parsing (4.1.1 Niveau A)
+- [ ] Nom, Rôle, Valeur déterminable par programmation (4.1.2 Niveau A)
+- [ ] Messages de statut lisibles (4.1.3 Niveau AA)
 
-### 5.2 RGAA 4.1 Compliance (If Pursuing)
+### 5.2 Conformité RGAA 4.1 (Si ciblée)
 
 ```yaml
-RGAA Compliance Steps:
-  1. Map WCAG criteria to RGAA 106 criteria
-  2. Perform 258 RGAA-specific tests
-  3. Document results in compliance declaration
-  4. Aim for 100% compliance (or explain non-compliance)
-  5. Publish accessibility statement
-  6. Update annually
+Étapes de conformité RGAA:
+  1. Mapper les critères WCAG sur les 106 critères RGAA
+  2. Effectuer les 258 tests spécifiques RGAA
+  3. Documenter les résultats dans une déclaration de conformité
+  4. Viser les 100% de conformité (ou expliquer la non-conformité)
+  5. Publier la déclaration d'accessibilité
+  6. Mettre à jour annuellement
 
-RGAA Audit Process:
-  - Internal audit first
-  - External expert audit (recommended)
-  - RGAA label application (optional)
-  - Publication of results
+Processus d'audit RGAA:
+  - Audit interne d'abord
+  - Audit externe par un expert (recommandé)
+  - Demande du label RGAA (optionnel)
+  - Publication des résultats
 ```
 
 ---
 
-## 6. Implementation Roadmap
+## 6. Feuille de Route d'Implémentation
 
-### 6.1 Phase 1: Foundation (MVP)
+### 6.1 Phase 1 : Fondations (MVP)
 
-**Priority: Critical**
+**Priorité : Critique**
 
 ```yaml
-Weeks 1-2: Core Accessibility
-  - [ ] Semantic labels for all interactive elements
-  - [ ] VoiceOver/TalkBack basic support
-  - [ ] Minimum touch targets (44x44pt)
-  - [ ] Color contrast meets 4.5:1 ratio
-  - [ ] Keyboard navigation (if applicable)
+Semaines 1-2: Accessibilité cœur
+  - [ ] Labels sémantiques pour tous les éléments interactifs
+  - [ ] Support basique VoiceOver/TalkBack
+  - [ ] Cibles tactiles minimales (44x44pt)
+  - [ ] Contraste couleur 4.5:1 ratio respecté
+  - [ ] Navigation clavier (si pertinent)
   
-Weeks 3-4: Visual Accessibility
-  - [ ] Dynamic Type support
-  - [ ] High contrast mode detection
-  - [ ] Focus indicators visible
-  - [ ] No color-only information
+Semaines 3-4: Accessibilité visuelle
+  - [ ] Typographie dynamique supportée
+  - [ ] Mode fort contraste détecté
+  - [ ] Indicateurs de focus visibles
+  - [ ] Plus aucune info basée uniquement sur la couleur
   
-Weeks 5-6: Testing
-  - [ ] Manual VoiceOver testing
-  - [ ] Manual TalkBack testing
-  - [ ] Automated contrast tests
-  - [ ] Touch target size tests
+Semaines 5-6: Test
+  - [ ] Tests manuels VoiceOver
+  - [ ] Tests manuels TalkBack
+  - [ ] Tests auto de contrastes
+  - [ ] Test des tailles de cibles tactiles
   
-Deliverable: WCAG Level A compliance (minimum usable)
+Livrable: Conformité WCAG Niveau A (Produit minimalement utilisable)
 ```
 
-### 6.2 Phase 2: Enhancement (v1.0)
+### 6.2 Phase 2 : Renforcements (v1.0)
 
-**Priority: High**
+**Priorité : Haute**
 
 ```yaml
-Weeks 7-10: Advanced Screen Reader Support
-  - [ ] Custom semantic actions
-  - [ ] Live regions for dynamic content
-  - [ ] Improved navigation order
-  - [ ] Accessibility hints
+Semaines 7-10: Support Lecteur d'écran avancé
+  - [ ] Actions sémantiques personnalisées
+  - [ ] Les "Live Regions" pour les contenus dynamiques
+  - [ ] Ordre de navigation amélioré
+  - [ ] Hints/Astuces d'accessibilité
   
-Weeks 11-12: Motor Accessibility
-  - [ ] Voice Control support
-  - [ ] Switch Control optimization
-  - [ ] Gesture alternatives
-  - [ ] Confirmation dialogs for destructive actions
+Semaines 11-12: Accessibilité Motrice
+  - [ ] Support du Contrôle Vocal
+  - [ ] Optimisation de la fonctionnalité de contacteur (Switch Control)
+  - [ ] Gestes alternatifs
+  - [ ] Dialogues de confirmation sur actions irréversibles
   
-Weeks 13-14: Cognitive Accessibility
-  - [ ] Clear, simple language review
-  - [ ] Consistent UI patterns
-  - [ ] Progress indicators
-  - [ ] Reduced motion option
+Semaines 13-14: Accessibilité cognitive
+  - [ ] Langage clair & simple revu
+  - [ ] Patterns d'UI consistants
+  - [ ] Indicateurs de progrès clarifiés
+  - [ ] Option de réduction des animations
   
-Weeks 15-16: Testing & Iteration
-  - [ ] User testing with PWD (5-8 participants)
-  - [ ] External accessibility audit
-  - [ ] Bug fixes and refinements
+Semaines 15-16: Test & Itérations
+  - [ ] Tests utilisateurs avec des PSH (5-8 participants)
+  - [ ] Audit d'accessibilité externe
+  - [ ] Résolutions de bugs
   
-Deliverable: WCAG Level AA compliance (industry standard)
+Livrable: Conformité WCAG Niveau AA (Standard de l'industrie)
 ```
 
-### 6.3 Phase 3: Excellence (v2.0+)
+### 6.3 Phase 3 : Excellence (v2.0+)
 
-**Priority: Medium**
+**Priorité : Moyenne**
 
 ```yaml
-Ongoing: AAA Features
-  - [ ] Enhanced contrast mode (7:1 ratio)
-  - [ ] Extended audio descriptions for videos
-  - [ ] Context-sensitive help
-  - [ ] Reading level improvements (6th grade)
+Continu: Fonctionnalités AAA
+  - [ ] Ratio de fort contraste (7:1)
+  - [ ] Audiodescription étendue des vidéos
+  - [ ] Aide contextuelle
+  - [ ] Apprentissage simplifié (niveau 6ème)
   
-Ongoing: Advanced Features
-  - [ ] Customizable UI (font, spacing, colors)
-  - [ ] Personalized accessibility profiles
-  - [ ] Braille display support
-  - [ ] Sign language videos (if budget allows)
+Continu: Fonctionnalités avancées
+  - [ ] UX/UI Configurable (font, espacement, couleurs)
+  - [ ] Profils d'accessibilité personnalisés
+  - [ ] Plage braille
+  - [ ] Vidéos langages des signes
   
-Ongoing: Compliance
-  - [ ] RGAA 4.1 full compliance (if targeting France)
-  - [ ] EN 301 549 compliance documentation
-  - [ ] Accessibility statement publication
-  - [ ] Annual audits and updates
+Continu: Conformité
+  - [ ] Validité RGAA 4.1 totale (Axe France)
+  - [ ] Validation EN 301 549
+  - [ ] Publication de la déclaration
+  - [ ] Audit annuel et mise à jour
   
-Deliverable: Accessible excellence, competitive advantage
+Livrable: L'excellence de l'accessibilité comme avantage compétitif
 ```
 
 ---
 
-## 7. Accessibility Statement
+## 7. Déclaration d'Accessibilité
 
-**Draft Accessibility Statement for LiftUp:**
+**Brouillon de la Déclaration d'Accessibilité - LiftUp:**
 
 ```markdown
-# Accessibility Statement for LiftUp
+# Déclaration d'Accessibilité pour LiftUp
 
-Last updated: February 10, 2026
+Dernière mise à jour : 10 Février 2026
 
-## Our Commitment
+## Notre Engagement
 
-LiftUp is committed to ensuring digital accessibility for people with disabilities. 
-We are continually improving the user experience for everyone and applying the 
-relevant accessibility standards.
+LiftUp s'engage à garantir l'accessibilité numérique pour les personnes en situation de handicap. 
+Nous améliorons continuellement l'expérience utilisateur pour tous et appliquons 
+les normes d'accessibilité pertinentes.
 
-## Conformance Status
+## Statut de Conformité
 
-The Web Content Accessibility Guidelines (WCAG) define requirements to improve 
-accessibility for people with disabilities. We aim to conform to WCAG 2.1 Level AA.
+Les Règles pour l'Accessibilité des Contenus Web (WCAG) définissent les exigences pour améliorer 
+l'accessibilité pour les personnes touchées par le handicap. Notre objectif est de nous conformer aux WCAG 2.1, Niveau AA.
 
-**Current Status:** [In Development / Partially Conformant / Fully Conformant]
+**Statut Actuel :** [En développement / Partiellement conforme / Totalement conforme]
 
-- Conformant: The content fully conforms to the accessibility standard
-- Partially Conformant: Some parts do not fully conform
-- Non-conformant: The content does not conform
+- Conforme : Le contenu répond totalement au standard d'accessibilité
+- Partiellement conforme : Certaines parties du contenu ne répondent pas totalement au standard
+- Non-conforme : Le contenu ne répond pas au standard
 
-## Accessibility Features
+## Fonctionnalités d'Accessibilité
 
-LiftUp includes the following accessibility features:
+LiftUp inclut les fonctionnalités d'accessibilité suivantes :
 
-- **Screen Reader Support**: Full compatibility with iOS VoiceOver and Android TalkBack
-- **Dynamic Type**: Text scales with system font size settings
-- **High Contrast**: Supports high contrast mode
-- **Voice Control**: All functionality accessible via Voice Control
-- **Keyboard Navigation**: Full keyboard support (iPad with keyboard)
-- **Color**: Information not conveyed by color alone
-- **Captions**: All videos include closed captions
-- **Touch Targets**: Minimum 44x44pt touch target size
-- **Reduced Motion**: Respects reduced motion preferences
+- **Support du Lecteur d'Écran** : Compatibilité totale iOS VoiceOver et Android TalkBack.
+- **Typographie Dynamique** : Le texte s'adapte aux préférences système de taille de police.
+- **Contraste Élevé** : Supporte le mode de contraste élevé.
+- **Contrôle Vocal** : Toutes les fonctionnalités sont accessibles via Commandes Vocales.
+- **Navigation Clavier** : Support complet du clavier (ex. iPad avec clavier Bluetooth).
+- **Couleur** : L'information n'est pas uniquement transmise par la couleur.
+- **Sous-titres** : Toutes les vidéos incluent des sous-titres (close-captions).
+- **Cible Tactile** : Taille de zone tactile minimum fixée à 44x44pt.
+- **Animations Réduites** : L'application respecte la configuration de mouvement réduit.
 
-## Feedback
+## Retours
 
-We welcome your feedback on the accessibility of LiftUp. Please contact us:
+Nous sommes ouverts à vos commentaires sur l'accessibilité de LiftUp. Merci de nous contacter à :
 
-- **Email**: accessibility@liftup.app
-- **Response time**: Within 5 business days
+- **Email** : accessibility@liftup.app
+- **Temps de réponse** : Sous de 5 jours ouvrés.
 
-We will work with you to provide the information in an accessible format.
+Nous travaillerons de concert pour fournir l'information sous un format accessible.
 
-## Technical Specifications
+## Spécifications Techniques
 
-LiftUp accessibility relies on the following technologies:
+L'accessibilité de LiftUp repose sur la technologie suivante :
 
-- iOS Accessibility APIs (UIAccessibility)
-- Android Accessibility APIs (AccessibilityService)
-- Flutter Semantics framework
+- API Accessibilité iOS (UIAccessibility)
+- API Accessibilité Android (AccessibilityService)
+- Framework Sémantique Flutter
 
-## Assessment Approach
+## Méthode d'Évaluation
 
-LiftUp was assessed using:
+LiftUp a été audité via :
 
-- Self-evaluation: Internal testing by development team
-- User testing: Testing with assistive technology users
-- Automated tools: Flutter analyzer, contrast checker
-- External audit: [Pending / Completed by XXXX on DATE]
+- Auto-évaluation : Tests en interne par l'équipe de dev.
+- Évaluation utilisateur :  avec les technologies d'assistance.
+- Tests automatisés : Framework d'analyse, Checkeurs de contraste.
+- Audit externe : [En attente / Complété par XXX le DATE]
 
-## Known Issues
+## Problèmes Connus
 
-We are aware of the following accessibility issues:
+Nous sommes au fait des problèmes d'accessibilité suivants :
 
-[List any known issues with workarounds]
+[Lister tout aspect connu avec son alternative]
 
 ## Date
 
-This statement was created on February 10, 2026.
+Cette déclaration a été créée le 10 Février 2026.
 
 ---
 
-For more information about accessibility, visit:
+Davantage d'informations sur l'accessibilité :
 - [Web Accessibility Initiative (WAI)](https://www.w3.org/WAI/)
 - [WCAG Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 ```

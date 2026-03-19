@@ -261,6 +261,48 @@ enum ConsentType {
 - [ ] **User consent records** with versioning
 - [ ] **Data inventory** (Records of Processing Activities - ROPA)
 
+### 1.5 Audit-to-Requirements Traceability Matrix
+
+The purpose of this matrix is to provide explicit, reviewable traceability from identified audit constraints to concrete product requirements, measurable acceptance criteria, verification methods, and evidence artifacts.
+
+#### Traceability Rules
+
+- Audit constraints use IDs: `AUD-XXX`
+- Derived requirements use IDs: `REQ-XXX`
+- Test cases use IDs: `TST-XXX`
+- Each requirement must have one measurable acceptance criterion and one verifiable evidence artifact.
+- Validation statuses are: `Planned`, `In Progress`, `Passed`, `Failed`, `Waived`.
+
+#### Matrix
+
+| Audit ID | Audit Constraint (Source) | Derived Requirement | Acceptance Criteria | Verification Method | Evidence Artifact | Status |
+|----------|----------------------------|---------------------|---------------------|---------------------|-------------------|--------|
+| AUD-001 | Health-related data is special category data under GDPR Art. 9 | REQ-PRIV-001: Explicit consent is mandatory before any health data collection | 100% of new users must provide explicit health-data consent before first write to health tables | End-to-end registration tests + database verification query | Consent event logs, consent table export, onboarding screenshots | Planned |
+| AUD-002 | GDPR rights must be enforceable (access, rectification, erasure, portability) | REQ-PRIV-002: User rights workflows are implemented and accessible in app settings | Access/export/delete requests can be initiated in-app and completed within documented timelines | Functional tests + SLA tracking of rights requests | Test report for rights flows, exported sample files, deletion logs | Planned |
+| AUD-003 | Encryption in transit is required for personal and health data | REQ-SEC-001: API traffic is TLS-only (TLS 1.3 minimum) | 0 production endpoints accept HTTP; TLS scan shows compliant cipher/protocol policy | Automated TLS scan in CI + manual endpoint checks | CI security scan output, gateway config snapshot | Planned |
+| AUD-004 | Encryption at rest is required for sensitive data | REQ-SEC-002: Sensitive fields are encrypted at rest on device and server | 100% fields marked sensitive in data inventory are encrypted at rest | Schema review + integration tests + storage configuration review | Data inventory-to-schema mapping, test logs, KMS/storage config evidence | Planned |
+| AUD-005 | Access to sensitive data must be auditable | REQ-SEC-003: Security audit trail is enabled for privileged/sensitive operations | 100% admin actions and sensitive data accesses generate immutable audit entries | Audit-log integration tests + sampling review in observability stack | Log extracts with timestamps, monitoring dashboard snapshots | Planned |
+| AUD-006 | Data minimization is required by GDPR principles | REQ-PRIV-003: Only necessary data fields are collected for core service operation | No data field can be collected without documented purpose, legal basis, retention period | Quarterly data inventory review + product form review | Updated ROPA, approved minimization checklist, review minutes | Planned |
+| AUD-007 | Retention and deletion lifecycle must be enforced | REQ-DATA-001: Retention policy is automated with deletion/anonymization jobs | 100% expired records are deleted or anonymized according to policy windows | Scheduled job tests + periodic retention audit query | Job run logs, retention audit report, anonymization report | Planned |
+| AUD-008 | Third-party processors must be controlled and contractually compliant | REQ-GOV-001: All processors are approved with DPA and compliance record | 100% active third-party processors have documented DPA and compliance review status | Vendor governance checklist + legal review | Processor register, DPA repository index, approval record | Planned |
+
+#### Coverage with Functional and Technical Specifications
+
+This matrix bridges:
+- Functional scope and workflows (user registration, profile, settings, account lifecycle)
+- Technical architecture constraints (transport security, encryption, logging, retention jobs)
+- Compliance governance constraints (DPA tracking, legal basis, accountability evidence)
+
+As a result, each major audit finding is transformed into verifiable product requirements that can be validated during beta and pre-launch reviews.
+
+#### Validation Governance
+
+- Product Owner validates business workflow coverage for each `REQ-*` item.
+- Tech Lead validates implementation and testability.
+- Security/Compliance reviewer validates legal and security evidence.
+- Validation cadence: at each beta milestone and before production release.
+- Any `Failed` item must have a corrective action owner and due date before go-live.
+
 ---
 
 ## 2. Sector-Specific Regulations

@@ -261,6 +261,48 @@ enum ConsentType {
 - [ ] **User consent records** with versioning
 - [ ] **Data inventory** (Records of Processing Activities - ROPA)
 
+### 1.5 Audit-to-Requirements Traceability Matrix
+
+The purpose of this matrix is to provide explicit, reviewable traceability from identified audit constraints to concrete product requirements, measurable acceptance criteria, verification methods, and evidence artifacts.
+
+#### Traceability Rules
+
+- Audit constraints use IDs: `AUD-XXX`
+- Derived requirements use IDs: `REQ-XXX`
+- Test cases use IDs: `TST-XXX`
+- Each requirement must have one measurable acceptance criterion and one verifiable evidence artifact.
+- Validation statuses are: `Planned`, `In Progress`, `Passed`, `Failed`, `Waived`.
+
+#### Matrix
+
+| ID Audit | Contrainte d'audit (Source) | Exigence dérivée | Critères d'acceptation | Méthode de vérification | Preuve attendue | Statut |
+|----------|------------------------------|------------------|------------------------|-------------------------|-----------------|--------|
+| AUD-001 | Les données de santé relèvent d'une catégorie spéciale (GDPR Art. 9) | REQ-PRIV-001: Un consentement explicite est obligatoire avant toute collecte de données de santé | 100% des nouveaux utilisateurs doivent donner un consentement explicite avant la première écriture dans les tables de santé | Tests d'inscription de bout en bout + requête de vérification en base de données | Journaux d'événements de consentement, export de la table de consentement, captures d'onboarding | Planned |
+| AUD-002 | Les droits GDPR doivent être applicables (accès, rectification, effacement, portabilité) | REQ-PRIV-002: Les parcours des droits utilisateur sont implémentés et accessibles dans les paramètres de l'application | Les demandes d'accès/export/suppression peuvent être déclenchées dans l'application et traitées dans les délais documentés | Tests fonctionnels + suivi SLA des demandes liées aux droits | Rapport de test des parcours de droits, échantillons exportés, journaux de suppression | Planned |
+| AUD-003 | Le chiffrement en transit est requis pour les données personnelles et de santé | REQ-SEC-001: Le trafic API est uniquement en TLS (minimum TLS 1.3) | 0 endpoint de production accepte HTTP; le scan TLS confirme une politique protocole/chiffrement conforme | Scan TLS automatisé en CI + contrôles manuels des endpoints | Sortie de scan sécurité CI, capture de configuration gateway | Planned |
+| AUD-004 | Le chiffrement au repos est requis pour les données sensibles | REQ-SEC-002: Les champs sensibles sont chiffrés au repos sur l'appareil et sur le serveur | 100% des champs marqués sensibles dans l'inventaire de données sont chiffrés au repos | Revue de schéma + tests d'intégration + revue de configuration de stockage | Mapping inventaire de données/schéma, logs de test, preuves de config KMS/stockage | Planned |
+| AUD-005 | Les accès aux données sensibles doivent être auditables | REQ-SEC-003: Une piste d'audit de sécurité est activée pour les opérations sensibles/privilégiées | 100% des actions admin et des accès aux données sensibles génèrent des entrées d'audit immuables | Tests d'intégration des logs d'audit + revue par échantillonnage dans la stack d'observabilité | Extraits de logs horodatés, captures de dashboards de monitoring | Planned |
+| AUD-006 | La minimisation des données est exigée par les principes GDPR | REQ-PRIV-003: Seuls les champs nécessaires au service cœur sont collectés | Aucun champ ne peut être collecté sans finalité documentée, base légale et durée de rétention | Revue trimestrielle de l'inventaire des données + revue des formulaires produit | ROPA à jour, checklist de minimisation validée, compte rendu de revue | Planned |
+| AUD-007 | Le cycle de vie de rétention et suppression doit être appliqué | REQ-DATA-001: La politique de rétention est automatisée via des jobs de suppression/anonymisation | 100% des enregistrements expirés sont supprimés ou anonymisés selon les fenêtres de politique | Tests des jobs planifiés + requêtes d'audit périodique de la rétention | Logs d'exécution des jobs, rapport d'audit de rétention, rapport d'anonymisation | Planned |
+| AUD-008 | Les sous-traitants tiers doivent être contrôlés et contractuellement conformes | REQ-GOV-001: Tous les sous-traitants sont approuvés avec DPA et preuve de conformité | 100% des sous-traitants actifs disposent d'un DPA documenté et d'un statut de revue conformité | Checklist de gouvernance fournisseurs + revue légale | Registre des sous-traitants, index du référentiel DPA, trace d'approbation | Planned |
+
+#### Coverage with Functional and Technical Specifications
+
+This matrix bridges:
+- Functional scope and workflows (user registration, profile, settings, account lifecycle)
+- Technical architecture constraints (transport security, encryption, logging, retention jobs)
+- Compliance governance constraints (DPA tracking, legal basis, accountability evidence)
+
+As a result, each major audit finding is transformed into verifiable product requirements that can be validated during beta and pre-launch reviews.
+
+#### Validation Governance
+
+- Product Owner validates business workflow coverage for each `REQ-*` item.
+- Tech Lead validates implementation and testability.
+- Security/Compliance reviewer validates legal and security evidence.
+- Validation cadence: at each beta milestone and before production release.
+- Any `Failed` item must have a corrective action owner and due date before go-live.
+
 ---
 
 ## 2. Sector-Specific Regulations

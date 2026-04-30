@@ -99,6 +99,10 @@ graph TB
     style Marcus fill:#87CEEB,stroke:#4682B4,color:#000
 ```
 
+> **Description Textuelle Interactive (Accessibilité / Lecteurs d'écran) :**
+> *Ce schéma UML de niveau 1 (Contexte) illustre l'intégration de LiftUp dans son écosystème. Au centre se trouve le système principal "LiftUp". À gauche, 3 profils d'utilisateurs interagissent avec l'application : Alex (débutant), Sarah (athlète) et Marcus (expert). À droite, le système s'interface avec 8 services externes métiers : les App Stores (Apple/Play Store) pour la distribution, FoodDB (OpenFoodFacts/USDA) pour la nutrition, Supabase pour l'authentification sécurisée, Resend/SES pour les emails, Firebase FCM/APNS pour les notifications Push, Apple/Google Pay pour la facturation, Apple Watch/Wear OS pour les données de santé (fréquence cardiaque), ainsi que Mixpanel et Sentry pour l'analyse d'usage et de monitoring.*
+> *(Note d'Accessibilité : Les différentes entités utilisent des bordures épaisses et ne dépendent pas uniquement des couleurs de blocs pour être distinguées).*
+
 ### Key Insights
 
 #### User Personas

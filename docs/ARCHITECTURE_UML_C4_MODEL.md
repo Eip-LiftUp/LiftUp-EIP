@@ -1290,12 +1290,12 @@ struct SyncMetadata {
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| **Framework** | Flutter / React Native | Cross-platform development, rich UI |
-| **State Management** | Riverpod (Flutter) / Redux Toolkit (RN) | Predictable state updates, dev tools |
+| **Framework** | Flutter | Cross-platform development, rich UI |
+| **State Management** | Riverpod (Flutter) | Predictable state updates, dev tools |
 | **Local Database** | SQLite + SQLCipher | Standard mobile DB, encryption support |
-| **Charts** | fl_chart (Flutter) / Victory Native (RN) | Customizable, performant |
-| **HTTP Client** | Dio (Flutter) / Axios (RN) | Interceptors, retry logic |
-| **Storage** | flutter_secure_storage / react-native-keychain | Platform keychain integration |
+| **Charts** | fl_chart (Flutter)| Customizable, performant |
+| **HTTP Client** | Dio (Flutter)| Interceptors, retry logic |
+| **Storage** | flutter_secure_storage| Platform keychain integration |
 
 ### Backend
 

@@ -1204,8 +1204,6 @@ struct SyncMetadata {
 
 ### ADR-003: Cross-Platform Mobile Framework
 
-**Status:** Proposed (Flutter or React Native)
-
 **Context:**
 - Need to support iOS and Android
 - Limited development resources

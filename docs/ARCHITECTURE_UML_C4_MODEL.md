@@ -1,5 +1,4 @@
 # LiftUp-EIP Architecture - C4 Model UML Diagrams
-
 **Document Version:** 1.0  
 **Last Updated:** February 23, 2026  
 **Modeling Approach:** C4 Model (Context, Containers, Components)  
@@ -1167,8 +1166,6 @@ struct SyncMetadata {
 
 ### ADR-001: Cloud-Centric Mobile Architecture
 
-**Status:** Accepted
-
 **Context:**
 - Fitness apps require connectivity for real-time data and community features
 - Real-time responsiveness is critical
@@ -1187,8 +1184,6 @@ struct SyncMetadata {
 ---
 
 ### ADR-002: Rust for Logic Engine
-
-**Status:** Accepted
 
 **Context:**
 - Workout algorithms require complex calculations (progressive overload, periodization)
@@ -1217,7 +1212,7 @@ struct SyncMetadata {
 - UI complexity (charts, animations)
 
 **Decision:**
-- Use Flutter (preferred) or React Native
+- Use Flutter
 - Share UI codebase across platforms
 - Use platform-specific code only when necessary
 
@@ -1238,7 +1233,7 @@ struct SyncMetadata {
 - Scalability for future growth
 
 **Decision:**
-- Use managed PostgreSQL (DigitalOcean, AWS RDS)
+- Use managed PostgreSQL (DigitalOcean)
 - Single database with appropriate indexing
 - Vertical scaling initially, read replicas for scale
 

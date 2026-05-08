@@ -18,9 +18,9 @@ LiftUp atteint le stade de la bêta. Après avoir pivoté vers une architecture 
 | **F4** | Admin | **Monitor** API Health | Vérification de la disponibilité du backend Rust et des temps de réponse via le dashboard. |
 
 ### Success Criteria Table
-| Feature ID | Key Success Criteria | Indicator / Metric | Result Achieved |
+| Feature ID | Key Success Criteria | Indicator / Metric |
 |---|---|---|---|
-| **F1** | Un utilisateur peut créer un compte et ses données sont sauvegardées en base de données. | 10 tentatives de création, 0 échec. | *[À remplir après test]* |
-| **F2** | L'IA génère un programme d'entraînement personnalisé cohérent sans timeout. | Temps de réponse de l'API < 3 secondes. | *[À remplir après test]* |
-| **F3** | Une séance complète est trackée et synchronisée sur le cloud sans perte de données. | 100% des séries entrées sur Flutter sont retrouvées sur le DB PostgreSQL. | *[À remplir après test]* |
-| **F4** | Les requêtes mobiles sont correctement traitées par le pipeline CI/CD et l'infrastructure. | Uptime de 99% sur la durée de la session de test. | *[À remplir après test]* |
+| **F1** | Un utilisateur peut créer un compte et ses données sont sauvegardées en base de données. | 10 tentatives de création, 0 échec. |
+| **F2** | L'IA génère un programme d'entraînement personnalisé cohérent sans timeout. | Temps de réponse de l'API < 3 secondes. |
+| **F3** | Une séance complète est trackée et synchronisée sur le cloud sans perte de données. | 100% des séries entrées sur Flutter sont retrouvées sur le DB PostgreSQL. |
+| **F4** | Les requêtes mobiles sont correctement traitées par le pipeline CI/CD et l'infrastructure. | Uptime de 99% sur la durée de la session de test. |

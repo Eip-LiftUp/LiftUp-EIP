@@ -24,7 +24,7 @@ LiftUp est une application mobile intelligente de coaching en musculation. Le pr
 3. **M3 - Beta Release :** Sortie de la V1 100% online auprès de nos "early adopters" pour tester la charge serveur et la pertinence de l'IA.
 4. **M4 - UI/UX Refinement :** Itération sur le design suite aux retours utilisateurs.
 
-## 3. Non-Technical Specifications (Solution Track)
+## 3. Non-Technical Specifications
 
 ### Solution - Mandatory
 1. **Develop and retain a user community :** 

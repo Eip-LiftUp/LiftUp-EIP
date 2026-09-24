@@ -80,6 +80,7 @@ LiftUp/
 
 ### Developer Documentation
 - **[Backend Integration Guide](client/app/BACKEND_INTEGRATION.md)** - How to connect Flutter with the backend
+- **[Android Launch Guide](docs/FLUTTER_ANDROID_RUN_GUIDE.md)** - Launch the Flutter app over USB or Wi-Fi
 - **[Integration Summary](INTEGRATION_SUMMARY.md)** - Overview of backend ↔️ frontend integration
 - **[Backend README](back/README.md)** - Rust/Axum API documentation
 

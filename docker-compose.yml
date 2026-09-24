@@ -25,6 +25,21 @@ services:
     restart: unless-stopped
 
   # ============================================================================
+  # Database Web UI (Adminer)
+  # ============================================================================
+  adminer:
+    image: adminer:4
+    container_name: liftup-adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - liftup-network
+    restart: unless-stopped
+
+  # ============================================================================
   # Backend API (Rust/Axum)
   # ============================================================================
   backend:
@@ -38,7 +53,7 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8080
       RUST_LOG: liftup_backend=debug,tower_http=debug
-      AI_SERVICE_URL: http://ai-service:8000
+      # AI_SERVICE_URL: http://ai-service:8000
     ports:
       - "8080:8080"
     depends_on:
@@ -49,31 +64,31 @@ services:
     restart: unless-stopped
 
   # ============================================================================
-  # AI/ML Service (Python/FastAPI) - I3D Video Analysis
+  # AI/ML Service (Python/FastAPI) - I3D Video Analysis - DESACTIVE
   # ============================================================================
-  ai-service:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: liftup-ai-service
-    environment:
-      DEBUG: "True"
-      HOST: 0.0.0.0
-      PORT: 8000
-    ports:
-      - "8001:8000"
-    volumes:
-      - ./server/app:/app/app
-      - ./server/data:/app/data
-    networks:
-      - liftup-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+  # ai-service:
+  #   build:
+  #     context: ./server
+  #     dockerfile: Dockerfile
+  #   container_name: liftup-ai-service
+  #   environment:
+  #     DEBUG: "True"
+  #     HOST: 0.0.0.0
+  #     PORT: 8000
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - ./server/app:/app/app
+  #     - ./server/data:/app/data
+  #   networks:
+  #     - liftup-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
 
 volumes:
   postgres_data:

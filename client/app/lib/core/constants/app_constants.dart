@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import '../config/api_config.dart';
 
 class AppConstants {
   AppConstants._();
@@ -9,30 +8,8 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static String get baseUrl {
-    // Web: toujours utiliser localhost
-    if (kIsWeb) {
-      return 'http://localhost:8080';
-    }
-    
-    // Mobile/Desktop: dépend de la plateforme
-    try {
-      if (Platform.isAndroid) {
-        // Android Physical Device: IP du PC Windows sur le réseau local
-        return 'http://10.73.189.87:8080';  // Android
-      } else if (Platform.isIOS) {
-        // iOS Simulator
-        return 'http://localhost:8080';
-      } else {
-        // Linux, macOS, Windows
-        return 'http://localhost:8080';
-      }
-    } catch (e) {
-      // Fallback
-      return 'http://localhost:8080';
-    }
-  }
-  
+  static String get baseUrl => ApiConfig.baseUrl;
+
   static const int connectionTimeout = 60;
   static const int receiveTimeout = 90;
 

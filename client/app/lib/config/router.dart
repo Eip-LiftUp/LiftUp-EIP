@@ -6,6 +6,7 @@ import 'package:app/features/movement_analysis/presentation/pages/movement_analy
 import 'package:app/features/profile/presentation/pages/profile_page.dart' show ProfilePage;
 import 'package:app/features/program/presentation/pages/program_page.dart';
 import 'package:app/features/auth/auth.dart';
+import 'package:app/features/profile_setup/presentation/pages/profile_setup_page.dart';
 
 int _getNavIndex(String location) {
   if (location.startsWith('/movement-analysis')) return 1;
@@ -75,6 +76,11 @@ final GoRouter appRouter = GoRouter(
       path: '/register',
       pageBuilder: (context, state) => _buildAuthPage(const RegisterPage(), state),
       name: 'register',
+    ),
+    GoRoute(
+      path: '/profile-setup',
+      pageBuilder: (context, state) => _buildAuthPage(const ProfileSetupPage(), state),
+      name: 'profile-setup',
     ),
 
     // Main app routes (inside shell with bottom nav)

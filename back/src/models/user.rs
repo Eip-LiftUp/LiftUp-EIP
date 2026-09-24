@@ -20,6 +20,18 @@ impl Default for FitnessLevel {
     }
 }
 
+/// Self-reported training frequency, collected on the mandatory onboarding page.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type)]
+#[sqlx(type_name = "varchar", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityFrequency {
+    Sedentary,
+    Light,
+    Moderate,
+    Active,
+    VeryActive,
+}
+
 /// The persistent User entity, mapped 1-to-1 with the `users` table.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
@@ -33,6 +45,12 @@ pub struct User {
     pub fitness_level: String,
     pub fitness_goals: Option<String>,
     pub password_hash: String,
+    pub activity_frequency: Option<String>,
+    pub has_injuries: Option<bool>,
+    pub medical_notes: Option<String>,
+    pub injured_zones: Option<Vec<String>>,
+    pub training_focus: Option<Vec<String>>,
+    pub onboarding_completed: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -107,6 +125,7 @@ pub struct LoginResponse {
     pub email: String,
     pub username: String,
     pub display_name: Option<String>,
+    pub onboarding_completed: bool,
 }
 
 /// DTO — payload for updating user profile
@@ -126,6 +145,19 @@ pub struct UpdateUserRequest {
     pub fitness_level: Option<FitnessLevel>,
 
     pub fitness_goals: Option<String>,
+
+    pub activity_frequency: Option<ActivityFrequency>,
+
+    pub has_injuries: Option<bool>,
+
+    #[validate(length(max = 5000, message = "Medical notes must be at most 5000 characters"))]
+    pub medical_notes: Option<String>,
+
+    pub injured_zones: Option<Vec<String>>,
+
+    pub training_focus: Option<Vec<String>>,
+
+    pub onboarding_completed: Option<bool>,
 }
 
 /// DTO — user profile response
@@ -141,6 +173,12 @@ pub struct UserProfileResponse {
     pub weight_kg: Option<f64>,
     pub fitness_level: String,
     pub fitness_goals: Option<String>,
+    pub activity_frequency: Option<String>,
+    pub has_injuries: Option<bool>,
+    pub medical_notes: Option<String>,
+    pub injured_zones: Option<Vec<String>>,
+    pub training_focus: Option<Vec<String>>,
+    pub onboarding_completed: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -157,6 +195,12 @@ impl From<User> for UserProfileResponse {
             weight_kg: u.weight_kg.map(|w| w.to_string().parse().unwrap_or(0.0)),
             fitness_level: u.fitness_level,
             fitness_goals: u.fitness_goals,
+            activity_frequency: u.activity_frequency,
+            has_injuries: u.has_injuries,
+            medical_notes: u.medical_notes,
+            injured_zones: u.injured_zones,
+            training_focus: u.training_focus,
+            onboarding_completed: u.onboarding_completed,
             created_at: u.created_at,
             updated_at: u.updated_at,
         }

@@ -48,7 +48,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     if (mounted) {
       if (success) {
-        context.go('/home');
+        final onboardingCompleted = ref.read(authProvider).onboardingCompleted;
+        context.go(onboardingCompleted ? '/home' : '/profile-setup');
       } else {
         // Error message is in authProvider state
         final errorMsg = ref.read(authProvider).errorMessage ?? 'Erreur de connexion';

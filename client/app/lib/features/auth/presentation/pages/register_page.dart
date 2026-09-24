@@ -69,7 +69,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             backgroundColor: AppColors.secondary,
           ),
         );
-        context.go('/home');
+        final onboardingCompleted = ref.read(authProvider).onboardingCompleted;
+        context.go(onboardingCompleted ? '/home' : '/profile-setup');
       } else {
         // Error message is in authProvider state
         final errorMsg = ref.read(authProvider).errorMessage ?? 'Erreur d\'inscription';

@@ -1,5 +1,4 @@
 # LiftUp-EIP Architecture - C4 Model UML Diagrams
-
 **Document Version:** 1.0  
 **Last Updated:** February 23, 2026  
 **Modeling Approach:** C4 Model (Context, Containers, Components)  
@@ -1167,8 +1166,6 @@ struct SyncMetadata {
 
 ### ADR-001: Cloud-Centric Mobile Architecture
 
-**Status:** Accepted
-
 **Context:**
 - Fitness apps require connectivity for real-time data and community features
 - Real-time responsiveness is critical
@@ -1187,8 +1184,6 @@ struct SyncMetadata {
 ---
 
 ### ADR-002: Rust for Logic Engine
-
-**Status:** Accepted
 
 **Context:**
 - Workout algorithms require complex calculations (progressive overload, periodization)
@@ -1209,15 +1204,13 @@ struct SyncMetadata {
 
 ### ADR-003: Cross-Platform Mobile Framework
 
-**Status:** Proposed (Flutter or React Native)
-
 **Context:**
 - Need to support iOS and Android
 - Limited development resources
 - UI complexity (charts, animations)
 
 **Decision:**
-- Use Flutter (preferred) or React Native
+- Use Flutter
 - Share UI codebase across platforms
 - Use platform-specific code only when necessary
 
@@ -1238,7 +1231,7 @@ struct SyncMetadata {
 - Scalability for future growth
 
 **Decision:**
-- Use managed PostgreSQL (DigitalOcean, AWS RDS)
+- Use managed PostgreSQL (DigitalOcean)
 - Single database with appropriate indexing
 - Vertical scaling initially, read replicas for scale
 
@@ -1297,12 +1290,12 @@ struct SyncMetadata {
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| **Framework** | Flutter / React Native | Cross-platform development, rich UI |
-| **State Management** | Riverpod (Flutter) / Redux Toolkit (RN) | Predictable state updates, dev tools |
+| **Framework** | Flutter | Cross-platform development, rich UI |
+| **State Management** | Riverpod (Flutter) | Predictable state updates, dev tools |
 | **Local Database** | SQLite + SQLCipher | Standard mobile DB, encryption support |
-| **Charts** | fl_chart (Flutter) / Victory Native (RN) | Customizable, performant |
-| **HTTP Client** | Dio (Flutter) / Axios (RN) | Interceptors, retry logic |
-| **Storage** | flutter_secure_storage / react-native-keychain | Platform keychain integration |
+| **Charts** | fl_chart (Flutter)| Customizable, performant |
+| **HTTP Client** | Dio (Flutter)| Interceptors, retry logic |
+| **Storage** | flutter_secure_storage| Platform keychain integration |
 
 ### Backend
 

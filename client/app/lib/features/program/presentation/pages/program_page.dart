@@ -80,39 +80,36 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Note: no MainScaffold here — this page is already rendered as the
+    // `child` of the ShellRoute's MainScaffold in router.dart. Wrapping it
+    // in another MainScaffold produced two stacked bottom nav bars.
     if (_userId.isEmpty) {
-      return MainScaffold(
-        currentIndex: 2,
-        child: const Center(
-          child: Text('Non connecté', style: TextStyle(color: AppColors.textPrimary)),
-        ),
+      return const Center(
+        child: Text('Non connecté', style: TextStyle(color: AppColors.textPrimary)),
       );
     }
 
     final workoutState = ref.watch(apiWorkoutProvider(_userId));
 
-    return MainScaffold(
-      currentIndex: 2,
-      child: Column(
-        children: [
-          // Active workout banner
-          if (_activeWorkout != null) _buildActiveWorkoutBanner(),
+    return Column(
+      children: [
+        // Active workout banner
+        if (_activeWorkout != null) _buildActiveWorkoutBanner(),
 
-          // Header
-          _buildHeader(workoutState.workouts.length),
+        // Header
+        _buildHeader(workoutState.workouts.length),
 
-          // Content
-          Expanded(
-            child: workoutState.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : workoutState.error != null
-                    ? _buildErrorView(workoutState.error!)
-                    : workoutState.workouts.isEmpty
-                        ? _buildEmptyView()
-                        : _buildWorkoutList(workoutState.workouts),
-          ),
-        ],
-      ),
+        // Content
+        Expanded(
+          child: workoutState.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : workoutState.error != null
+                  ? _buildErrorView(workoutState.error!)
+                  : workoutState.workouts.isEmpty
+                      ? _buildEmptyView()
+                      : _buildWorkoutList(workoutState.workouts),
+        ),
+      ],
     );
   }
 

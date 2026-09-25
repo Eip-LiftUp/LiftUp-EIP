@@ -939,6 +939,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.logout, color: AppColors.textSecondary),
+                title: const Text(
+                  'Déconnexion',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _logout();
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
                 title: const Text(
                   'Supprimer le compte',

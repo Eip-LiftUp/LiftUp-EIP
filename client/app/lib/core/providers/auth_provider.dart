@@ -15,6 +15,7 @@ class AuthState {
   final String? email;
   final String? username;
   final String? displayName;
+  final bool onboardingCompleted;
   final bool isLoading;
   final String? errorMessage;
 
@@ -25,6 +26,7 @@ class AuthState {
     this.email,
     this.username,
     this.displayName,
+    this.onboardingCompleted = false,
     this.isLoading = false,
     this.errorMessage,
   });
@@ -36,6 +38,7 @@ class AuthState {
     String? email,
     String? username,
     String? displayName,
+    bool? onboardingCompleted,
     bool? isLoading,
     String? errorMessage,
   }) {
@@ -46,6 +49,7 @@ class AuthState {
       email: email ?? this.email,
       username: username ?? this.username,
       displayName: displayName ?? this.displayName,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
     );
@@ -110,6 +114,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: response.email,
         username: response.username,
         displayName: response.displayName,
+        onboardingCompleted: response.onboardingCompleted,
         isLoading: false,
         errorMessage: null,
       );
@@ -132,6 +137,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Update display name in auth state
   void updateDisplayName(String displayName) {
     state = state.copyWith(displayName: displayName);
+  }
+
+  /// Mark the first-launch onboarding wizard as completed
+  void markOnboardingCompleted() {
+    state = state.copyWith(onboardingCompleted: true);
   }
 
   /// Clear error message

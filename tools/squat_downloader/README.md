@@ -38,6 +38,7 @@ separate folders — the folder name is generated from the query text itself.
 Notes
 -----
 - This uses `yt-dlp` and downloads video-only streams (no audio) to save space.
+- Videos longer than 15 minutes are skipped by default to avoid mostly talk-heavy results.
 - A download archive `squat_downloads_archive.txt` is used to avoid duplicate
   downloads.
 - Make sure you respect the target site's terms of service and copyright when

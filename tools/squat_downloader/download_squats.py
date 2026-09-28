@@ -98,7 +98,7 @@ def main():
     parser.add_argument('--bad-count', type=int, default=3, help='Multiplier for bad-form queries')
     parser.add_argument('--queries', '-q', nargs='*', help='Custom search queries to run (overrides built-in queries if provided)')
     parser.add_argument('--min-duration', type=int, help='Minimum video duration in seconds to download')
-    parser.add_argument('--max-duration', type=int, help='Maximum video duration in seconds to download')
+    parser.add_argument('--max-duration', type=int, default=900, help='Maximum video duration in seconds to download (default: 900 / 15 minutes)')
     parser.add_argument('--archive', default=None, help='Download archive file to avoid duplicates (default: tools/squat_downloader/squat_downloads_archive.txt)')
     parser.add_argument('--quiet', action='store_true', help='Suppress verbose output from yt-dlp')
     parser.add_argument('--separate', action=argparse.BooleanOptionalAction, default=True, help='Separate downloads into `good`/`bad` subfolders (can use --no-separate to disable)')

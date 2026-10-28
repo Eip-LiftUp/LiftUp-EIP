@@ -75,15 +75,38 @@ class AuthApiService {
     double? weightKg,
     FitnessLevel? fitnessLevel,
     String? fitnessGoals,
+    ActivityFrequency? activityFrequency,
+    bool? hasInjuries,
+    String? medicalNotes,
+    List<String>? injuredZones,
+    List<String>? trainingFocus,
+    bool? onboardingCompleted,
   }) async {
     try {
       final data = <String, dynamic>{};
       if (displayName != null) data['displayName'] = displayName;
-      if (birthDate != null) data['birthDate'] = birthDate.toIso8601String();
+      // Backend expects a date-only string (chrono::NaiveDate); a full
+      // ISO 8601 datetime is rejected with "trailing input".
+      if (birthDate != null) {
+        data['birthDate'] =
+            '${birthDate.year.toString().padLeft(4, '0')}-'
+            '${birthDate.month.toString().padLeft(2, '0')}-'
+            '${birthDate.day.toString().padLeft(2, '0')}';
+      }
       if (heightCm != null) data['heightCm'] = heightCm;
       if (weightKg != null) data['weightKg'] = weightKg;
       if (fitnessLevel != null) data['fitnessLevel'] = fitnessLevel.name;
       if (fitnessGoals != null) data['fitnessGoals'] = fitnessGoals;
+      if (activityFrequency != null) {
+        data['activityFrequency'] = activityFrequency.apiValue;
+      }
+      if (hasInjuries != null) data['hasInjuries'] = hasInjuries;
+      if (medicalNotes != null) data['medicalNotes'] = medicalNotes;
+      if (injuredZones != null) data['injuredZones'] = injuredZones;
+      if (trainingFocus != null) data['trainingFocus'] = trainingFocus;
+      if (onboardingCompleted != null) {
+        data['onboardingCompleted'] = onboardingCompleted;
+      }
 
       final response = await _dio.patch('/users/$userId', data: data);
       return UserProfileResponse.fromJson(response.data);
@@ -134,6 +157,7 @@ class LoginResponse {
   final String email;
   final String username;
   final String? displayName;
+  final bool onboardingCompleted;
 
   LoginResponse({
     required this.token,
@@ -141,6 +165,7 @@ class LoginResponse {
     required this.email,
     required this.username,
     this.displayName,
+    this.onboardingCompleted = false,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
@@ -150,6 +175,7 @@ class LoginResponse {
       email: json['email'] as String,
       username: json['username'] as String,
       displayName: json['displayName'] as String?,
+      onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
     );
   }
 }
@@ -179,6 +205,12 @@ class UserProfileResponse {
   final double? weightKg;
   final FitnessLevel? fitnessLevel;
   final String? fitnessGoals;
+  final ActivityFrequency? activityFrequency;
+  final bool? hasInjuries;
+  final String? medicalNotes;
+  final List<String>? injuredZones;
+  final List<String>? trainingFocus;
+  final bool onboardingCompleted;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -192,6 +224,12 @@ class UserProfileResponse {
     this.weightKg,
     this.fitnessLevel,
     this.fitnessGoals,
+    this.activityFrequency,
+    this.hasInjuries,
+    this.medicalNotes,
+    this.injuredZones,
+    this.trainingFocus,
+    this.onboardingCompleted = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -213,6 +251,18 @@ class UserProfileResponse {
           ? _parseFitnessLevel(json['fitnessLevel'] as String)
           : null,
       fitnessGoals: json['fitnessGoals'] as String?,
+      activityFrequency: ActivityFrequencyApi.fromApiValue(
+        json['activityFrequency'] as String?,
+      ),
+      hasInjuries: json['hasInjuries'] as bool?,
+      medicalNotes: json['medicalNotes'] as String?,
+      injuredZones: (json['injuredZones'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      trainingFocus: (json['trainingFocus'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );

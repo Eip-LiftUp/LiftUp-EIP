@@ -98,6 +98,14 @@ impl UserRepository {
             FitnessLevel::Advanced => "advanced",
         });
 
+        let activity_frequency_str = req.activity_frequency.as_ref().map(|f| match f {
+            crate::models::user::ActivityFrequency::Sedentary => "sedentary",
+            crate::models::user::ActivityFrequency::Light => "light",
+            crate::models::user::ActivityFrequency::Moderate => "moderate",
+            crate::models::user::ActivityFrequency::Active => "active",
+            crate::models::user::ActivityFrequency::VeryActive => "very_active",
+        });
+
         let weight: Option<Decimal> = req
             .weight_kg
             .map(|w| Decimal::from_f64_retain(w).unwrap_or(Decimal::ZERO));
@@ -111,8 +119,14 @@ impl UserRepository {
                 height_cm = COALESCE($3, height_cm),
                 weight_kg = COALESCE($4, weight_kg),
                 fitness_level = COALESCE($5, fitness_level),
-                fitness_goals = COALESCE($6, fitness_goals)
-            WHERE id = $7
+                fitness_goals = COALESCE($6, fitness_goals),
+                activity_frequency = COALESCE($7, activity_frequency),
+                has_injuries = COALESCE($8, has_injuries),
+                medical_notes = COALESCE($9, medical_notes),
+                injured_zones = COALESCE($10, injured_zones),
+                training_focus = COALESCE($11, training_focus),
+                onboarding_completed = COALESCE($12, onboarding_completed)
+            WHERE id = $13
             RETURNING *
             "#,
         )
@@ -122,6 +136,12 @@ impl UserRepository {
         .bind(weight)
         .bind(fitness_level_str)
         .bind(&req.fitness_goals)
+        .bind(activity_frequency_str)
+        .bind(req.has_injuries)
+        .bind(&req.medical_notes)
+        .bind(&req.injured_zones)
+        .bind(&req.training_focus)
+        .bind(req.onboarding_completed)
         .bind(user_id)
         .fetch_one(&self.pool)
         .await?;

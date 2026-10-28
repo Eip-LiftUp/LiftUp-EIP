@@ -56,6 +56,7 @@ pub async fn login(
         email: user.email,
         username: user.username,
         display_name: user.display_name,
+        onboarding_completed: user.onboarding_completed,
     };
     
     Ok((StatusCode::OK, Json(response)))

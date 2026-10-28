@@ -88,3 +88,8 @@ server/ml_docs/
 # ─────────────────────────────────────────────
 server/data/models/**/*.joblib
 server/data/models/**/*.json
+
+# ─────────────────────────────────────────────
+# Local archive of the ML model
+# ─────────────────────────────────────────────
+tools/*/*_archive.txt

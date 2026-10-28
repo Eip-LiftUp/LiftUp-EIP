@@ -77,3 +77,14 @@ backup_*.sql
 # ─────────────────────────────────────────────
 .vscode/
 .fleet/
+
+# ─────────────────────────────────────────────
+# ML local function documentation (kept local only)
+# ─────────────────────────────────────────────
+server/ml_docs/
+
+# ─────────────────────────────────────────────
+# ML trained artifacts
+# ─────────────────────────────────────────────
+server/data/models/**/*.joblib
+server/data/models/**/*.json

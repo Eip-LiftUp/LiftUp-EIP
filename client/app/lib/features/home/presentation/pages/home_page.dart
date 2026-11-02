@@ -31,7 +31,7 @@ class HomePage extends ConsumerWidget {
       children: [
         Text(AppDateUtils.weekdayDayMonth(now), style: AppText.caption),
         const SizedBox(height: 4),
-        const Text('Entraînement du jour', style: AppText.h1),
+        Semantics(header: true, child: const Text('Entraînement du jour', style: AppText.h1)),
         const SizedBox(height: 24),
         const _AiSuggestionCard(),
         const SizedBox(height: 24),
@@ -87,10 +87,12 @@ class _AiSuggestionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text('Suggestion IA', style: AppText.bodyMedium),
-                    SizedBox(width: 8),
                     Pill(text: 'Bientôt', color: AppColors.accent, dense: true),
                   ],
                 ),
@@ -339,6 +341,7 @@ class _QuickStats extends StatelessWidget {
           child: MetricCard(
             label: 'Série',
             value: '${stats.streak(now)} j',
+            valueLabel: '${stats.streak(now)} jour${stats.streak(now) > 1 ? 's' : ''}',
             icon: LucideIcons.flame,
             compact: true,
           ),
@@ -348,6 +351,7 @@ class _QuickStats extends StatelessWidget {
           child: MetricCard(
             label: 'Semaine',
             value: week.planned == 0 ? '0' : '${week.done}/${week.planned}',
+            valueLabel: week.planned == 0 ? null : '${week.done} sur ${week.planned}',
             icon: LucideIcons.calendar,
             compact: true,
           ),

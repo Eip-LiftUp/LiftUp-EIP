@@ -6,6 +6,7 @@ import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
 import 'package:app/core/models/review_record.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/connectivity_provider.dart';
 import 'package:app/core/providers/review_history_provider.dart';
 import 'package:app/core/services/video_analysis_service.dart';
 import 'package:app/core/widgets/ui/ui.dart';
@@ -81,6 +82,13 @@ class _VideoUploadPageState extends ConsumerState<VideoUploadPage> {
 
   Future<void> _startUpload() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!ref.read(isOnlineProvider)) {
+      setState(() {
+        _state = _UploadState.failed;
+        _errorMessage = offlineMessage;
+      });
+      return;
+    }
     final attempt = ++_attempt;
     setState(() {
       _state = _UploadState.uploading;

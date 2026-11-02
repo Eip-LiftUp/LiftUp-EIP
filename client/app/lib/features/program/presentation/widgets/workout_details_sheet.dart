@@ -40,11 +40,8 @@ class WorkoutDetailsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workout = ref
-        .watch(apiWorkoutProvider(userId))
-        .workouts
-        .where((w) => w.id == workoutId)
-        .firstOrNull;
+    // byId: the workout may have been created offline and renamed since.
+    final workout = ref.watch(apiWorkoutProvider(userId)).byId(workoutId);
     if (workout == null) return const SizedBox(height: 120);
 
     final isActive = ref.watch(activeWorkoutProvider).workoutId == workout.id;
@@ -211,7 +208,11 @@ class _ExerciseTile extends StatelessWidget {
                     color: done ? AppColors.textSecondary : AppColors.textPrimary,
                   ),
                 ),
-                Text(exercisePrescription(exercise), style: AppText.caption),
+                Text(
+                  exercisePrescription(exercise),
+                  semanticsLabel: exercisePrescriptionLabel(exercise),
+                  style: AppText.caption,
+                ),
               ],
             ),
           ),

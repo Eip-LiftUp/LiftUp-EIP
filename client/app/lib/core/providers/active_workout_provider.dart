@@ -18,6 +18,13 @@ class ActiveWorkoutController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The workout got its server id after being created offline.
+  void rename(String from, String to) {
+    if (_workoutId != from) return;
+    _workoutId = to;
+    notifyListeners();
+  }
+
   /// Ends the session and returns its duration in minutes.
   int finish() {
     final minutes = timer.getDurationMinutes();

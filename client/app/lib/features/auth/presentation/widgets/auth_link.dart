@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
+import 'package:app/core/widgets/ui/min_tap_target.dart';
 
 /// "Prefix text + tappable link" line shown under the auth forms.
 class AuthLink extends StatelessWidget {
@@ -23,12 +24,18 @@ class AuthLink extends StatelessWidget {
       children: [
         if (prefix.isNotEmpty)
           Text(prefix, style: AppText.body.copyWith(color: AppColors.textSecondary)),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(6),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
-            child: Text(link, style: AppText.bodyMedium.copyWith(color: AppColors.primary)),
+        Semantics(
+          container: true,
+          link: true,
+          child: MinTapTarget(
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+                child: Text(link, style: AppText.bodyMedium.copyWith(color: AppColors.primary)),
+              ),
+            ),
           ),
         ),
       ],

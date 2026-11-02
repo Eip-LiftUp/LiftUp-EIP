@@ -9,6 +9,7 @@ export 'icon_tile.dart';
 export 'inline_error.dart';
 export 'link_text.dart';
 export 'metric_card.dart';
+export 'min_tap_target.dart';
 export 'page_list_view.dart';
 export 'pill.dart';
 export 'section_title.dart';

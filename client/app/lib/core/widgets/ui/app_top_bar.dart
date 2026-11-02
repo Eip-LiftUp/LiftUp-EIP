@@ -4,7 +4,8 @@ import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
 
 /// Figma `AppBar`: left-aligned h1 title, optional 44px back button,
-/// bottom border.
+/// bottom border. Grows with the system text size; a title that still does
+/// not fit wraps on two lines, then shrinks.
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBack;
@@ -22,7 +23,11 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(77);
+  Size get preferredSize => Size.fromHeight(43 + 34 * _textScale);
+
+  /// Read from the platform because [preferredSize] has no context.
+  static double get _textScale =>
+      WidgetsBinding.instance.platformDispatcher.textScaleFactor.clamp(1.0, 2.0);
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +66,18 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                 const SizedBox(width: 4),
               ],
               Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(title, style: AppText.h1, maxLines: 1),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      child: Semantics(
+                        header: true,
+                        child: Text(title, style: AppText.h1, maxLines: 2),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               ...actions,

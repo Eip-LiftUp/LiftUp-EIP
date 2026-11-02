@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/connectivity_provider.dart';
 import 'package:app/core/widgets/ui/ui.dart';
 import 'package:app/features/auth/presentation/widgets/auth_link.dart';
 
@@ -53,6 +54,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       return;
     }
 
+    if (!ref.read(isOnlineProvider)) {
+      setState(() => _errorMessage = offlineMessage);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -95,7 +101,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 children: [
                   _buildTopBar(),
                   const SizedBox(height: 32),
-                  const Text('Créer un compte', style: AppText.metric),
+                  Semantics(header: true, child: const Text('Créer un compte', style: AppText.metric)),
                   const SizedBox(height: 8),
                   Text(
                     'Rejoignez LiftUp et commencez votre transformation',
@@ -249,35 +255,38 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           if (_acceptTerms) _errorMessage = null;
         });
 
-    return InkWell(
-      onTap: toggle,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Checkbox(value: _acceptTerms, onChanged: (_) => toggle()),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  style: AppText.caption.copyWith(fontSize: 14, height: 20 / 14),
-                  children: const [
-                    TextSpan(text: 'J\'accepte les '),
-                    TextSpan(
-                      text: 'conditions d\'utilisation',
-                      style: TextStyle(color: AppColors.primary),
-                    ),
-                    TextSpan(text: ' et la '),
-                    TextSpan(
-                      text: 'politique de confidentialité',
-                      style: TextStyle(color: AppColors.primary),
-                    ),
-                  ],
+    // One control for screen readers: "J'accepte les conditions…, case cochée".
+    return MergeSemantics(
+      child: InkWell(
+        onTap: toggle,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Checkbox(value: _acceptTerms, onChanged: (_) => toggle()),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    style: AppText.caption.copyWith(fontSize: 14, height: 20 / 14),
+                    children: const [
+                      TextSpan(text: 'J\'accepte les '),
+                      TextSpan(
+                        text: 'conditions d\'utilisation',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                      TextSpan(text: ' et la '),
+                      TextSpan(
+                        text: 'politique de confidentialité',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

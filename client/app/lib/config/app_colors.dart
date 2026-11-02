@@ -9,6 +9,10 @@ class AppColors {
   static const Color surface2 = Color(0xFF17244A);
   static const Color border = Color(0xFF22325E);
 
+  /// Outline of form controls (fields, radio circles): `border` is too faint
+  /// to make out a field on the background (WCAG 1.4.11 asks for 3:1).
+  static const Color borderStrong = Color(0xFF5A6CA3);
+
   static const Color primary = Color(0xFF2FB6FF);
   static const Color primaryStrong = Color(0xFF1C86FF);
   static const Color onPrimary = Color(0xFF0B1020);

@@ -41,7 +41,7 @@ class OnboardingPage extends StatelessWidget {
       children: [
         const GradientTile(icon: LucideIcons.dumbbell, size: 80),
         const SizedBox(height: 32),
-        const Text('Bienvenue sur LiftUp', style: AppText.h1, textAlign: TextAlign.center),
+        Semantics(header: true, child: const Text('Bienvenue sur LiftUp', style: AppText.h1, textAlign: TextAlign.center)),
         const SizedBox(height: 12),
         Text(
           'Votre coach personnel alimenté par l\'IA pour améliorer vos performances sportives.',

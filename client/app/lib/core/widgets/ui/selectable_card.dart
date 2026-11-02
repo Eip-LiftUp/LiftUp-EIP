@@ -25,7 +25,8 @@ class SelectableCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      selected: selected,
+      container: true,
+      checked: selected,
       inMutuallyExclusiveGroup: true,
       child: Material(
         color: selected ? AppColors.surface2 : AppColors.surface1,
@@ -75,7 +76,7 @@ class SelectableCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: selected ? AppColors.primary : Colors.transparent,
                     border: Border.all(
-                      color: selected ? AppColors.primary : AppColors.border,
+                      color: selected ? AppColors.primary : AppColors.borderStrong,
                       width: 2,
                     ),
                   ),

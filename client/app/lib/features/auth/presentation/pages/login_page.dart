@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/connectivity_provider.dart';
 import 'package:app/core/widgets/ui/ui.dart';
 import 'package:app/features/auth/presentation/widgets/auth_link.dart';
 
@@ -33,6 +34,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!ref.read(isOnlineProvider)) {
+      setState(() => _errorMessage = offlineMessage);
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -70,7 +75,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   const GradientTile(icon: LucideIcons.dumbbell),
                   const SizedBox(height: 16),
-                  const Text('Bon retour !', style: AppText.metric),
+                  Semantics(header: true, child: const Text('Bon retour !', style: AppText.metric)),
                   const SizedBox(height: 8),
                   Text(
                     'Connectez-vous pour continuer votre entraînement',

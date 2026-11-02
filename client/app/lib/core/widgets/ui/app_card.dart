@@ -44,11 +44,12 @@ class AppCard extends StatelessWidget {
       );
     }
 
-    return Material(
+    final card = Material(
       color: elevated ? AppColors.surface2 : AppColors.surface1,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: content,
     );
+    return onTap == null ? card : Semantics(container: true, button: true, child: card);
   }
 }

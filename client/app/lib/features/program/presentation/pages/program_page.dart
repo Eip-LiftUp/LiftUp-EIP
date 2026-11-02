@@ -116,7 +116,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
         onRefresh: () => ref.read(apiWorkoutProvider(userId).notifier).loadWorkouts(),
         child: PageListView(
           children: [
-            const Text('Entraînement', style: AppText.h1),
+            Semantics(header: true, child: const Text('Entraînement', style: AppText.h1)),
             const SizedBox(height: 4),
             Text(
               upcoming.isEmpty
@@ -166,7 +166,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const InlineError('Impossible de charger tes séances.'),
+                    InlineError(state.error!),
                     const SizedBox(height: 12),
                     AppButton(
                       label: 'Réessayer',

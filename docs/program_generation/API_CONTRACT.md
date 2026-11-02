@@ -102,6 +102,7 @@ donc #90 n'a pas besoin d'en écrire de nouveaux.
   "fromCache": false,
   "name": "LiftUp Force & Volume",
   "weeks": 6,
+  "sessionsPerWeek": 4,
   "rationale": "Ce programme privilégie les mouvements polyarticulaires…",
   "workouts": [
     {
@@ -124,15 +125,22 @@ donc #90 n'a pas besoin d'en écrire de nouveaux.
 }
 ```
 
+**`workouts` contient une semaine : la première du programme**, pas toutes
+les semaines. `sessionsPerWeek` donne le nombre de séances par semaine sur
+toute la durée (`weeks`) ; en v1 il vaut le nombre d'éléments de `workouts`.
+Le client affiche « 4 séances par semaine » et suit l'avancement du programme
+(« Semaine 2 sur 6 ») à partir de ces deux champs.
+
 Chaque élément de `workouts` a la forme d'une requête de création d'entraînement
 existante (`name`, `workoutDate`, `durationMinutes` + exercices au format
 `CreateExerciseRequest`). Avantage concret : "Démarrer ce programme" côté
 Flutter crée les séances avec les endpoints CRUD existants, sans conversion.
 
 Champs ajoutés pour l'écran de la maquette Figma (récap du programme) :
-`name`, `weeks` (durée du programme), `rationale` (texte "Pourquoi ce
-programme ?", facultatif) et, par séance, `focus` (groupes musculaires
-travaillés). Tous facultatifs côté client, avec des valeurs par défaut.
+`name`, `weeks` (durée du programme), `sessionsPerWeek`, `rationale` (texte
+"Pourquoi ce programme ?", facultatif) et, par séance, `focus` (groupes
+musculaires travaillés). Tous facultatifs côté client, avec des valeurs par
+défaut (`sessionsPerWeek` absent = nombre d'éléments de `workouts`).
 
 *(Point à valider avec ML : le moteur v1 pourra-t-il vraiment proposer des poids
 chiffrés, ou seulement sets/reps au départ ? Si c'est juste sets/reps pour

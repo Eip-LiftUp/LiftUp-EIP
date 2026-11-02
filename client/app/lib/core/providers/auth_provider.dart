@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/core/services/auth_api_service.dart';
 import 'package:app/core/models/user.dart';
 
@@ -60,7 +63,47 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthApiService _authService;
 
-  AuthNotifier(this._authService) : super(AuthState());
+  AuthNotifier(this._authService, {AuthState? restored}) : super(restored ?? AuthState());
+
+  static const _sessionKey = 'auth.session';
+
+  /// The session saved at the last login, so the app opens signed in, even
+  /// without network. The token is not stored: no API call uses it yet.
+  static Future<AuthState?> restoreSession() async {
+    final raw = (await SharedPreferences.getInstance()).getString(_sessionKey);
+    if (raw == null) return null;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      return AuthState(
+        isAuthenticated: true,
+        userId: json['userId'] as String,
+        email: json['email'] as String?,
+        username: json['username'] as String?,
+        displayName: json['displayName'] as String?,
+        onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!state.isAuthenticated || state.userId == null) {
+      await prefs.remove(_sessionKey);
+      return;
+    }
+    await prefs.setString(
+      _sessionKey,
+      jsonEncode({
+        'userId': state.userId,
+        'email': state.email,
+        'username': state.username,
+        'displayName': state.displayName,
+        'onboardingCompleted': state.onboardingCompleted,
+      }),
+    );
+  }
 
   /// Register a new user
   Future<bool> register({
@@ -118,6 +161,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         errorMessage: null,
       );
+      await _saveSession();
 
       return true;
     } on ApiException catch (e) {
@@ -132,16 +176,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Logout
   void logout() {
     state = AuthState();
+    _saveSession();
   }
 
   /// Update display name in auth state
   void updateDisplayName(String displayName) {
     state = state.copyWith(displayName: displayName);
+    _saveSession();
   }
 
   /// Mark the first-launch onboarding wizard as completed
   void markOnboardingCompleted() {
     state = state.copyWith(onboardingCompleted: true);
+    _saveSession();
   }
 
   /// Clear error message
@@ -150,8 +197,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
+/// Session read from the device at startup (see main.dart).
+final restoredSessionProvider = Provider<AuthState?>((ref) => null);
+
 /// Provider for auth state
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authService = ref.watch(authApiServiceProvider);
-  return AuthNotifier(authService);
+  return AuthNotifier(authService, restored: ref.read(restoredSessionProvider));
 });

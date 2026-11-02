@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
+import 'package:app/core/widgets/sync_status.dart';
 
 // Most pages still import AppColors through this file.
 export 'package:app/config/app_colors.dart';
@@ -44,25 +45,31 @@ class MainScaffold extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
-          child: Center(
-            heightFactor: 1,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Row(
-                  children: [
-                    for (var i = 0; i < _tabs.length; i++)
-                      Expanded(
-                        child: _NavItem(
-                          tab: _tabs[i],
-                          selected: i == currentIndex,
-                        ),
-                      ),
-                  ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SyncBanner(),
+              Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < _tabs.length; i++)
+                          Expanded(
+                            child: _NavItem(
+                              tab: _tabs[i],
+                              selected: i == currentIndex,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -105,9 +112,10 @@ class _NavItemState extends State<_NavItem> {
           hoverColor: widget.selected
               ? Colors.transparent
               : AppColors.surface2.withValues(alpha: 0.5),
-          child: SizedBox(
-            height: 56,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Stack(
@@ -130,11 +138,11 @@ class _NavItemState extends State<_NavItem> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  widget.tab.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.caption.copyWith(color: color),
+                // Large text shrinks to the tab width instead of being cut;
+                // screen readers get the full label above.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(widget.tab.label, style: AppText.caption.copyWith(color: color)),
                 ),
               ],
             ),

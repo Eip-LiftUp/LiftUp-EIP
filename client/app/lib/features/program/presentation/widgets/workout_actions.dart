@@ -41,6 +41,19 @@ String exercisePrescription(ExerciseModel exercise) {
   return parts.join(' • ');
 }
 
+/// [exercisePrescription] as screen readers should say it:
+/// "4 séries de 8 répétitions, 60 kg".
+String exercisePrescriptionLabel(ExerciseModel exercise) {
+  final sets = exercise.setsCount;
+  final reps = exercise.reps;
+  final parts = ['$sets série${sets > 1 ? 's' : ''} de $reps répétition${reps > 1 ? 's' : ''}'];
+  final weight = exercise.weight;
+  if (weight != null && weight > 0) {
+    parts.add('${_formatNumber(weight)} ${exercise.weightUnit.displayName}');
+  }
+  return parts.join(', ');
+}
+
 String _formatNumber(double value) =>
     value == value.roundToDouble() ? value.toInt().toString() : value.toString();
 
@@ -713,41 +726,55 @@ class _Counter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppText.bodyMedium),
-        const SizedBox(height: 8),
-        Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.surface2,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: 'Moins',
-                onPressed: value > min ? () => onChanged(value - 1) : null,
-                icon: const Icon(LucideIcons.minus, size: 18),
-              ),
-              Expanded(
-                child: Text(
-                  '$value',
-                  textAlign: TextAlign.center,
-                  style: AppText.h3.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+    final canDecrease = value > min;
+    final canIncrease = value < max;
+    // A single adjustable control for screen readers (swipe up / down).
+    return Semantics(
+      container: true,
+      label: label,
+      value: '$value',
+      increasedValue: canIncrease ? '${value + 1}' : null,
+      decreasedValue: canDecrease ? '${value - 1}' : null,
+      onIncrease: canIncrease ? () => onChanged(value + 1) : null,
+      onDecrease: canDecrease ? () => onChanged(value - 1) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(child: Text(label, style: AppText.bodyMedium)),
+          const SizedBox(height: 8),
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Diminuer',
+                  onPressed: canDecrease ? () => onChanged(value - 1) : null,
+                  icon: const Icon(LucideIcons.minus, size: 18),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Plus',
-                onPressed: value < max ? () => onChanged(value + 1) : null,
-                icon: const Icon(LucideIcons.plus, size: 18),
-              ),
-            ],
+                Expanded(
+                  child: ExcludeSemantics(
+                    child: Text(
+                      '$value',
+                      textAlign: TextAlign.center,
+                      style: AppText.h3.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Augmenter',
+                  onPressed: canIncrease ? () => onChanged(value + 1) : null,
+                  icon: const Icon(LucideIcons.plus, size: 18),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -130,165 +130,184 @@ class _SetEditorSheetState extends ConsumerState<SetEditorSheet> {
       return weight.isEmpty ? '× ${set.reps}' : '$weight ${previous.weightUnit.displayName} × ${set.reps}';
     }
 
+    Widget setRow(int index) {
+      final set = _sets[index];
+      final done = set.isCompleted;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: done ? AppColors.success.withValues(alpha: 0.1) : AppColors.surface2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: done ? AppColors.success : Colors.transparent),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 40,
+                child: Text(
+                  '${set.setNumber}',
+                  style: AppText.bodyMedium.copyWith(
+                    color: done ? AppColors.success : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  previousLabel(index),
+                  semanticsLabel: 'Précédent : ${previousLabel(index)}',
+                  style: AppText.caption,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: _CellField(
+                  label: 'Série ${set.setNumber}, poids en $unit',
+                  controller: _weights[index],
+                  hint: '—',
+                  decimal: true,
+                  onChanged: (value) {
+                    final parsed = double.tryParse(value.replaceAll(',', '.'));
+                    _updateSet(index, weight: parsed, clearWeight: parsed == null);
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _CellField(
+                  label: 'Série ${set.setNumber}, répétitions',
+                  controller: _reps[index],
+                  hint: '0',
+                  onChanged: (value) => _updateSet(index, reps: int.tryParse(value) ?? 0),
+                ),
+              ),
+              SizedBox(
+                width: 44,
+                child: IconButton(
+                  tooltip: done
+                      ? 'Série ${set.setNumber} : marquer comme non faite'
+                      : 'Série ${set.setNumber} : marquer comme faite',
+                  onPressed: () => _updateSet(index, done: !done),
+                  icon: Icon(
+                    done ? LucideIcons.circleCheck : LucideIcons.circle,
+                    color: done ? AppColors.success : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return FractionallySizedBox(
       heightFactor: 0.9,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const IconTile(icon: LucideIcons.dumbbell, size: 48, iconSize: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(exercise.exerciseName, style: AppText.h2),
-                      Text('${_sets.length} séries', style: AppText.caption),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(LucideIcons.ellipsis),
-                  onSelected: (value) {
-                    if (value == 'delete') _delete();
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'replace',
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.arrowLeftRight, size: 18, color: AppColors.primary),
-                          SizedBox(width: 12),
-                          Text('Remplacer l\'exercice'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
-                          SizedBox(width: 12),
-                          Text('Supprimer', style: TextStyle(color: AppColors.error)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: AppTextField(hint: 'Ajouter une note…', controller: _notes),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Pill(
-                text: 'Repos : ${_restSeconds ~/ 60} min',
-                icon: LucideIcons.timer,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(32, 12, 32, 8),
-            child: Row(
-              children: [
-                const SizedBox(width: 40, child: Text('SÉRIE', style: AppText.caption)),
-                const Expanded(
-                  flex: 2,
-                  child: Text('PRÉCÉDENT', style: AppText.caption, textAlign: TextAlign.center),
-                ),
-                Expanded(
-                  child: Text(unit.toUpperCase(), style: AppText.caption, textAlign: TextAlign.center),
-                ),
-                const Expanded(
-                  child: Text('REPS', style: AppText.caption, textAlign: TextAlign.center),
-                ),
-                const SizedBox(width: 44),
-              ],
-            ),
-          ),
+          // Everything but the save button scrolls, so large text still fits.
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: _sets.length,
-              itemBuilder: (context, index) {
-                final set = _sets[index];
-                final done = set.isCompleted;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: done ? AppColors.success.withValues(alpha: 0.1) : AppColors.surface2,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: done ? AppColors.success : Colors.transparent),
-                  ),
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 40,
-                        child: Text(
-                          '${set.setNumber}',
-                          style: AppText.bodyMedium.copyWith(
-                            color: done ? AppColors.success : AppColors.textPrimary,
+                      const IconTile(icon: LucideIcons.dumbbell, size: 48, iconSize: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(exercise.exerciseName, style: AppText.h2),
+                            Text('${_sets.length} séries', style: AppText.caption),
+                          ],
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        tooltip: 'Options de l\'exercice',
+                        icon: const Icon(LucideIcons.ellipsis),
+                        onSelected: (value) {
+                          if (value == 'delete') _delete();
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'replace',
+                            child: Row(
+                              children: [
+                                Icon(LucideIcons.arrowLeftRight, size: 18, color: AppColors.primary),
+                                SizedBox(width: 12),
+                                Text('Remplacer l\'exercice'),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(previousLabel(index), style: AppText.caption, textAlign: TextAlign.center),
-                      ),
-                      Expanded(
-                        child: _CellField(
-                          controller: _weights[index],
-                          hint: '—',
-                          decimal: true,
-                          onChanged: (value) {
-                            final parsed = double.tryParse(value.replaceAll(',', '.'));
-                            _updateSet(index, weight: parsed, clearWeight: parsed == null);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: _CellField(
-                          controller: _reps[index],
-                          hint: '0',
-                          onChanged: (value) => _updateSet(index, reps: int.tryParse(value) ?? 0),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 44,
-                        child: IconButton(
-                          tooltip: done ? 'Série non faite' : 'Série faite',
-                          onPressed: () => _updateSet(index, done: !done),
-                          icon: Icon(
-                            done ? LucideIcons.circleCheck : LucideIcons.circle,
-                            color: done ? AppColors.success : AppColors.textSecondary,
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
+                                SizedBox(width: 12),
+                                Text('Supprimer', style: TextStyle(color: AppColors.error)),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: AppButton(
-              label: 'Ajouter une série',
-              icon: LucideIcons.plus,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: _addSet,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: AppTextField(hint: 'Ajouter une note…', controller: _notes),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Pill(
+                      text: 'Repos : ${_restSeconds ~/ 60} min',
+                      icon: LucideIcons.timer,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const Divider(),
+                // Column titles; each field below carries its own label.
+                ExcludeSemantics(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 12, 32, 8),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 40, child: Text('SÉRIE', style: AppText.caption)),
+                        const Expanded(
+                          flex: 2,
+                          child: Text('PRÉCÉDENT', style: AppText.caption, textAlign: TextAlign.center),
+                        ),
+                        Expanded(
+                          child: Text(unit.toUpperCase(), style: AppText.caption, textAlign: TextAlign.center),
+                        ),
+                        const Expanded(
+                          child: Text('REPS', style: AppText.caption, textAlign: TextAlign.center),
+                        ),
+                        const SizedBox(width: 44),
+                      ],
+                    ),
+                  ),
+                ),
+                for (var index = 0; index < _sets.length; index++) setRow(index),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  child: AppButton(
+                    label: 'Ajouter une série',
+                    icon: LucideIcons.plus,
+                    variant: AppButtonVariant.secondary,
+                    fullWidth: true,
+                    onPressed: _addSet,
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -308,12 +327,15 @@ class _SetEditorSheetState extends ConsumerState<SetEditorSheet> {
 }
 
 class _CellField extends StatelessWidget {
+  /// Spoken name of the field, e.g. "Série 2, répétitions".
+  final String label;
   final TextEditingController controller;
   final String hint;
   final bool decimal;
   final ValueChanged<String> onChanged;
 
   const _CellField({
+    required this.label,
     required this.controller,
     required this.hint,
     required this.onChanged,
@@ -326,25 +348,30 @@ class _CellField extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       borderSide: BorderSide.none,
     );
-    return TextField(
-      controller: controller,
-      textAlign: TextAlign.center,
-      keyboardType: decimal
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.number,
-      style: AppText.bodyMedium.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-      decoration: InputDecoration(
-        isDense: true,
-        hintText: hint,
-        fillColor: AppColors.background,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        border: border,
-        enabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+    return Semantics(
+      container: true,
+      label: label,
+      child: TextField(
+        controller: controller,
+        textAlign: TextAlign.center,
+        keyboardType: decimal
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : TextInputType.number,
+        style: AppText.bodyMedium.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: hint,
+          fillColor: AppColors.background,
+          // 44px high, the minimum touch target.
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          border: border,
+          enabledBorder: border,
+          focusedBorder: border.copyWith(
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
         ),
+        onChanged: onChanged,
       ),
-      onChanged: onChanged,
     );
   }
 }

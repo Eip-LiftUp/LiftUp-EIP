@@ -132,16 +132,26 @@ class _MonthHeader extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              Text(AppDateUtils.monthYear(month), style: AppText.h2, textAlign: TextAlign.center),
+              Semantics(
+                header: true,
+                liveRegion: true,
+                child: Text(AppDateUtils.monthYear(month), style: AppText.h2, textAlign: TextAlign.center),
+              ),
               if (!isCurrentMonth)
-                InkWell(
-                  onTap: onToday,
-                  borderRadius: BorderRadius.circular(6),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    child: Text(
-                      'Revenir à aujourd\'hui',
-                      style: AppText.caption.copyWith(color: AppColors.primary),
+                Semantics(
+                  container: true,
+                  button: true,
+                  child: MinTapTarget(
+                    child: InkWell(
+                      onTap: onToday,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        child: Text(
+                          'Revenir à aujourd\'hui',
+                          style: AppText.caption.copyWith(color: AppColors.primary),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -163,11 +173,14 @@ class _WeekdayLabels extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final label in const ['L', 'M', 'M', 'J', 'V', 'S', 'D'])
-          Expanded(child: Center(child: Text(label, style: AppText.caption))),
-      ],
+    // Each day cell already says its weekday in full.
+    return ExcludeSemantics(
+      child: Row(
+        children: [
+          for (final label in const ['L', 'M', 'M', 'J', 'V', 'S', 'D'])
+            Expanded(child: Center(child: Text(label, style: AppText.caption))),
+        ],
+      ),
     );
   }
 }
@@ -274,15 +287,17 @@ class _DayCell extends StatelessWidget {
       selected: isSelected,
       label: [
         AppDateUtils.weekdayDayMonth(day),
-        if (workouts.isNotEmpty) '${workouts.length} séance(s), $done terminée(s)',
+        if (workouts.isNotEmpty)
+          '${workouts.length} séance${workouts.length > 1 ? 's' : ''}, $done terminée${done > 1 ? 's' : ''}',
         for (final verdict in verdicts) verdict.label,
       ].join(', '),
       excludeSemantics: true,
+      onTap: onTap,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 56,
+          constraints: const BoxConstraints(minHeight: 56),
           margin: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             color: isSelected ? AppColors.surface2 : Colors.transparent,
@@ -290,9 +305,12 @@ class _DayCell extends StatelessWidget {
             border: isToday ? Border.all(color: AppColors.primary, width: 1.5) : null,
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
                 '${day.day}',
                 style: AppText.bodyMedium.copyWith(
                   fontSize: 14,
@@ -302,6 +320,7 @@ class _DayCell extends StatelessWidget {
                           ? AppColors.textSecondary
                           : AppColors.textPrimary,
                 ),
+              ),
               ),
               const SizedBox(height: 4),
               SizedBox(

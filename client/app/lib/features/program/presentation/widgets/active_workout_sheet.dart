@@ -19,11 +19,7 @@ class ActiveWorkoutSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(activeWorkoutProvider);
-    final workout = ref
-        .watch(apiWorkoutProvider(userId))
-        .workouts
-        .where((w) => w.id == controller.workoutId)
-        .firstOrNull;
+    final workout = ref.watch(apiWorkoutProvider(userId)).byId(controller.workoutId);
 
     if (workout == null) {
       return const SizedBox(
@@ -36,60 +32,68 @@ class ActiveWorkoutSheet extends ConsumerWidget {
       heightFactor: 0.9,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'TEMPS ÉCOULÉ',
-                    style: AppText.caption.copyWith(color: AppColors.onPrimary.withValues(alpha: 0.7)),
-                  ),
-                  const SizedBox(height: 8),
-                  AnimatedBuilder(
-                    animation: controller.timer,
-                    builder: (context, _) => Text(
-                      controller.timer.getFormattedTime(),
-                      style: const TextStyle(
-                        color: AppColors.onPrimary,
-                        fontSize: 48,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+          // Everything but the finish button scrolls, so large text still fits.
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 20),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'TEMPS ÉCOULÉ',
+                          style: AppText.caption.copyWith(color: AppColors.onPrimary),
+                        ),
+                        const SizedBox(height: 8),
+                        AnimatedBuilder(
+                          animation: controller.timer,
+                          builder: (context, _) => Text(
+                            controller.timer.getFormattedTime(),
+                            style: const TextStyle(
+                              color: AppColors.onPrimary,
+                              fontSize: 48,
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(workout.name, style: AppText.h3.copyWith(color: AppColors.onPrimary)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(workout.name, style: AppText.h3.copyWith(color: AppColors.onPrimary)),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text('Exercices (${workout.exercises.length})', style: AppText.h3),
                 ),
-                TextButton.icon(
-                  onPressed: () => showAddExerciseFlow(context, userId, workout),
-                  icon: const Icon(LucideIcons.plus, size: 18),
-                  label: const Text('Ajouter'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: Text('Exercices (${workout.exercises.length})', style: AppText.h3),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => showAddExerciseFlow(context, userId, workout),
+                        icon: const Icon(LucideIcons.plus, size: 18),
+                        label: const Text('Ajouter'),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: workout.exercises.isEmpty
-                ? Center(
+                const SizedBox(height: 8),
+                if (workout.exercises.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const IconTile(icon: LucideIcons.dumbbell, size: 56, iconSize: 28),
                         const SizedBox(height: 12),
@@ -105,16 +109,18 @@ class ActiveWorkoutSheet extends ConsumerWidget {
                       ],
                     ),
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    itemCount: workout.exercises.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) => _ExerciseRow(
-                      exercise: workout.exercises[index],
-                      onToggle: () => toggleExerciseDone(context, ref, userId, workout.exercises[index]),
-                      onTap: () => showSetEditorSheet(context, userId, workout.exercises[index]),
+                else
+                  for (final exercise in workout.exercises)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: _ExerciseRow(
+                        exercise: exercise,
+                        onToggle: () => toggleExerciseDone(context, ref, userId, exercise),
+                        onTap: () => showSetEditorSheet(context, userId, exercise),
+                      ),
                     ),
-                  ),
+              ],
+            ),
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -183,7 +189,11 @@ class _ExerciseRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(exercisePrescription(exercise), style: AppText.caption),
+                    Text(
+                      exercisePrescription(exercise),
+                      semanticsLabel: exercisePrescriptionLabel(exercise),
+                      style: AppText.caption,
+                    ),
                   ],
                 ),
               ),

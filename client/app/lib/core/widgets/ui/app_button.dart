@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
+import 'package:app/core/widgets/ui/min_tap_target.dart';
 
 enum AppButtonVariant { primary, secondary, destructive, ghost }
 
 enum AppButtonSize { sm, md, lg }
 
 /// Figma `Button`: rounded-xl, 40/48/56px heights, scale(0.98) on press,
-/// 50% opacity when disabled.
+/// 50% opacity when disabled. The small size keeps a 44px touch area.
 class AppButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -59,7 +60,8 @@ class _AppButtonState extends State<AppButton> {
         ),
       AppButtonVariant.destructive => (
           AppColors.error,
-          AppColors.textPrimary,
+          // White text only reaches 3:1 on this red.
+          AppColors.onPrimary,
           AppColors.error.withValues(alpha: 0.9),
           BorderSide.none,
         ),
@@ -102,47 +104,53 @@ class _AppButtonState extends State<AppButton> {
         splashColor: hover,
         highlightColor: hover,
         focusColor: AppColors.primary.withValues(alpha: 0.25),
-        child: SizedBox(
-          height: height,
+        // Grows with large text instead of cutting the label.
+        child: Container(
+          constraints: BoxConstraints(minHeight: height),
           width: widget.fullWidth ? double.infinity : null,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: padding),
-            child: Row(
-              mainAxisSize: widget.fullWidth ? MainAxisSize.max : MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (leading != null) ...[leading, const SizedBox(width: 8)],
-                Flexible(
-                  child: Text(
-                    widget.label,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.bodyMedium.copyWith(
-                      color: foreground,
-                      fontSize: fontSize,
-                    ),
+          padding: EdgeInsets.symmetric(horizontal: padding, vertical: 8),
+          child: Row(
+            mainAxisSize: widget.fullWidth ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (leading != null) ...[leading, const SizedBox(width: 8)],
+              Flexible(
+                child: Text(
+                  widget.label,
+                  textAlign: TextAlign.center,
+                  style: AppText.bodyMedium.copyWith(
+                    color: foreground,
+                    fontSize: fontSize,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
 
     return Semantics(
+      container: true,
       button: true,
       enabled: _enabled,
-      child: Listener(
-        onPointerDown: (_) => _setPressed(true),
-        onPointerUp: (_) => _setPressed(false),
-        onPointerCancel: (_) => _setPressed(false),
-        child: AnimatedScale(
-          scale: _pressed && widget.variant != AppButtonVariant.ghost ? 0.98 : 1,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          child: Opacity(
-            opacity: widget.onPressed == null ? 0.5 : 1,
-            child: button,
+      child: MinTapTarget(
+        child: Listener(
+          onPointerDown: (_) => _setPressed(true),
+          onPointerUp: (_) => _setPressed(false),
+          onPointerCancel: (_) => _setPressed(false),
+          child: AnimatedScale(
+            scale: _pressed &&
+                    widget.variant != AppButtonVariant.ghost &&
+                    !MediaQuery.disableAnimationsOf(context)
+                ? 0.98
+                : 1,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            child: Opacity(
+              opacity: widget.onPressed == null ? 0.5 : 1,
+              child: button,
+            ),
           ),
         ),
       ),

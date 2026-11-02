@@ -284,4 +284,25 @@ class UserProfileResponse {
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
   }
+
+  /// Same keys as the API, so [UserProfileResponse.fromJson] reads it back.
+  Map<String, dynamic> toJson() => {
+        'id': userId,
+        'email': email,
+        'username': username,
+        'displayName': displayName,
+        'birthDate': birthDate?.toIso8601String(),
+        'heightCm': heightCm,
+        'weightKg': weightKg,
+        'fitnessLevel': fitnessLevel?.name,
+        'fitnessGoals': fitnessGoals,
+        'activityFrequency': activityFrequency?.apiValue,
+        'hasInjuries': hasInjuries,
+        'medicalNotes': medicalNotes,
+        'injuredZones': injuredZones,
+        'trainingFocus': trainingFocus,
+        'onboardingCompleted': onboardingCompleted,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 }

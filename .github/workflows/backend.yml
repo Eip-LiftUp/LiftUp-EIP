@@ -1,0 +1,55 @@
+name: Backend
+
+# Build and test the Rust backend (back/) on every push and pull request touching it.
+on:
+  push:
+    paths:
+      - "back/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "back/**"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # POSTGRES_USER is created as a superuser, so it has CREATEDB,
+          # which `#[sqlx::test]` needs to create one database per test.
+          POSTGRES_USER: liftup_user
+          POSTGRES_PASSWORD: liftup_password
+          POSTGRES_DB: liftup_db
+        ports:
+          - 5432:5432
+        # Wait until Postgres accepts connections before running the steps.
+        options: >-
+          --health-cmd "pg_isready -U liftup_user -d liftup_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://liftup_user:liftup_password@localhost:5432/liftup_db
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # The Cargo project is in back/, not at the repository root.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: back
+
+      - name: Build
+        run: cargo build
+        working-directory: back
+
+      - name: Test
+        run: cargo test
+        working-directory: back

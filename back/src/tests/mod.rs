@@ -6,7 +6,9 @@
 //! from `DATABASE_URL`, with the migrations of `./migrations` already applied.
 
 mod common;
+mod e2e;
 mod http;
+mod program_endpoint;
 mod program_repository;
 mod user_service;
 mod workout_service;

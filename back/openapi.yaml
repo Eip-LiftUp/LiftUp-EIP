@@ -19,9 +19,10 @@ paths:
         **The `ProgramResponse` schema is provisional**: the contract of the
         ML engine is not frozen yet and fields may change.
 
-        **Current state (skeleton)**: the handler always answers `501` and does
-        not check the token yet. The `401`, `503` and `200` responses describe
-        the target behaviour.
+        If the ML engine fails (timeout, connection error, non-2xx status,
+        invalid JSON), the last cached program is served with `source: cache`
+        and its original `generatedAt`. Only when no program is cached does
+        the endpoint answer `503`; an AI outage never produces a `500`.
       operationId: getProgram
       security:
         - bearerAuth: []
@@ -40,20 +41,14 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: Invalid or expired token
-        '501':
-          description: Not implemented yet (current state of the skeleton).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: GET /workouts/program is not implemented yet
         '503':
           description: AI service unavailable and no cached program exists.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Program generation is unavailable and no cached program exists
 components:
   securitySchemes:
     bearerAuth:

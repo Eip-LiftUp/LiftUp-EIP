@@ -89,6 +89,8 @@ mod tests {
                 expiration_days: 7,
             },
             login_rate_limit_per_minute: 5,
+            ai_service_url: "http://localhost:8000".to_string(),
+            ai_timeout_secs: 5,
             cors_allowed_origins: origins.iter().map(|o| o.to_string()).collect(),
         }
     }

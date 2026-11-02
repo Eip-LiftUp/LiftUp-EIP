@@ -61,9 +61,10 @@ back/
     │   ├── program.rs          # Accès à `cached_programs` (upsert, find_by_user)
     │   └── user.rs             # Accès direct à la base (SQL queries via sqlx)
     ├── services/
+    │   ├── program.rs          # ProgramService : appel du moteur ML (contrat provisoire) + cache
     │   └── user.rs             # Logique métier (validation, unicité email, création)
     └── handlers/
-        ├── program.rs          # GET /workouts/program (squelette, 501)
+        ├── program.rs          # GET /workouts/program (moteur ML + cache, 401 sans token)
         └── user.rs             # Handlers HTTP Axum (POST /users)
 ```
 
@@ -138,6 +139,9 @@ JWT_EXPIRATION_DAYS=7
 CORS_ALLOWED_ORIGINS=http://localhost:8090,http://127.0.0.1:8090
 # Optional, login attempts per minute and per IP (default 5)
 LOGIN_RATE_LIMIT_PER_MINUTE=5
+# Optional, Python AI service (defaults: http://localhost:8000, 5 seconds)
+AI_SERVICE_URL=http://localhost:8000
+AI_TIMEOUT_SECS=5
 RUST_LOG=liftup_backend=debug,tower_http=debug
 ```
 
@@ -281,11 +285,15 @@ L'IP vient de `X-Forwarded-For` / `X-Real-IP`, puis de l'IP du pair. **Derrière
 
 ---
 
-### `GET /workouts/program` (squelette)
+### `GET /workouts/program`
 
-Renverra le programme d'entraînement de l'utilisateur authentifié (Bearer JWT). Contrat dans [`openapi.yaml`](./openapi.yaml) ; le schéma est **provisoire** (contrat du moteur ML non figé).
+Renvoie le programme d'entraînement de l'utilisateur authentifié (header `Authorization: Bearer <token>` obligatoire, sinon `401`). Contrat dans [`openapi.yaml`](./openapi.yaml) ; le schéma est **provisoire** (contrat du moteur ML non figé).
 
-Pour l'instant, la route répond toujours `501 Not Implemented` avec `{"error": "GET /workouts/program is not implemented yet"}` et ne vérifie pas encore le token.
+1. Le backend charge le profil (`404` si l'utilisateur n'existe plus) et appelle `POST {AI_SERVICE_URL}/api/v1/program/generate` (chemin **provisoire**, timeout `AI_TIMEOUT_SECS`, connexion limitée à 1 s).
+2. Succès : le programme est enregistré dans `cached_programs` et renvoyé en `200` avec `"source": "generated"`.
+3. Échec (timeout, connexion refusée, statut non-2xx, JSON invalide) : le dernier programme caché est renvoyé en `200` avec `"source": "cache"` et son `generatedAt` d'origine. Sans cache : `503` `{"error": "..."}`. Une panne de l'IA ne produit jamais de `500`.
+
+`injured_zones` est une donnée de santé : les corps échangés avec le moteur ML ne sont jamais loggés.
 
 ---
 
@@ -299,12 +307,24 @@ Les tests de base de données utilisent `#[sqlx::test]` : chaque test crée une 
 sudo -u postgres psql -c "ALTER USER liftup_user CREATEDB;"
 ```
 
+Lancer les tests en local :
+
+1. Démarrer un Postgres et définir `DATABASE_URL` (dans `.env` ou dans le shell). Exemple avec Docker, l'utilisateur créé est superuser donc a `CREATEDB` :
+   ```bash
+   docker run -d --rm --name liftup-test-pg -e POSTGRES_USER=liftup_test -e POSTGRES_PASSWORD=test -p 55432:5432 postgres:16
+   export DATABASE_URL=postgres://liftup_test:test@localhost:55432/postgres
+   ```
+   Avec un Postgres local, utiliser `DATABASE_URL` de `.env` et accorder `CREATEDB` comme ci-dessus.
+2. Lancer `cargo test` depuis `back/`. `JWT_SECRET` n'est pas nécessaire : les tests utilisent leur propre configuration JWT.
+
+La CI GitHub Actions ([`.github/workflows/backend.yml`](../.github/workflows/backend.yml)) fait la même chose : service `postgres:16`, puis `cargo build` et `cargo test` dans `back/`, sur chaque push et pull request touchant `back/**`.
+
 ```bash
 cargo test                       # tous les tests (Postgres requis)
 cargo test -- --ignored          # tests marqués #[ignore = "bug: ..."] (échouent tant que le bug existe)
 ```
 
-Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
+Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `program_endpoint.rs` (GET /workouts/program avec faux moteur ML), `e2e.rs` (création → login → programme, fallback cache, 401, 429), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
 
 ---
 

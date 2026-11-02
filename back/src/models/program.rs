@@ -1,17 +1,18 @@
 //! Response models of `GET /workouts/program`.
 //!
 //! They must stay in sync with the `ProgramResponse` schema of `openapi.yaml`.
+//! They also derive `Deserialize` so a cached program can be read back from JSON.
 //! The schema is provisional: the ML engine contract is not frozen yet.
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
 use super::workout::WeightUnit;
 
 /// A training program, as returned by `GET /workouts/program`.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProgramResponse {
     /// When the program was produced by the ML engine.
@@ -23,7 +24,7 @@ pub struct ProgramResponse {
 }
 
 /// Origin of a [`ProgramResponse`].
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProgramSource {
     /// Freshly produced by the ML engine.
@@ -33,7 +34,7 @@ pub enum ProgramSource {
 }
 
 /// One workout of a program.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProgramWorkout {
     /// Display name of the workout.
@@ -43,7 +44,7 @@ pub struct ProgramWorkout {
 }
 
 /// One exercise of a program workout.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProgramExercise {
     /// Name of the exercise.

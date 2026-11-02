@@ -31,7 +31,7 @@ use crate::{
 /// - `POST /users/:user_id/workouts/:workout_id/exercises` → [`add_exercise`]
 /// - `PATCH /users/:user_id/exercises/:exercise_id` → [`update_exercise`]
 /// - `DELETE /users/:user_id/exercises/:exercise_id` → [`delete_exercise`]
-/// - `GET  /workouts/program` → [`get_program`] (skeleton, answers 501)
+/// - `GET  /workouts/program` → [`get_program`] (Bearer token required; ML engine with cache fallback)
 ///
 /// Only `POST /auth/login` is rate limited (`login_rate_limit_per_minute` attempts
 /// per minute and per IP).

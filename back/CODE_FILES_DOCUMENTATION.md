@@ -21,7 +21,7 @@ Exclus :
 
 - src/config.rs
   - Chargement des variables d'environnement et config runtime.
-  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7).
+  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7). Contient aussi AI_SERVICE_URL (defaut http://localhost:8000) et AI_TIMEOUT_SECS (defaut 5).
 
 - src/auth/mod.rs
   - Module d'authentification ; extracteur Axum AuthUser(pub Uuid) qui lit Authorization: Bearer <token>.
@@ -50,7 +50,7 @@ Exclus :
 
 - src/errors.rs
   - Erreurs applicatives centralisees et conversion en reponses HTTP.
-  - Type principal : AppError (IntoResponse). Inclut NotImplemented -> 501.
+  - Type principal : AppError (IntoResponse). Inclut NotImplemented -> 501 et ServiceUnavailable -> 503.
 
 ### 2) Handlers HTTP
 
@@ -64,7 +64,7 @@ Exclus :
   - Endpoints utilisateurs (creation, login, lecture profil, etc.).
 
 - src/handlers/program.rs
-  - get_program : GET /workouts/program, squelette qui renvoie 501 (AppError::NotImplemented). Contient son test.
+  - get_program : GET /workouts/program, protege par AuthUser (401 sans token) ; delegue a ProgramService (200 generated/cache, 503).
 
 - src/handlers/workout.rs
   - Endpoints workouts/exercises (CRUD et operations associees).
@@ -83,7 +83,7 @@ Exclus :
   - Types principaux : FitnessLevel, User, CreateUserRequest, CreateUserResponse, LoginRequest.
 
 - src/models/program.rs
-  - ProgramResponse, ProgramWorkout, ProgramExercise (camelCase), conformes a openapi.yaml. Schema provisoire.
+  - ProgramResponse, ProgramWorkout, ProgramExercise (camelCase), conformes a openapi.yaml (Serialize + Deserialize, pour relire le cache). Schema provisoire.
   - CachedProgram : ligne de cached_programs (programme en serde_json::Value).
 
 - src/models/workout.rs
@@ -101,7 +101,7 @@ Exclus :
 
 - src/repositories/program.rs
   - Acces DB pour cached_programs : upsert et find_by_user.
-  - Type principal : ProgramRepository (pas encore branche sur la route GET /workouts/program).
+  - Type principal : ProgramRepository (utilise par ProgramService).
 
 - src/repositories/workout.rs
   - Acces DB pour workouts/exercises.
@@ -111,6 +111,10 @@ Exclus :
 
 - src/services/mod.rs
   - Module d'agregation des services.
+
+- src/services/program.rs
+  - ProgramService : appelle le moteur ML (POST {AI_SERVICE_URL}/api/v1/program/generate, contrat PROVISOIRE), convertit la reponse en ProgramResponse, ecrit/lit le cache cached_programs.
+  - DTO ML provisoires (snake_case) separes de ProgramResponse. Aucun corps de requete/reponse n'est logue (injured_zones = donnee de sante).
 
 - src/services/user.rs
   - Logique metier utilisateur (validation, orchestration repository).
@@ -153,6 +157,15 @@ Exclus :
 
 - src/tests/program_repository.rs
   - Tests de ProgramRepository (table, upsert, find_by_user, CASCADE).
+
+- src/tests/program_endpoint.rs
+  - Tests de GET /workouts/program avec un faux moteur ML axum (OK, ML eteint avec/sans cache, ML lent, statut 500, sans token).
+
+- src/tests/e2e.rs
+  - Tests end-to-end : POST /users -> POST /auth/login -> GET /workouts/program (generated, puis cache quand le faux moteur ML s'arrete), 401 (sans token, token altere, token expire), 429 (rate limit login).
+
+- .github/workflows/backend.yml
+  - CI GitHub Actions du backend : Postgres 16 (superuser, donc CREATEDB pour #[sqlx::test]), cargo build et cargo test dans back/, sur push et pull_request touchant back/**.
 
 - src/tests/http.rs
   - Tests HTTP : POST /users, POST /auth/login, GET /users/:id, workouts.

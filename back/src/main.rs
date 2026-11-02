@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use tokio::net::TcpListener;
 use tower_http::{compression::CompressionLayer, trace::TraceLayer};
@@ -19,8 +19,10 @@ mod tests;
 
 use config::{Config, JwtConfig};
 use cors::build_cors_layer;
+use repositories::program::ProgramRepository;
 use repositories::user::UserRepository;
 use repositories::workout::WorkoutRepository;
+use services::program::ProgramService;
 use services::user::UserService;
 use services::workout::WorkoutService;
 
@@ -31,6 +33,8 @@ pub struct AppState {
     pub jwt_config: Arc<JwtConfig>,
     pub user_service: Arc<UserService>,
     pub workout_service: Arc<WorkoutService>,
+    /// Builds programs through the ML engine, with a cache fallback.
+    pub program_service: Arc<ProgramService>,
 }
 
 #[tokio::main]
@@ -61,10 +65,18 @@ async fn main() -> anyhow::Result<()> {
     let workout_repository = WorkoutRepository::new(pool.clone());
     let workout_service = Arc::new(WorkoutService::new(workout_repository));
 
+    // One ProgramService (and thus one reqwest client) for the whole app.
+    let program_service = Arc::new(ProgramService::new(
+        config.ai_service_url.clone(),
+        Duration::from_secs(config.ai_timeout_secs),
+        UserRepository::new(pool.clone()),
+        ProgramRepository::new(pool.clone()),
+    )?);
+
     // Clone the config once into an `Arc`: `config` keeps its own copy for the rest of main.
     let jwt_config = Arc::new(config.jwt.clone());
 
-    let state = AppState { jwt_config, user_service, workout_service };
+    let state = AppState { jwt_config, user_service, workout_service, program_service };
 
     // 6. Build the Axum router with middleware.
     // Built first so an invalid CORS_ALLOWED_ORIGINS stops the startup with a clear error.

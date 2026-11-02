@@ -35,6 +35,12 @@ const DEFAULT_CORS_ALLOWED_ORIGINS: &str = "http://localhost:8090,http://127.0.0
 /// Default number of login attempts allowed per minute and per IP.
 const DEFAULT_LOGIN_RATE_LIMIT_PER_MINUTE: u32 = 5;
 
+/// Default base URL of the Python AI service (local development).
+const DEFAULT_AI_SERVICE_URL: &str = "http://localhost:8000";
+
+/// Default timeout, in seconds, of a call to the AI service.
+const DEFAULT_AI_TIMEOUT_SECS: u64 = 5;
+
 /// Application configuration loaded from environment variables.
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -48,6 +54,10 @@ pub struct Config {
     pub cors_allowed_origins: Vec<String>,
     /// Login attempts allowed per minute and per IP (burst size of the rate limiter).
     pub login_rate_limit_per_minute: u32,
+    /// Base URL of the Python AI service, without trailing slash.
+    pub ai_service_url: String,
+    /// Timeout of a call to the AI service, in seconds.
+    pub ai_timeout_secs: u64,
 }
 
 impl Config {
@@ -56,7 +66,7 @@ impl Config {
     /// # Errors
     /// Returns an error if a numeric variable cannot be parsed, if `JWT_SECRET`
     /// is missing or shorter than 32 characters, or if `JWT_EXPIRATION_DAYS` or
-    /// `LOGIN_RATE_LIMIT_PER_MINUTE` is not a positive integer.
+    /// `LOGIN_RATE_LIMIT_PER_MINUTE` or `AI_TIMEOUT_SECS` is not a positive integer.
     pub fn from_env() -> anyhow::Result<Self> {
         // No default value on purpose: a built-in secret would be public knowledge.
         let jwt_secret = env::var("JWT_SECRET")
@@ -82,7 +92,23 @@ impl Config {
             anyhow::bail!("LOGIN_RATE_LIMIT_PER_MINUTE must be a positive integer");
         }
 
+        let ai_timeout_secs: u64 = match env::var("AI_TIMEOUT_SECS") {
+            Ok(value) => value.parse()?,
+            Err(_) => DEFAULT_AI_TIMEOUT_SECS,
+        };
+        if ai_timeout_secs == 0 {
+            anyhow::bail!("AI_TIMEOUT_SECS must be a positive integer");
+        }
+
+        // A trailing slash is removed so that `{url}/api/...` never contains `//`.
+        let ai_service_url = env::var("AI_SERVICE_URL")
+            .unwrap_or_else(|_| DEFAULT_AI_SERVICE_URL.to_string())
+            .trim_end_matches('/')
+            .to_string();
+
         Ok(Self {
+            ai_service_url,
+            ai_timeout_secs,
             server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
             server_port: env::var("SERVER_PORT")
                 .unwrap_or_else(|_| "8080".to_string())

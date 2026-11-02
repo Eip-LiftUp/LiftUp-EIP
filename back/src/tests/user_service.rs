@@ -115,3 +115,28 @@ async fn partial_update_keeps_other_fields(pool: PgPool) {
     assert_eq!(profile.height_cm, Some(170));
     assert_eq!(profile.weight_kg, Some(60.5));
 }
+
+/// Given two registrations with the same email running at the same time, when both
+/// are awaited together, then exactly one succeeds and the other is a `Conflict`
+/// (never an `Internal` error), whichever of the two checks catches it.
+#[sqlx::test]
+async fn concurrent_create_user_with_same_email_gives_one_conflict(pool: PgPool) {
+    let state = build_test_state(pool);
+    let service = &state.user_service;
+
+    // `join!` polls both futures concurrently on the same task: both run
+    // `email_exists` (and the slow bcrypt hash) before either one inserts.
+    let (first, second) = tokio::join!(
+        service.create_user(create_user_request("race@example.com", "racer1", TEST_PASSWORD)),
+        service.create_user(create_user_request("race@example.com", "racer2", TEST_PASSWORD)),
+    );
+
+    let results = [first, second];
+    let successes = results.iter().filter(|r| r.is_ok()).count();
+    let conflicts = results
+        .iter()
+        .filter(|r| matches!(r, Err(AppError::Conflict(_))))
+        .count();
+    assert_eq!(successes, 1, "got {results:?}");
+    assert_eq!(conflicts, 1, "got {results:?}");
+}

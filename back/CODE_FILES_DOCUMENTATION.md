@@ -76,7 +76,7 @@ Exclus :
 ### 3) Modeles metier
 
 - src/models/mod.rs
-  - Module d'agregation des modeles.
+  - Module d'agregation des modeles. Contient decimal_to_f64 (Decimal -> f64 sans transformer une valeur illisible en 0, avec warn sans la valeur) et ses tests.
 
 - src/models/user.rs
   - Entites et DTOs utilisateurs.
@@ -162,7 +162,7 @@ Exclus :
   - Tests de GET /workouts/program avec un faux moteur ML axum (OK, ML eteint avec/sans cache, ML lent, statut 500, sans token).
 
 - src/tests/e2e.rs
-  - Tests end-to-end : POST /users -> POST /auth/login -> GET /workouts/program (generated, puis cache quand le faux moteur ML s'arrete), 401 (sans token, token altere, token expire), 429 (rate limit login).
+  - Tests end-to-end : POST /users -> POST /auth/login -> GET /workouts/program (generated, puis cache quand le faux moteur ML s'arrete), 401 (sans token, token altere, token expire), 404 (utilisateur supprime), 429 (rate limit login).
 
 - .github/workflows/backend.yml
   - CI GitHub Actions du backend : Postgres 16 (superuser, donc CREATEDB pour #[sqlx::test]), cargo build et cargo test dans back/, sur push et pull_request touchant back/**.

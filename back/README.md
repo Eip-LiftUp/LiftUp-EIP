@@ -324,7 +324,7 @@ cargo test                       # tous les tests (Postgres requis)
 cargo test -- --ignored          # tests marqués #[ignore = "bug: ..."] (échouent tant que le bug existe)
 ```
 
-Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `program_endpoint.rs` (GET /workouts/program avec faux moteur ML), `e2e.rs` (création → login → programme, fallback cache, 401, 429), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
+Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `program_endpoint.rs` (GET /workouts/program avec faux moteur ML), `e2e.rs` (création → login → programme, fallback cache, 401, 404, 429), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
 
 ---
 

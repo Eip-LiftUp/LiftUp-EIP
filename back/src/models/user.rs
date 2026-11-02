@@ -192,7 +192,7 @@ impl From<User> for UserProfileResponse {
             display_name: u.display_name,
             birth_date: u.birth_date.map(|d| d.to_string()),
             height_cm: u.height_cm,
-            weight_kg: u.weight_kg.map(|w| w.to_string().parse().unwrap_or(0.0)),
+            weight_kg: crate::models::decimal_to_f64(u.weight_kg, "weight_kg"),
             fitness_level: u.fitness_level,
             fitness_goals: u.fitness_goals,
             activity_frequency: u.activity_frequency,

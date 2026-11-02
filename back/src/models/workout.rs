@@ -157,7 +157,7 @@ impl From<Exercise> for ExerciseResponse {
             exercise_name: e.exercise_name,
             sets: e.sets,
             reps: e.reps,
-            weight: e.weight.map(|w| w.to_string().parse().unwrap_or(0.0)),
+            weight: crate::models::decimal_to_f64(e.weight, "weight"),
             weight_unit: e.weight_unit,
             order_index: e.order_index,
             notes: e.notes,

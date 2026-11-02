@@ -21,7 +21,25 @@ Exclus :
 
 - src/config.rs
   - Chargement des variables d'environnement et config runtime.
-  - Type principal : Config.
+  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7).
+
+- src/auth/mod.rs
+  - Module d'authentification ; extracteur Axum AuthUser(pub Uuid) qui lit Authorization: Bearer <token>.
+  - Pas encore applique aux routes existantes (le front n'envoie pas le header).
+
+- src/auth/jwt.rs
+  - Claims { sub, iat, exp }, create_token et verify_token (HS256, leeway 0, erreur generique 401).
+  - Contient les tests unitaires JWT.
+
+- src/cors.rs
+  - build_cors_layer(&Config) : whitelist d'origines (CORS_ALLOWED_ORIGINS), methodes GET/POST/PATCH/DELETE/OPTIONS, headers Content-Type/Authorization, max_age 3600, sans credentials.
+  - Le serveur ne rejette pas : une origine non listee recoit une reponse sans Access-Control-Allow-Origin et le navigateur bloque. Les apps natives n'envoient pas d'Origin.
+  - Contient les tests CORS (mini-Router, sans base de donnees).
+
+- src/rate_limit.rs
+  - login_rate_limit_layer(per_minute) : rate limiting de POST /auth/login par IP (tower_governor, burst N, un jeton toutes les 60/N s).
+  - Cle = SmartIpKeyExtractor (X-Forwarded-For / X-Real-IP, puis IP du pair) : falsifiable si le serveur est expose sans reverse proxy.
+  - Reponse 429 JSON { "error": ... } avec les en-tetes retry de la lib ; tache tokio de nettoyage (retain_recent). Contient ses tests.
 
 - src/db.rs
   - Creation du pool PostgreSQL (sqlx) a partir de la config.
@@ -32,7 +50,7 @@ Exclus :
 
 - src/errors.rs
   - Erreurs applicatives centralisees et conversion en reponses HTTP.
-  - Type principal : AppError (IntoResponse).
+  - Type principal : AppError (IntoResponse). Inclut NotImplemented -> 501.
 
 ### 2) Handlers HTTP
 
@@ -44,6 +62,9 @@ Exclus :
 
 - src/handlers/user.rs
   - Endpoints utilisateurs (creation, login, lecture profil, etc.).
+
+- src/handlers/program.rs
+  - get_program : GET /workouts/program, squelette qui renvoie 501 (AppError::NotImplemented). Contient son test.
 
 - src/handlers/workout.rs
   - Endpoints workouts/exercises (CRUD et operations associees).
@@ -61,6 +82,10 @@ Exclus :
   - Entites et DTOs utilisateurs.
   - Types principaux : FitnessLevel, User, CreateUserRequest, CreateUserResponse, LoginRequest.
 
+- src/models/program.rs
+  - ProgramResponse, ProgramWorkout, ProgramExercise (camelCase), conformes a openapi.yaml. Schema provisoire.
+  - CachedProgram : ligne de cached_programs (programme en serde_json::Value).
+
 - src/models/workout.rs
   - Entites et DTOs workout/exercise/set.
   - Types principaux : WeightUnit, Workout, Exercise, CreateWorkoutRequest, UpdateWorkoutRequest, CreateExerciseRequest.
@@ -73,6 +98,10 @@ Exclus :
 - src/repositories/user.rs
   - Acces DB pour utilisateurs.
   - Type principal : UserRepository.
+
+- src/repositories/program.rs
+  - Acces DB pour cached_programs : upsert et find_by_user.
+  - Type principal : ProgramRepository (pas encore branche sur la route GET /workouts/program).
 
 - src/repositories/workout.rs
   - Acces DB pour workouts/exercises.
@@ -108,10 +137,33 @@ Exclus :
 - migrations/0005_add_sets_data_to_exercises.sql
   - Extension des donnees de series associees aux exercices.
 
+- migrations/0008_create_cached_programs.sql
+  - Table cached_programs (un dernier programme connu par utilisateur, JSONB, ON DELETE CASCADE) : secours si le service IA est indisponible.
+
+### 6 bis) Tests
+
+- src/tests/mod.rs
+  - Declare les modules de tests (compiles uniquement en test) ; chaque #[sqlx::test] utilise une base temporaire creee depuis DATABASE_URL (role avec CREATEDB).
+
+- src/tests/common.rs
+  - Helpers : build_test_state, test_server (routeur reel via axum-test), register_user, test_jwt_config.
+
+- src/tests/user_service.rs, src/tests/workout_service.rs
+  - Tests des services appeles directement (creation, doublon, validation, login, COALESCE, ownership, exercices).
+
+- src/tests/program_repository.rs
+  - Tests de ProgramRepository (table, upsert, find_by_user, CASCADE).
+
+- src/tests/http.rs
+  - Tests HTTP : POST /users, POST /auth/login, GET /users/:id, workouts.
+
 ### 7) Fichiers techniques lies au code
 
 - Cargo.toml
   - Manifest Rust (dependencies, metadata, profil de build).
+
+- openapi.yaml
+  - Contrat OpenAPI 3.0.3 ecrit avant le code (contract-first) ; pour l'instant GET /workouts/program.
 
 - Dockerfile
   - Build et execution conteneurises du backend back.

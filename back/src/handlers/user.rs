@@ -1,8 +1,8 @@
 use axum::{extract::{State, Path}, http::StatusCode, response::IntoResponse, Json};
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::{
+    auth::jwt::create_token,
     errors::AppResult,
     models::user::{CreateUserRequest, CreateUserResponse, LoginRequest, LoginResponse, UpdateUserRequest, UserProfileResponse},
     AppState,
@@ -37,7 +37,7 @@ pub async fn create_user(
 /// JSON body matching [`LoginRequest`].
 ///
 /// # Responses
-/// - `200 OK` — login successful, returns [`LoginResponse`] with JWT token.
+/// - `200 OK` — login successful, returns [`LoginResponse`] with a signed JWT (valid 7 days by default).
 /// - `401 Unauthorized` — invalid credentials.
 /// - `422 Unprocessable Entity` — validation failed.
 /// - `500 Internal Server Error` — unexpected error.
@@ -47,9 +47,9 @@ pub async fn login(
 ) -> AppResult<impl IntoResponse> {
     let user = state.user_service.login(body).await?;
     
-    // Generate a simple JWT token (in production, use a proper JWT library like jsonwebtoken)
-    let token = format!("token_{}_{}", user.id, Utc::now().timestamp());
-    
+    // Signed JWT (HS256); `?` returns the `AppError` straight to the client as a response.
+    let token = create_token(user.id, &state.jwt_config)?;
+
     let response = LoginResponse {
         token,
         user_id: user.id,

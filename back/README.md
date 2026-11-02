@@ -37,22 +37,33 @@ Le backend suit une architecture en couches, conforme au C4 model documenté dan
 ```
 back/
 ├── Cargo.toml                  # Dépendances du projet
+├── openapi.yaml                # Contrat OpenAPI 3.0.3 (contract-first)
 ├── .env.example                # Template des variables d'environnement
 ├── migrations/
-│   └── 0001_create_users.sql   # Schéma de la table `users`
+│   ├── 0001_create_users.sql   # Schéma de la table `users`
+│   └── 0008_create_cached_programs.sql # Cache du dernier programme par utilisateur
 └── src/
     ├── main.rs                 # Point d'entrée — wiring + démarrage du serveur
     ├── config.rs               # Chargement de la configuration depuis l'env
+    ├── cors.rs                 # Couche CORS : whitelist d'origines (CORS_ALLOWED_ORIGINS)
+    ├── rate_limit.rs           # Limitation de débit de POST /auth/login (par IP)
     ├── db.rs                   # Pool PostgreSQL + exécution des migrations
     ├── errors.rs               # Type d'erreur global + impl IntoResponse
     ├── routes.rs               # Déclaration de toutes les routes HTTP
+    ├── auth/
+    │   ├── mod.rs              # Extracteur Axum `AuthUser` (Authorization: Bearer)
+    │   └── jwt.rs              # Claims, create_token, verify_token (HS256, expiration 7 j)
+    ├── tests/                  # Tests avec base Postgres (#[sqlx::test]) : services + HTTP
     ├── models/
+    │   ├── program.rs          # ProgramResponse (GET /workouts/program, schéma provisoire)
     │   └── user.rs             # Struct User, DTOs CreateUserRequest/Response, FitnessLevel
     ├── repositories/
+    │   ├── program.rs          # Accès à `cached_programs` (upsert, find_by_user)
     │   └── user.rs             # Accès direct à la base (SQL queries via sqlx)
     ├── services/
     │   └── user.rs             # Logique métier (validation, unicité email, création)
     └── handlers/
+        ├── program.rs          # GET /workouts/program (squelette, 501)
         └── user.rs             # Handlers HTTP Axum (POST /users)
 ```
 
@@ -119,6 +130,14 @@ SERVER_HOST=127.0.0.1
 SERVER_PORT=8080
 DATABASE_URL=postgres://liftup_user:liftup_password@localhost:5432/liftup_db
 DATABASE_MAX_CONNECTIONS=10
+# Required, at least 32 characters (the server refuses to start otherwise)
+JWT_SECRET=change-me-dummy-secret-at-least-32-chars
+# Optional, token lifetime in days (default: 7)
+JWT_EXPIRATION_DAYS=7
+# Optional, comma-separated browser origins allowed by CORS ("*" is refused)
+CORS_ALLOWED_ORIGINS=http://localhost:8090,http://127.0.0.1:8090
+# Optional, login attempts per minute and per IP (default 5)
+LOGIN_RATE_LIMIT_PER_MINUTE=5
 RUST_LOG=liftup_backend=debug,tower_http=debug
 ```
 
@@ -161,6 +180,18 @@ sqlx migrate run --database-url "$DATABASE_URL"
 | `weight_kg` | `NUMERIC(5,2)` | NULL, CHECK > 0 < 700 | Poids en kg |
 | `fitness_level` | `VARCHAR(20)` | NOT NULL, DEFAULT `beginner` | `beginner` / `intermediate` / `advanced` |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Date de création |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Mise à jour automatique via trigger |
+
+### Schéma de la table `cached_programs`
+
+Dernier programme connu de chaque utilisateur, servi en secours quand le service IA est indisponible (migration `0008`). Table dédiée plutôt qu'une colonne JSONB sur `users` : `User` est lu avec `SELECT *`, un gros JSON serait chargé à chaque lecture de profil. `ON DELETE CASCADE` supprime le cache avec l'utilisateur (RGPD).
+
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| `user_id` | `UUID` | PK, FK → `users(id)` ON DELETE CASCADE | Propriétaire ; un seul programme caché par utilisateur |
+| `program` | `JSONB` | NOT NULL | `ProgramResponse` sérialisé (camelCase) |
+| `generated_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Dernière génération par le service IA (remis à `NOW()` à chaque upsert) |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Date d'insertion |
 | `updated_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Mise à jour automatique via trigger |
 
 ---
@@ -239,6 +270,41 @@ curl -X POST http://127.0.0.1:8080/users \
 | `409 Conflict` | L'email est déjà utilisé |
 | `422 Unprocessable Entity` | Données invalides (email malformé, username trop court, etc.) |
 | `500 Internal Server Error` | Erreur serveur inattendue |
+
+---
+
+### `POST /auth/login` (limité en débit)
+
+Authentifie un utilisateur et renvoie un JWT dans le champ `token`. La route est limitée **par IP** : `LOGIN_RATE_LIMIT_PER_MINUTE` tentatives (défaut 5), puis un jeton est rendu toutes les `60/N` secondes. Au-delà, la réponse est `429 Too Many Requests` avec `{"error": "Too many login attempts, please retry later"}` et les en-têtes `retry-after` / `x-ratelimit-after`.
+
+L'IP vient de `X-Forwarded-For` / `X-Real-IP`, puis de l'IP du pair. **Derrière un reverse proxy**, celui-ci doit écraser `X-Forwarded-For` ; si le serveur est exposé directement, ce header est falsifiable et la limite peut être contournée.
+
+---
+
+### `GET /workouts/program` (squelette)
+
+Renverra le programme d'entraînement de l'utilisateur authentifié (Bearer JWT). Contrat dans [`openapi.yaml`](./openapi.yaml) ; le schéma est **provisoire** (contrat du moteur ML non figé).
+
+Pour l'instant, la route répond toujours `501 Not Implemented` avec `{"error": "GET /workouts/program is not implemented yet"}` et ne vérifie pas encore le token.
+
+---
+
+## Tests
+
+Les tests sont dans le crate (`src/tests/` et des modules `#[cfg(test)]`), car le projet est un binaire : un dossier `tests/` à la racine ne pourrait pas importer le code.
+
+Les tests de base de données utilisent `#[sqlx::test]` : chaque test crée une base temporaire à partir de `DATABASE_URL` et y applique les migrations de `./migrations`. Le rôle Postgres doit donc avoir le droit `CREATEDB` :
+
+```bash
+sudo -u postgres psql -c "ALTER USER liftup_user CREATEDB;"
+```
+
+```bash
+cargo test                       # tous les tests (Postgres requis)
+cargo test -- --ignored          # tests marqués #[ignore = "bug: ..."] (échouent tant que le bug existe)
+```
+
+Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
 
 ---
 

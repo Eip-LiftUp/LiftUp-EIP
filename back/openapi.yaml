@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: LiftUp Backend API
+  version: 0.1.0
+  description: |
+    Contract of the LiftUp backend. Contract-first: this file is written
+    before the code. Only the endpoints under design are described here.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+paths:
+  /workouts/program:
+    get:
+      summary: Get the workout program of the authenticated user
+      description: |
+        Returns the training program produced by the ML engine, or the last
+        cached one when the engine is unavailable.
+
+        **The `ProgramResponse` schema is provisional**: the contract of the
+        ML engine is not frozen yet and fields may change.
+
+        **Current state (skeleton)**: the handler always answers `501` and does
+        not check the token yet. The `401`, `503` and `200` responses describe
+        the target behaviour.
+      operationId: getProgram
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The program (freshly generated or served from cache).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramResponse'
+        '401':
+          description: Missing, invalid or expired Bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid or expired token
+        '501':
+          description: Not implemented yet (current state of the skeleton).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: GET /workouts/program is not implemented yet
+        '503':
+          description: AI service unavailable and no cached program exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT returned by `POST /auth/login` (HS256, 7 days by default).
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message.
+    ProgramResponse:
+      type: object
+      description: Provisional schema, see the endpoint description.
+      required: [generatedAt, source, workouts]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [generated, cache]
+          description: '`generated` if just produced by the ML engine, `cache` otherwise.'
+        workouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramWorkout'
+    ProgramWorkout:
+      type: object
+      required: [name, exercises]
+      properties:
+        name:
+          type: string
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramExercise'
+    ProgramExercise:
+      type: object
+      description: Same field names as `ExerciseResponse` (models/workout.rs), without database fields.
+      required: [exerciseName, sets, reps, weight, weightUnit]
+      properties:
+        exerciseName:
+          type: string
+        sets:
+          type: integer
+          format: int32
+        reps:
+          type: integer
+          format: int32
+        weight:
+          type: number
+          format: double
+          nullable: true
+          description: Null for bodyweight exercises.
+        weightUnit:
+          type: string
+          enum: [kg, lbs]

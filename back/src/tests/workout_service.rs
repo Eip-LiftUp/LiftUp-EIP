@@ -131,7 +131,6 @@ async fn add_update_delete_exercise(pool: PgPool) {
 
 /// Given an unknown user id, when creating a workout, then `NotFound` is expected.
 #[sqlx::test]
-#[ignore = "bug: creating a workout for a non-existent user returns Internal (500, foreign key violation) instead of NotFound (404)"]
 async fn create_workout_for_unknown_user_is_not_found(pool: PgPool) {
     let state = build_test_state(pool);
 

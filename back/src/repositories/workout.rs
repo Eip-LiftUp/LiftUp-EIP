@@ -22,6 +22,10 @@ impl WorkoutRepository {
     // ==================== WORKOUTS ====================
 
     /// Create a new workout
+    ///
+    /// # Errors
+    /// Returns [`AppError::NotFound`] if `user_id` does not exist (foreign key
+    /// violation), and [`AppError::Internal`] for any other database error.
     pub async fn create_workout(
         &self,
         user_id: Uuid,
@@ -41,7 +45,16 @@ impl WorkoutRepository {
         .bind(&req.notes)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to create workout: {}", e)))?;
+        .map_err(|e| {
+            // 23503 = foreign_key_violation: `user_id` does not exist in `users`.
+            // `as_database_error` borrows the Postgres error if there is one.
+            if let Some(db_error) = e.as_database_error() {
+                if db_error.code().as_deref() == Some("23503") {
+                    return AppError::NotFound("User not found".to_string());
+                }
+            }
+            AppError::Internal(format!("Failed to create workout: {}", e))
+        })?;
 
         Ok(workout)
     }

@@ -1,67 +1,47 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:app/core/constants/app_constants.dart';
-import 'package:app/core/widgets/main_scaffold.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
+import 'package:app/core/models/review_record.dart';
+import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/review_history_provider.dart';
 import 'package:app/core/services/video_analysis_service.dart';
+import 'package:app/core/widgets/ui/ui.dart';
 import 'package:app/features/movement_analysis/presentation/pages/video_analysis_results_page.dart';
-import '../../domain/entities/video_entity.dart';
 
-/// Video Upload Page
-/// 
-/// This page handles the video upload process with:
-/// - Video metadata input (title, description)
-/// - Upload progress indication
-/// - Upload status and error handling
-class VideoUploadPage extends StatefulWidget {
-  /// Path to the video file to upload
+enum _UploadState { idle, uploading, failed, cancelled }
+
+/// Sends the video to the analysis service, records the verdict for the
+/// planning, then shows the results.
+class VideoUploadPage extends ConsumerStatefulWidget {
   final String videoPath;
 
-  /// Callback when upload is complete
-  final void Function(String? url)? onUploadComplete;
+  /// Called with the analysis id once the analysis succeeded.
+  final void Function(String? analysisId)? onUploadComplete;
 
-  const VideoUploadPage({
-    super.key,
-    required this.videoPath,
-    this.onUploadComplete,
-  });
+  const VideoUploadPage({super.key, required this.videoPath, this.onUploadComplete});
 
   @override
-  State<VideoUploadPage> createState() => _VideoUploadPageState();
+  ConsumerState<VideoUploadPage> createState() => _VideoUploadPageState();
 }
 
-class _VideoUploadPageState extends State<VideoUploadPage> {
-  /// Text controllers for form fields
+class _VideoUploadPageState extends ConsumerState<VideoUploadPage> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-
-  /// Form key for validation
   final _formKey = GlobalKey<FormState>();
+  final _analysisService = VideoAnalysisService();
 
-  /// Selected exercise type for ideal form comparison
-  String _selectedExerciseType = 'squat';
-
-  /// Current upload state
-  _UploadState _uploadState = _UploadState.idle;
-
-  /// Upload progress (0.0 - 1.0)
-  double _uploadProgress = 0.0;
-
-  /// Error message
+  String _selectedExercise = 'squat';
+  _UploadState _state = _UploadState.idle;
+  double _progress = 0;
   String? _errorMessage;
-
-  /// Video file info
   int _fileSizeBytes = 0;
   String _fileName = '';
 
-  /// Analysis result
-  VideoAnalysisResult? _analysisResult;
-
-  /// Video analysis service
-  final _analysisService = VideoAnalysisService();
-
-  /// Timer for simulating upload progress (frontend only)
-  Timer? _progressTimer;
+  /// Bumped on cancel so a late response from an abandoned upload is ignored.
+  int _attempt = 0;
 
   @override
   void initState() {
@@ -73,11 +53,9 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _progressTimer?.cancel();
     super.dispose();
   }
 
-  /// Load video file information
   Future<void> _loadVideoInfo() async {
     try {
       final file = File(widget.videoPath);
@@ -89,330 +67,221 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
           _titleController.text = _fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
         });
       }
-    } catch (e) {
-      // Ignore errors loading file info
+    } catch (_) {
+      // The file info is only informative.
     }
   }
 
-  /// Format file size
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    } else if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    } else if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    } else {
-      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-    }
+  static String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes o';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} Ko';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} Mo';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} Go';
   }
 
-  /// Start the upload process
   Future<void> _startUpload() async {
     if (!_formKey.currentState!.validate()) return;
-
+    final attempt = ++_attempt;
     setState(() {
-      _uploadState = _UploadState.uploading;
-      _uploadProgress = 0.0;
+      _state = _UploadState.uploading;
+      _progress = 0;
       _errorMessage = null;
     });
 
     try {
-      // Actually upload and analyze the video using the AI service
       final result = await _analysisService.analyzeVideo(
         videoPath: widget.videoPath,
-        exerciseType: _selectedExerciseType,
+        exerciseType: _selectedExercise,
         onProgress: (progress) {
-          setState(() {
-            _uploadProgress = progress;
-          });
+          if (mounted && attempt == _attempt) setState(() => _progress = progress);
         },
       );
+      if (!mounted || attempt != _attempt) return;
 
-      setState(() {
-        _uploadState = _UploadState.success;
-        _analysisResult = result;
-      });
-
+      final userId = ref.read(authProvider).userId;
+      if (userId != null) {
+        await ref.read(reviewHistoryProvider(userId).notifier).add(
+              ReviewRecord(
+                day: DateTime.now(),
+                exercise: _selectedExercise == 'other' ? result.detectedExercise : _selectedExercise,
+                score: result.qualityScore.round().clamp(0, 100),
+              ),
+            );
+      }
       widget.onUploadComplete?.call(result.analysisId);
 
-      // Navigate to results page
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => VideoAnalysisResultsPage(
-              result: result,
-              videoPath: widget.videoPath,
-            ),
-          ),
-        );
-      }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => VideoAnalysisResultsPage(result: result, videoPath: widget.videoPath),
+        ),
+      );
     } on VideoAnalysisException catch (e) {
+      if (!mounted || attempt != _attempt) return;
       setState(() {
-        _uploadState = _UploadState.failed;
+        _state = _UploadState.failed;
         _errorMessage = e.message;
       });
     } catch (e) {
+      if (!mounted || attempt != _attempt) return;
       setState(() {
-        _uploadState = _UploadState.failed;
-        _errorMessage = 'Analysis failed: $e';
+        _state = _UploadState.failed;
+        _errorMessage = 'L\'analyse a échoué : $e';
       });
     }
   }
 
-  /// Cancel the upload
   void _cancelUpload() {
-    _progressTimer?.cancel();
+    _attempt++;
     setState(() {
-      _uploadState = _UploadState.cancelled;
-      _uploadProgress = 0.0;
+      _state = _UploadState.cancelled;
+      _progress = 0;
     });
   }
 
-  /// Retry the upload
-  void _retryUpload() {
+  void _retry() {
     setState(() {
-      _uploadState = _UploadState.idle;
-      _uploadProgress = 0.0;
+      _state = _UploadState.idle;
+      _progress = 0;
       _errorMessage = null;
     });
+  }
+
+  Future<void> _confirmCancel() async {
+    final cancel = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Annuler l\'analyse ?'),
+        content: const Text('La vidéo en cours d\'envoi ne sera pas analysée.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Continuer')),
+          AppButton(
+            label: 'Annuler l\'analyse',
+            variant: AppButtonVariant.destructive,
+            size: AppButtonSize.sm,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (cancel == true) _cancelUpload();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.cardBackground,
-        title: const Text(
-          'Téléverser la vidéo',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () {
-            if (_uploadState == _UploadState.uploading) {
-              _showCancelDialog();
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        elevation: 0,
+      appBar: AppTopBar(
+        title: 'Envoyer la vidéo',
+        showBack: true,
+        onBack: () => _state == _UploadState.uploading ? _confirmCancel() : Navigator.of(context).pop(),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.spacingL),
-          child: _buildContent(),
-        ),
+      body: PageListView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        children: [
+          switch (_state) {
+            _UploadState.idle => _buildForm(),
+            _UploadState.uploading => _buildProgress(),
+            _UploadState.failed => _buildOutcome(
+                icon: LucideIcons.circleAlert,
+                color: AppColors.error,
+                title: 'Échec de l\'analyse',
+                message: _errorMessage ?? 'Une erreur est survenue pendant l\'envoi.',
+              ),
+            _UploadState.cancelled => _buildOutcome(
+                icon: LucideIcons.circleX,
+                color: AppColors.warning,
+                title: 'Analyse annulée',
+                message: 'La vidéo n\'a pas été analysée.',
+              ),
+          },
+        ],
       ),
     );
   }
 
-  Widget _buildContent() {
-    switch (_uploadState) {
-      case _UploadState.idle:
-        return _buildUploadForm();
-      case _UploadState.uploading:
-        return _buildUploadProgress();
-      case _UploadState.success:
-        return _buildSuccessState();
-      case _UploadState.failed:
-        return _buildFailedState();
-      case _UploadState.cancelled:
-        return _buildCancelledState();
-    }
-  }
-
-  Widget _buildUploadForm() {
+  Widget _buildForm() {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // File info card
-          Container(
-            padding: const EdgeInsets.all(AppConstants.spacingM),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-              border: Border.all(color: AppColors.navBarBorder),
-            ),
+          AppCard(
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(AppConstants.spacingM),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                  ),
-                  child: const Icon(
-                    Icons.video_file,
-                    color: AppColors.primary,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: AppConstants.spacingM),
+                const IconTile(icon: LucideIcons.fileVideo, size: 48, iconSize: 24),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _fileName,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
+                        _fileName.isEmpty ? 'Vidéo sélectionnée' : _fileName,
+                        style: AppText.bodyMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: AppConstants.spacingXs),
-                      Text(
-                        _formatFileSize(_fileSizeBytes),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
+                      if (_fileSizeBytes > 0) Text(_formatFileSize(_fileSizeBytes), style: AppText.caption),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.check_circle,
-                    color: AppColors.secondary,
-                  ),
-                  onPressed: null,
-                ),
+                const Icon(LucideIcons.circleCheck, color: AppColors.success),
               ],
             ),
           ),
-          const SizedBox(height: AppConstants.spacingXl),
-
-          // Title field
-          Text(
-            'Titre de la vidéo',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: AppConstants.spacingS),
-          TextFormField(
+          const SizedBox(height: 24),
+          AppTextField(
+            label: 'Titre de la vidéo',
+            hint: 'Entre le titre de ta vidéo',
             controller: _titleController,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Entrez le titre de votre vidéo',
-              hintStyle: const TextStyle(color: AppColors.textSecondary),
-              filled: true,
-              fillColor: AppColors.cardBackground,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                borderSide: const BorderSide(color: AppColors.navBarBorder),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                borderSide: const BorderSide(color: AppColors.navBarBorder),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-            ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Le titre est obligatoire';
-              }
-              if (value.length > 100) {
-                return 'Le titre ne doit pas dépasser 100 caractères';
-              }
+              if (value == null || value.trim().isEmpty) return 'Le titre est obligatoire';
+              if (value.length > 100) return 'Le titre ne doit pas dépasser 100 caractères';
               return null;
             },
           ),
-          const SizedBox(height: AppConstants.spacingL),
-
-          // Description field
-          Text(
-            'Description (optionnel)',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: AppConstants.spacingS),
-          TextFormField(
+          const SizedBox(height: 20),
+          AppTextField(
+            label: 'Description (facultatif)',
+            hint: 'Décris le mouvement à analyser…',
             controller: _descriptionController,
-            style: const TextStyle(color: AppColors.textPrimary),
             maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Décrivez le mouvement que vous souhaitez analyser...',
-              hintStyle: const TextStyle(color: AppColors.textSecondary),
-              filled: true,
-              fillColor: AppColors.cardBackground,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                borderSide: const BorderSide(color: AppColors.navBarBorder),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                borderSide: const BorderSide(color: AppColors.navBarBorder),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-            ),
           ),
-          const SizedBox(height: AppConstants.spacingXl),
-
-          // Exercise type selector
-          Text(
-            'Type de mouvement',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
+          const SizedBox(height: 24),
+          const Text('Type de mouvement', style: AppText.bodyMedium),
+          const SizedBox(height: 4),
+          const Text('Sert de référence pour comparer ta forme à la forme idéale.', style: AppText.caption),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final MapEntry(key: code, value: label) in kAnalysisExercises.entries)
+                AppChip(
+                  label: label,
+                  selected: _selectedExercise == code,
+                  onTap: () => setState(() => _selectedExercise = code),
                 ),
+            ],
           ),
-          const SizedBox(height: AppConstants.spacingS),
-          _ExerciseTypeSelector(
-            selectedType: _selectedExerciseType,
-            onSelected: (type) {
-              setState(() {
-                _selectedExerciseType = type;
-              });
-            },
-          ),
-          const SizedBox(height: AppConstants.spacingXl * 2),
-
-          // Upload button
-          ElevatedButton.icon(
+          const SizedBox(height: 32),
+          AppButton(
+            label: 'Lancer l\'analyse',
+            icon: LucideIcons.cloudUpload,
+            size: AppButtonSize.lg,
+            fullWidth: true,
             onPressed: _startUpload,
-            icon: const Icon(Icons.cloud_upload),
-            label: const Text('Téléverser la vidéo'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                vertical: AppConstants.spacingM,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUploadProgress() {
-    final percentage = (_uploadProgress * 100).toInt();
-    final uploadedBytes = (_fileSizeBytes * _uploadProgress).toInt();
-
+  Widget _buildProgress() {
+    final analysing = _progress >= 1;
+    final percentage = (_progress * 100).toInt();
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        // Upload animation
+        const SizedBox(height: 48),
         Stack(
           alignment: Alignment.center,
           children: [
@@ -420,374 +289,79 @@ class _VideoUploadPageState extends State<VideoUploadPage> {
               width: 150,
               height: 150,
               child: CircularProgressIndicator(
-                value: _uploadProgress,
+                value: analysing ? null : _progress,
                 strokeWidth: 8,
-                backgroundColor: AppColors.navBarBorder,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                backgroundColor: AppColors.surface2,
               ),
             ),
             Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.cloud_upload,
-                  color: AppColors.primary,
-                  size: 48,
-                ),
-                const SizedBox(height: AppConstants.spacingS),
-                Text(
-                  '$percentage%',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
+                Icon(analysing ? LucideIcons.sparkles : LucideIcons.cloudUpload, color: AppColors.primary, size: 40),
+                const SizedBox(height: 8),
+                if (!analysing) Text('$percentage %', style: AppText.metric),
               ],
             ),
           ],
         ),
-        const SizedBox(height: AppConstants.spacingXl),
-
+        const SizedBox(height: 32),
+        Text(analysing ? 'Analyse du mouvement…' : 'Envoi en cours…', style: AppText.h2),
+        const SizedBox(height: 8),
         Text(
-          'Téléversement en cours...',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.textPrimary,
-              ),
+          analysing
+              ? 'Ton coach IA examine ta technique.'
+              : '${_formatFileSize((_fileSizeBytes * _progress).toInt())} / ${_formatFileSize(_fileSizeBytes)}',
+          style: AppText.body.copyWith(color: AppColors.textSecondary),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppConstants.spacingM),
-
-        Text(
-          '${_formatFileSize(uploadedBytes)} / ${_formatFileSize(_fileSizeBytes)}',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-        ),
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        // Cancel button
-        OutlinedButton.icon(
-          onPressed: _cancelUpload,
-          icon: const Icon(Icons.cancel),
-          label: const Text('Annuler'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.spacingXl,
-              vertical: AppConstants.spacingM,
-            ),
-          ),
+        const SizedBox(height: 48),
+        AppButton(
+          label: 'Annuler',
+          icon: LucideIcons.x,
+          variant: AppButtonVariant.secondary,
+          onPressed: _confirmCancel,
         ),
       ],
     );
   }
 
-  Widget _buildSuccessState() {
+  Widget _buildOutcome({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String message,
+  }) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        // Success animation
-        Container(
-          padding: const EdgeInsets.all(AppConstants.spacingXl),
-          decoration: BoxDecoration(
-            color: AppColors.secondary.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.check_circle,
-            color: AppColors.secondary,
-            size: 80,
-          ),
-        ),
-        const SizedBox(height: AppConstants.spacingXl),
-
-        Text(
-          'Téléversement réussi !',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: AppConstants.spacingM),
-
-        Text(
-          'Votre vidéo a été téléversée avec succès.\nL\'analyse commencera bientôt.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        // Done button
-        ElevatedButton.icon(
-          onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-          icon: const Icon(Icons.home),
-          label: const Text('Retour à l\'accueil'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.secondary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.spacingXl,
-              vertical: AppConstants.spacingM,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFailedState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        Container(
-          padding: const EdgeInsets.all(AppConstants.spacingXl),
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.error,
-            color: Colors.red,
-            size: 80,
-          ),
-        ),
-        const SizedBox(height: AppConstants.spacingXl),
-
-        Text(
-          'Échec du téléversement',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: AppConstants.spacingM),
-
-        Text(
-          _errorMessage ?? 'Une erreur est survenue lors du téléversement.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
+        const SizedBox(height: 48),
+        IconTile(icon: icon, color: color, size: 80, iconSize: 36),
+        const SizedBox(height: 24),
+        Text(title, style: AppText.metric, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        Text(message, style: AppText.body.copyWith(color: AppColors.textSecondary), textAlign: TextAlign.center),
+        const SizedBox(height: 40),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.textSecondary),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingL,
-                  vertical: AppConstants.spacingM,
-                ),
+            Expanded(
+              child: AppButton(
+                label: 'Retour',
+                variant: AppButtonVariant.secondary,
+                fullWidth: true,
+                onPressed: () => Navigator.of(context).pop(),
               ),
-              child: const Text('Annuler'),
             ),
-            const SizedBox(width: AppConstants.spacingM),
-            ElevatedButton.icon(
-              onPressed: _retryUpload,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Réessayer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingL,
-                  vertical: AppConstants.spacingM,
-                ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AppButton(
+                label: 'Réessayer',
+                icon: LucideIcons.rotateCcw,
+                fullWidth: true,
+                onPressed: _retry,
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildCancelledState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        Container(
-          padding: const EdgeInsets.all(AppConstants.spacingXl),
-          decoration: BoxDecoration(
-            color: AppColors.accent.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.cancel,
-            color: AppColors.accent,
-            size: 80,
-          ),
-        ),
-        const SizedBox(height: AppConstants.spacingXl),
-
-        Text(
-          'Téléversement annulé',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: AppConstants.spacingM),
-
-        Text(
-          'Le téléversement a été annulé.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppConstants.spacingXl * 2),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.textSecondary),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingL,
-                  vertical: AppConstants.spacingM,
-                ),
-              ),
-              child: const Text('Retour'),
-            ),
-            const SizedBox(width: AppConstants.spacingM),
-            ElevatedButton.icon(
-              onPressed: _retryUpload,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Réessayer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingL,
-                  vertical: AppConstants.spacingM,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  void _showCancelDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: const Text(
-          'Annuler le téléversement ?',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: const Text(
-          'Êtes-vous sûr de vouloir annuler le téléversement en cours ?',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Non'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _cancelUpload();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Oui, annuler'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Upload state enum
-enum _UploadState {
-  idle,
-  uploading,
-  success,
-  failed,
-  cancelled,
-}
-
-/// Exercise type selector widget
-class _ExerciseTypeSelector extends StatelessWidget {
-  final String selectedType;
-  final ValueChanged<String> onSelected;
-
-  const _ExerciseTypeSelector({
-    required this.selectedType,
-    required this.onSelected,
-  });
-
-  static const _exerciseTypes = [
-    {'id': 'squat', 'name': 'Squat', 'icon': Icons.accessibility_new},
-    {'id': 'pushup', 'name': 'Push Up', 'icon': Icons.sports_gymnastics},
-    {'id': 'lunge', 'name': 'Lunge', 'icon': Icons.directions_walk},
-    {'id': 'bicep_curl', 'name': 'Bicep Curl', 'icon': Icons.fitness_center},
-    {'id': 'deadlift', 'name': 'Deadlift', 'icon': Icons.fitness_center},
-    {'id': 'bench_press', 'name': 'Bench Press', 'icon': Icons.airline_seat_flat},
-    {'id': 'shoulder_press', 'name': 'Shoulder Press', 'icon': Icons.upload},
-    {'id': 'pull_up', 'name': 'Pull Up', 'icon': Icons.expand_less},
-    {'id': 'other', 'name': 'Autre', 'icon': Icons.more_horiz},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppConstants.spacingS,
-      runSpacing: AppConstants.spacingS,
-      children: _exerciseTypes.map((type) {
-        final isSelected = selectedType == type['id'];
-        return ChoiceChip(
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                type['icon'] as IconData,
-                size: 18,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-              ),
-              const SizedBox(width: AppConstants.spacingXs),
-              Text(type['name'] as String),
-            ],
-          ),
-          selected: isSelected,
-          onSelected: (selected) {
-            if (selected) {
-              onSelected(type['id'] as String);
-            }
-          },
-          selectedColor: AppColors.primary,
-          backgroundColor: AppColors.cardBackground,
-          labelStyle: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-            side: BorderSide(
-              color: isSelected ? AppColors.primary : AppColors.navBarBorder,
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

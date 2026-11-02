@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:app/core/constants/app_constants.dart';
-import 'package:app/core/widgets/main_scaffold.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/user_profile_provider.dart';
 import 'package:app/core/services/auth_api_service.dart';
 import 'package:app/core/models/user.dart';
+import 'package:app/core/widgets/ui/ui.dart';
 
 /// Training focus options offered on the third onboarding page.
 const List<String> kTrainingFocusOptions = [
@@ -45,19 +48,24 @@ const List<(ActivityFrequency, String, String)> kActivityFrequencyOptions = [
   (ActivityFrequency.veryActive, 'Très active', 'Entraînement quotidien'),
 ];
 
-/// First-launch onboarding wizard.
+/// First-launch onboarding wizard, reused from the profile to edit the same
+/// answers ([editMode]).
 ///
 /// - Page 1 (mandatory): height, weight, birth date, activity frequency.
 /// - Page 2 (skippable): injuries + free-text medical history.
-/// - Page 3 (skippable): training focus areas, editable later from the profile.
+/// - Page 3 (skippable): training focus areas.
 class ProfileSetupPage extends ConsumerStatefulWidget {
-  const ProfileSetupPage({super.key});
+  final bool editMode;
+
+  const ProfileSetupPage({super.key, this.editMode = false});
 
   @override
   ConsumerState<ProfileSetupPage> createState() => _ProfileSetupPageState();
 }
 
 class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
+  static const _pageCount = 3;
+
   final PageController _pageController = PageController();
   final _mandatoryFormKey = GlobalKey<FormState>();
 
@@ -68,6 +76,7 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
   // Page 1 — mandatory
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
+  final _birthDateController = TextEditingController();
   DateTime? _birthDate;
   ActivityFrequency? _activityFrequency;
 
@@ -79,11 +88,47 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
   // Page 3 — optional
   final Set<String> _trainingFocus = {};
 
+  bool _loadingProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.editMode) _prefill();
+  }
+
+  Future<void> _prefill() async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    setState(() => _loadingProfile = true);
+    try {
+      final p = await ref.read(userProfileProvider(userId).future);
+      if (!mounted) return;
+      setState(() {
+        _activityFrequency = p.activityFrequency;
+        _hasInjuries = p.hasInjuries ?? false;
+        _injuredZones.addAll(p.injuredZones ?? const []);
+        _medicalNotesController.text = p.medicalNotes ?? '';
+        _trainingFocus.addAll(p.trainingFocus ?? const []);
+        _loadingProfile = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingProfile = false;
+        _errorMessage = 'Impossible de charger ton profil.';
+      });
+    }
+  }
+
+  static String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
   @override
   void dispose() {
     _pageController.dispose();
     _heightController.dispose();
     _weightController.dispose();
+    _birthDateController.dispose();
     _medicalNotesController.dispose();
     super.dispose();
   }
@@ -95,44 +140,43 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
       initialDate: _birthDate ?? DateTime(now.year - 20, now.month, now.day),
       firstDate: DateTime(now.year - 120),
       lastDate: now,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              surface: AppColors.cardBackground,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
-      setState(() => _birthDate = picked);
+      setState(() {
+        _birthDate = picked;
+        _birthDateController.text = _formatDate(picked);
+      });
     }
   }
 
   void _goToPage(int index) {
-    setState(() => _currentPage = index);
+    setState(() {
+      _currentPage = index;
+      _errorMessage = null;
+    });
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
     );
   }
 
   void _handleMandatoryNext() {
-    final formValid = _mandatoryFormKey.currentState?.validate() ?? false;
-    if (!formValid || _birthDate == null || _activityFrequency == null) {
+    // In edit mode the body measurements live in "Informations personnelles".
+    final formValid = widget.editMode || (_mandatoryFormKey.currentState?.validate() ?? false);
+    if (!formValid || _activityFrequency == null) {
       setState(() {
-        _errorMessage = _birthDate == null || _activityFrequency == null
+        _errorMessage = _activityFrequency == null
             ? 'Merci de compléter tous les champs pour continuer.'
             : null;
       });
       return;
     }
-    setState(() => _errorMessage = null);
     _goToPage(1);
+  }
+
+  void _toggle(Set<String> set, String value) {
+    setState(() => set.contains(value) ? set.remove(value) : set.add(value));
   }
 
   Future<void> _finish() async {
@@ -148,28 +192,35 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
       _errorMessage = null;
     });
 
+    final notes = _medicalNotesController.text.trim();
     try {
       final api = ref.read(authApiServiceProvider);
       await api.updateProfile(
         userId: userId,
-        heightCm: int.tryParse(_heightController.text.trim()),
-        weightKg: double.tryParse(_weightController.text.trim().replaceAll(',', '.')),
-        birthDate: _birthDate,
+        heightCm: widget.editMode ? null : int.tryParse(_heightController.text.trim()),
+        weightKg: widget.editMode ? null : double.tryParse(_weightController.text.trim().replaceAll(',', '.')),
+        birthDate: widget.editMode ? null : _birthDate,
         activityFrequency: _activityFrequency,
         hasInjuries: _hasInjuries,
-        medicalNotes: _medicalNotesController.text.trim().isEmpty
-            ? null
-            : _medicalNotesController.text.trim(),
+        // The API ignores null fields: when editing, send '' and [] so that
+        // clearing the notes or the focus actually clears them.
+        medicalNotes: notes.isEmpty && !widget.editMode ? null : notes,
         // Always send injuredZones (even as an empty list) once injuries are
         // toggled off, so unchecking clears a previously selected zone.
         injuredZones: _hasInjuries ? _injuredZones.toList() : const [],
-        trainingFocus: _trainingFocus.isEmpty ? null : _trainingFocus.toList(),
-        onboardingCompleted: true,
+        trainingFocus: _trainingFocus.isEmpty && !widget.editMode ? null : _trainingFocus.toList(),
+        onboardingCompleted: widget.editMode ? null : true,
       );
+      ref.invalidate(userProfileProvider(userId));
 
-      ref.read(authProvider.notifier).markOnboardingCompleted();
-
-      if (mounted) {
+      if (!mounted) return;
+      if (widget.editMode) {
+        context.pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil d\'entraînement mis à jour')),
+        );
+      } else {
+        ref.read(authProvider.notifier).markOnboardingCompleted();
         context.go('/home');
       }
     } on ApiException catch (e) {
@@ -188,521 +239,343 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildProgressHeader(),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                children: [
-                  _buildMandatoryPage(),
-                  _buildMedicalPage(),
-                  _buildTrainingFocusPage(),
-                ],
-              ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 448),
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: _loadingProfile
+                      ? const Center(child: CircularProgressIndicator())
+                      : PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          onPageChanged: (index) => setState(() => _currentPage = index),
+                          children: [
+                            _buildMandatoryPage(),
+                            _buildMedicalPage(),
+                            _buildTrainingFocusPage(),
+                          ],
+                        ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildProgressHeader() {
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppConstants.spacingL,
-        AppConstants.spacingM,
-        AppConstants.spacingL,
-        AppConstants.spacingS,
-      ),
-      child: Row(
-        children: List.generate(3, (index) {
-          final isActive = index <= _currentPage;
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.only(right: index < 2 ? AppConstants.spacingS : 0),
-              height: 4,
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.primary : AppColors.navBarBorder,
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildErrorMessage() {
-    if (_errorMessage == null) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.spacingM),
-      margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
-      decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
-      ),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 20),
-          const SizedBox(width: AppConstants.spacingS),
-          Expanded(
-            child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+          Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: _currentPage > 0
+                    ? IconButton(
+                        tooltip: 'Étape précédente',
+                        onPressed: _isSubmitting ? null : () => _goToPage(_currentPage - 1),
+                        icon: const Icon(LucideIcons.arrowLeft, size: 20),
+                      )
+                    : widget.editMode
+                        ? IconButton(
+                            tooltip: 'Retour au profil',
+                            onPressed: () => context.pop(),
+                            icon: const Icon(LucideIcons.arrowLeft, size: 20),
+                          )
+                        : null,
+              ),
+              const Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(LucideIcons.dumbbell, size: 20, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text('LiftUp', style: AppText.h3),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 44),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Semantics(
+            label: 'Étape ${_currentPage + 1} sur $_pageCount',
+            child: Row(
+              children: [
+                for (var i = 0; i < _pageCount; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: i <= _currentPage ? AppColors.primary : AppColors.surface2,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'ÉTAPE ${_currentPage + 1} SUR $_pageCount',
+            style: AppText.caption.copyWith(color: AppColors.primary),
           ),
         ],
       ),
     );
   }
 
-  InputDecoration _inputDecoration({required String label, String? hint, IconData? icon}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.textSecondary) : null,
-      filled: true,
-      fillColor: AppColors.cardBackground,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        borderSide: const BorderSide(color: AppColors.navBarBorder),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        borderSide: const BorderSide(color: AppColors.navBarBorder),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-        borderSide: const BorderSide(color: Colors.red),
-      ),
+  /// Scrollable step content with its actions pinned at the bottom.
+  Widget _buildStep({
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+    required Widget actions,
+  }) {
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(title, style: AppText.metric),
+                const SizedBox(height: 8),
+                Text(subtitle, style: AppText.body.copyWith(color: AppColors.textSecondary)),
+                const SizedBox(height: 24),
+                ...children,
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  InlineError(_errorMessage!),
+                ],
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: actions,
+        ),
+      ],
+    );
+  }
+
+  Widget _skipAndNext({required VoidCallback onSkip, required VoidCallback onNext, required String nextLabel}) {
+    return Row(
+      children: [
+        Expanded(
+          child: AppButton(
+            label: 'Passer',
+            variant: AppButtonVariant.secondary,
+            fullWidth: true,
+            onPressed: _isSubmitting ? null : onSkip,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: AppButton(
+            label: nextLabel,
+            fullWidth: true,
+            loading: _isSubmitting,
+            onPressed: _isSubmitting ? null : onNext,
+          ),
+        ),
+      ],
     );
   }
 
   // ==================== PAGE 1 — MANDATORY ====================
 
   Widget _buildMandatoryPage() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.spacingL),
-      child: Form(
-        key: _mandatoryFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Parlons de toi',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: AppConstants.spacingS),
-            Text(
-              'Ces informations nous permettent de calibrer ton programme. Tous les champs sont obligatoires.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppConstants.spacingXl),
-
-            _buildErrorMessage(),
-
-            TextFormField(
-              controller: _heightController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: _inputDecoration(
-                label: 'Taille (cm)',
-                hint: 'ex: 178',
-                icon: Icons.height,
-              ),
-              validator: (value) {
-                final n = int.tryParse(value?.trim() ?? '');
-                if (n == null || n <= 0 || n >= 300) {
-                  return 'Taille invalide (1-299 cm)';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-
-            TextFormField(
-              controller: _weightController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: _inputDecoration(
-                label: 'Poids (kg)',
-                hint: 'ex: 72.5',
-                icon: Icons.monitor_weight_outlined,
-              ),
-              validator: (value) {
-                final n = double.tryParse((value ?? '').trim().replaceAll(',', '.'));
-                if (n == null || n <= 0 || n >= 700) {
-                  return 'Poids invalide (1-699 kg)';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-
-            InkWell(
-              onTap: _pickBirthDate,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-              child: InputDecorator(
-                decoration: _inputDecoration(
-                  label: 'Date de naissance',
-                  icon: Icons.cake_outlined,
-                ),
-                child: Text(
-                  _birthDate == null
-                      ? 'Sélectionner une date'
-                      : '${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}',
-                  style: TextStyle(
-                    color: _birthDate == null
-                        ? AppColors.textSecondary.withOpacity(0.5)
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppConstants.spacingL),
-
-            Text(
-              'Fréquence d\'activité sportive',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: AppConstants.spacingS),
-            ...kActivityFrequencyOptions.map((option) {
-              final (value, label, description) = option;
-              final selected = _activityFrequency == value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppConstants.spacingS),
-                child: InkWell(
-                  onTap: () => setState(() => _activityFrequency = value),
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppConstants.spacingM,
-                      vertical: AppConstants.spacingS,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                      border: Border.all(
-                        color: selected ? AppColors.primary : AppColors.navBarBorder,
-                        width: selected ? 2 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                          color: selected ? AppColors.primary : AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: AppConstants.spacingM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                label,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                description,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
-
-            const SizedBox(height: AppConstants.spacingXl),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _handleMandatoryNext,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-                  ),
-                ),
-                child: const Text('Suivant', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
+    return _buildStep(
+      title: widget.editMode ? 'Ton activité' : 'Parlons de toi',
+      subtitle: widget.editMode
+          ? 'À quelle fréquence fais-tu du sport ? Taille, poids et âge se modifient dans « Informations personnelles ».'
+          : 'Ces informations nous permettent de calibrer ton programme. Tous les champs sont obligatoires.',
+      actions: AppButton(
+        label: 'Suivant',
+        fullWidth: true,
+        onPressed: _handleMandatoryNext,
       ),
+      children: [
+        if (!widget.editMode) ...[
+          Form(
+            key: _mandatoryFormKey,
+            child: AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Taille (cm)',
+                          hint: '178',
+                          controller: _heightController,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.next,
+                          validator: (value) {
+                            final n = int.tryParse(value?.trim() ?? '');
+                            if (n == null || n <= 0 || n >= 300) return 'Entre 1 et 299 cm';
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Poids (kg)',
+                          hint: '72,5',
+                          controller: _weightController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          textInputAction: TextInputAction.next,
+                          validator: (value) {
+                            final n = double.tryParse((value ?? '').trim().replaceAll(',', '.'));
+                            if (n == null || n <= 0 || n >= 700) return 'Entre 1 et 699 kg';
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  AppTextField(
+                    label: 'Date de naissance',
+                    hint: 'Sélectionner une date',
+                    controller: _birthDateController,
+                    readOnly: true,
+                    onTap: _pickBirthDate,
+                    trailing: const Icon(LucideIcons.calendar, size: 20),
+                    validator: (_) => _birthDate == null ? 'Date de naissance requise' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        const Text('Fréquence d\'activité sportive', style: AppText.bodyMedium),
+        const Text('Obligatoire', style: AppText.caption),
+        const SizedBox(height: 12),
+        for (final (value, label, description) in kActivityFrequencyOptions) ...[
+          SelectableCard(
+            title: label,
+            subtitle: description,
+            selected: _activityFrequency == value,
+            onTap: () => setState(() {
+              _activityFrequency = value;
+              _errorMessage = null;
+            }),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 
   // ==================== PAGE 2 — MEDICAL (OPTIONAL) ====================
 
   Widget _buildMedicalPage() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.spacingL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Blessures & antécédents',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: AppConstants.spacingS),
-          Text(
-            'Facultatif. Ça nous aide à adapter les exercices proposés. Un simple résumé suffit, pas besoin d\'envoyer ton dossier médical.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppConstants.spacingXl),
-
-          _buildErrorMessage(),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingM),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-              border: Border.all(color: AppColors.navBarBorder),
-            ),
-            child: SwitchListTile(
-              value: _hasInjuries,
-              onChanged: (value) => setState(() => _hasInjuries = value),
-              activeColor: AppColors.primary,
-              contentPadding: EdgeInsets.zero,
-              title: const Text(
-                'J\'ai une blessure actuelle ou passée',
-                style: TextStyle(color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppConstants.spacingM),
-
-          if (_hasInjuries) ...[
-            Text(
-              'Zone(s) concernée(s)',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: AppConstants.spacingS),
-            Wrap(
-              spacing: AppConstants.spacingS,
-              runSpacing: AppConstants.spacingS,
-              children: kInjuryZoneOptions.map((zone) {
-                final selected = _injuredZones.contains(zone);
-                return FilterChip(
-                  label: Text(zone),
-                  selected: selected,
-                  onSelected: (value) {
-                    setState(() {
-                      if (value) {
-                        _injuredZones.add(zone);
-                      } else {
-                        _injuredZones.remove(zone);
-                      }
-                    });
-                  },
-                  backgroundColor: AppColors.cardBackground,
-                  selectedColor: AppColors.primary.withOpacity(0.25),
-                  checkmarkColor: AppColors.primary,
-                  labelStyle: TextStyle(
-                    color: selected ? AppColors.primary : AppColors.textPrimary,
-                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  side: BorderSide(
-                    color: selected ? AppColors.primary : AppColors.navBarBorder,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-          ],
-
-          TextFormField(
-            controller: _medicalNotesController,
-            maxLines: 6,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: _inputDecoration(
-              label: 'Détails complémentaires (facultatif)',
-              hint: 'ex: tendinite à l\'épaule droite en 2024, lombalgie chronique...',
-            ),
-          ),
-
-          const SizedBox(height: AppConstants.spacingXl),
-          Row(
+    return _buildStep(
+      title: 'Blessures & antécédents',
+      subtitle:
+          'Facultatif. Ça nous aide à adapter les exercices proposés. Un simple résumé suffit, pas besoin d\'envoyer ton dossier médical.',
+      actions: _skipAndNext(
+        onSkip: () => _goToPage(2),
+        onNext: () => _goToPage(2),
+        nextLabel: 'Suivant',
+      ),
+      children: [
+        AppCard(
+          onTap: () => setState(() => _hasInjuries = !_hasInjuries),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isSubmitting ? null : () => _goToPage(2),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textPrimary,
-                    side: const BorderSide(color: AppColors.navBarBorder),
-                    padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-                    ),
-                  ),
-                  child: const Text('Passer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('J\'ai une blessure actuelle ou passée', style: AppText.bodyMedium),
+                    Text('Active pour préciser les zones concernées', style: AppText.caption),
+                  ],
                 ),
               ),
-              const SizedBox(width: AppConstants.spacingM),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : () => _goToPage(2),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-                    ),
-                  ),
-                  child: const Text('Suivant', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              const SizedBox(width: 12),
+              Switch(
+                value: _hasInjuries,
+                onChanged: (value) => setState(() => _hasInjuries = value),
               ),
             ],
           ),
+        ),
+        if (_hasInjuries) ...[
+          const SizedBox(height: 24),
+          const Text('Zone(s) concernée(s)', style: AppText.bodyMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final zone in kInjuryZoneOptions)
+                AppChip(
+                  label: zone,
+                  selected: _injuredZones.contains(zone),
+                  onTap: () => _toggle(_injuredZones, zone),
+                ),
+            ],
+          ),
         ],
-      ),
+        const SizedBox(height: 24),
+        AppTextField(
+          label: 'Détails complémentaires (facultatif)',
+          hint: 'ex : tendinite à l\'épaule droite en 2024, lombalgie chronique…',
+          controller: _medicalNotesController,
+          maxLines: 5,
+        ),
+      ],
     );
   }
 
   // ==================== PAGE 3 — TRAINING FOCUS (OPTIONAL) ====================
 
   Widget _buildTrainingFocusPage() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.spacingL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Sur quoi veux-tu bosser ?',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: AppConstants.spacingS),
-          Text(
-            'Facultatif, tu pourras toujours changer ça plus tard dans ton profil. Sélectionne autant de zones/objectifs que tu veux.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppConstants.spacingXl),
-
-          _buildErrorMessage(),
-
-          Wrap(
-            spacing: AppConstants.spacingS,
-            runSpacing: AppConstants.spacingS,
-            children: kTrainingFocusOptions.map((option) {
-              final selected = _trainingFocus.contains(option);
-              return FilterChip(
-                label: Text(option),
-                selected: selected,
-                onSelected: (value) {
-                  setState(() {
-                    if (value) {
-                      _trainingFocus.add(option);
-                    } else {
-                      _trainingFocus.remove(option);
-                    }
-                  });
-                },
-                backgroundColor: AppColors.cardBackground,
-                selectedColor: AppColors.primary.withOpacity(0.25),
-                checkmarkColor: AppColors.primary,
-                labelStyle: TextStyle(
-                  color: selected ? AppColors.primary : AppColors.textPrimary,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                ),
-                side: BorderSide(
-                  color: selected ? AppColors.primary : AppColors.navBarBorder,
-                ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: AppConstants.spacingXl),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isSubmitting ? null : _finish,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textPrimary,
-                    side: const BorderSide(color: AppColors.navBarBorder),
-                    padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-                    ),
-                  ),
-                  child: const Text('Passer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(width: AppConstants.spacingM),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _finish,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text('Terminer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ],
+    return _buildStep(
+      title: 'Sur quoi veux-tu bosser ?',
+      subtitle:
+          'Facultatif, tu pourras toujours changer ça plus tard dans ton profil. Sélectionne autant de zones/objectifs que tu veux.',
+      actions: _skipAndNext(
+        onSkip: _finish,
+        onNext: _finish,
+        nextLabel: widget.editMode ? 'Enregistrer' : 'Terminer',
       ),
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final option in kTrainingFocusOptions)
+              AppChip(
+                label: option,
+                selected: _trainingFocus.contains(option),
+                onTap: () => _toggle(_trainingFocus, option),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

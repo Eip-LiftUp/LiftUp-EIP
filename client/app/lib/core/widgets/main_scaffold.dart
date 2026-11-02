@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:app/core/constants/app_constants.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
 
-class AppColors {
-  AppColors._();
-  
-  static const Color background = Color(0xFF0D1B2A);
-  static const Color cardBackground = Color(0xFF1B2838);
-  static const Color navBarBackground = Color(0xFF1B2838);
-  static const Color navBarBorder = Color(0xFF2D3E50);
-  static const Color primary = Color(0xFF3B82F6);
-  static const Color secondary = Color(0xFF10B981);
-  static const Color accent = Color(0xFFF59E0B);
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Colors.white54;
+// Most pages still import AppColors through this file.
+export 'package:app/config/app_colors.dart';
+
+class _NavTab {
+  final String label;
+  final IconData icon;
+  final String path;
+
+  const _NavTab(this.label, this.icon, this.path);
 }
+
+const _tabs = [
+  _NavTab('Accueil', LucideIcons.house, '/home'),
+  _NavTab('Entraînement', LucideIcons.dumbbell, '/training'),
+  _NavTab('Progrès', LucideIcons.trendingUp, '/progress'),
+  _NavTab('Profil', LucideIcons.user, '/profile'),
+];
 
 class MainScaffold extends StatelessWidget {
   final Widget child;
@@ -31,92 +37,109 @@ class MainScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: child,
-      bottomNavigationBar: _buildBottomNavBar(context),
-    );
-  }
-
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.navBarBackground,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.navBarBorder,
-            width: 1,
-          ),
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surface1.withValues(alpha: 0.95),
+          border: const Border(top: BorderSide(color: AppColors.border)),
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                context,
-                icon: Icons.home_rounded,
-                label: 'Accueil',
-                isSelected: currentIndex == 0,
-                onTap: () => context.go('/home'),
+        child: SafeArea(
+          top: false,
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _tabs.length; i++)
+                      Expanded(
+                        child: _NavItem(
+                          tab: _tabs[i],
+                          selected: i == currentIndex,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              _buildNavItem(
-                context,
-                icon: Icons.videocam_rounded,
-                label: 'Analyse',
-                isSelected: currentIndex == 1,
-                onTap: () => context.go('/movement-analysis'),
-              ),
-              _buildNavItem(
-                context,
-                icon: Icons.calendar_month_rounded,
-                label: 'Programme',
-                isSelected: currentIndex == 2,
-                onTap: () => context.go('/program'),
-              ),
-              _buildNavItem(
-                context,
-                icon: Icons.person_rounded,
-                label: 'Profil',
-                isSelected: currentIndex == 3,
-                onTap: () => context.go('/profile'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final color = isSelected ? AppColors.primary : AppColors.textSecondary;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatefulWidget {
+  final _NavTab tab;
+  final bool selected;
+
+  const _NavItem({required this.tab, required this.selected});
+
+  @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.selected
+        ? AppColors.primary
+        : _hovered
+            ? AppColors.textPrimary
+            : AppColors.textSecondary;
+
+    return Semantics(
+      selected: widget.selected,
+      button: true,
+      label: widget.tab.label,
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => context.go(widget.tab.path),
+          onHover: (value) => setState(() => _hovered = value),
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: widget.selected
+              ? Colors.transparent
+              : AppColors.surface2.withValues(alpha: 0.5),
+          child: SizedBox(
+            height: 56,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Icon(widget.tab.icon, size: 24, color: color),
+                    if (widget.selected)
+                      Positioned(
+                        bottom: -4,
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.tab.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.caption.copyWith(color: color),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

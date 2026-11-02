@@ -1,26 +1,21 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:app/core/constants/app_constants.dart';
-import 'package:app/core/services/video_analysis_service.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:video_player/video_player.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
+import 'package:app/core/models/review_record.dart';
+import 'package:app/core/services/video_analysis_service.dart';
+import 'package:app/core/utils/date_utils.dart';
+import 'package:app/core/widgets/ui/ui.dart';
 
-/// Video Analysis Results Page
-///
-/// Displays the I3D analysis results with:
-/// - Annotated video with pose overlay
-/// - Overall quality score
-/// - Form aspect scores (radar chart)
-/// - Detailed feedback comments
-/// - Metrics information
+/// Results of a video review: score and verdict, annotated video, form
+/// scores, feedback and analysis details.
 class VideoAnalysisResultsPage extends StatefulWidget {
   final VideoAnalysisResult result;
   final String? videoPath;
 
-  const VideoAnalysisResultsPage({
-    super.key,
-    required this.result,
-    this.videoPath,
-  });
+  const VideoAnalysisResultsPage({super.key, required this.result, this.videoPath});
 
   @override
   State<VideoAnalysisResultsPage> createState() => _VideoAnalysisResultsPageState();
@@ -38,22 +33,19 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
   }
 
   Future<void> _initializeVideo() async {
-    if (widget.result.annotatedVideoUrl != null) {
-      // Build full URL for annotated video
-      final baseUrl = VideoAnalysisService.aiServiceUrl;
-      final videoUrl = '$baseUrl${widget.result.annotatedVideoUrl}';
-      
-      try {
-        _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
-        await _videoController!.initialize();
-        _videoController!.setLooping(true);
-        _videoController!.setVolume(0); // No sound
-        setState(() {
-          _isVideoInitialized = true;
-        });
-      } catch (e) {
-        print('Error initializing video: $e');
-      }
+    final path = widget.result.annotatedVideoUrl;
+    if (path == null) return;
+    try {
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse('${VideoAnalysisService.aiServiceUrl}$path'),
+      );
+      _videoController = controller;
+      await controller.initialize();
+      await controller.setLooping(true);
+      await controller.setVolume(0);
+      if (mounted) setState(() => _isVideoInitialized = true);
+    } catch (_) {
+      // The annotated video is optional: the page works without it.
     }
   }
 
@@ -63,239 +55,57 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
     super.dispose();
   }
 
+  void _close() => Navigator.of(context).popUntil((route) => route.isFirst);
+
+  void _openPlanning() {
+    final router = GoRouter.of(context);
+    _close();
+    router.push('/planning?date=${AppDateUtils.formatDateKey(DateTime.now())}');
+  }
+
+  static String _decimal(double value) => value.toStringAsFixed(1).replaceAll('.', ',');
+
+  static Color _scoreColor(double score) => ReviewVerdict.fromScore(score.round()).color;
+
   @override
   Widget build(BuildContext context) {
+    final result = widget.result;
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text(
-          'Analysis Results',
-          style: TextStyle(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildScoreCard(),
-            const SizedBox(height: 16),
-            if (_isVideoInitialized) _buildAnnotatedVideoPlayer(),
-            if (_isVideoInitialized) const SizedBox(height: 16),
-            _buildExerciseInfo(),
-            const SizedBox(height: 16),
-            _buildFormScores(),
-            const SizedBox(height: 16),
-            _buildFeedbackSection(),
-            const SizedBox(height: 16),
-            _buildMetricsCard(),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnnotatedVideoPlayer() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      appBar: AppTopBar(title: 'Résultats de l\'analyse', showBack: true, onBack: _close),
+      body: PageListView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.videocam,
-                    color: Colors.purple,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Movement Analysis',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 14),
-                      SizedBox(width: 4),
-                      Text(
-                        'Pose Tracked',
-                        style: TextStyle(color: Colors.green, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          _buildScoreCard(result),
+          const SizedBox(height: 16),
+          if (_isVideoInitialized) ...[_buildAnnotatedVideo(), const SizedBox(height: 16)],
+          _buildExerciseInfo(result),
+          const SizedBox(height: 16),
+          _buildFormScores(result.formScores),
+          if (result.feedback.isNotEmpty) ...[const SizedBox(height: 16), _buildFeedback(result.feedback)],
+          const SizedBox(height: 16),
+          _buildMetrics(result.metrics),
+          const SizedBox(height: 24),
+          AppButton(
+            label: 'Voir dans le planning',
+            icon: LucideIcons.calendarDays,
+            variant: AppButtonVariant.secondary,
+            fullWidth: true,
+            onPressed: _openPlanning,
           ),
-          AspectRatio(
-            aspectRatio: _videoController!.value.aspectRatio,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                VideoPlayer(_videoController!),
-                // Play/Pause overlay
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (_isVideoPlaying) {
-                        _videoController!.pause();
-                      } else {
-                        _videoController!.play();
-                      }
-                      _isVideoPlaying = !_isVideoPlaying;
-                    });
-                  },
-                  child: Container(
-                    color: Colors.transparent,
-                    child: AnimatedOpacity(
-                      opacity: _isVideoPlaying ? 0.0 : 1.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                          size: 48,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Video legend
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildLegendItem(Colors.green, 'Good Form'),
-                    _buildLegendItem(Colors.yellow, 'Needs Work'),
-                    _buildLegendItem(Colors.red, 'Correction Needed'),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildDashedLegendItem(Colors.cyanAccent, 'Ideal Form (Offset)'),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 12),
+          AppButton(label: 'Terminer', fullWidth: true, onPressed: _close),
         ],
       ),
     );
   }
 
-  Widget _buildLegendItem(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDashedLegendItem(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 20,
-          height: 12,
-          child: CustomPaint(
-            painter: DashedLinePainter(color: color),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScoreCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: _getScoreGradient(widget.result.qualityScore),
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: _getScoreColor(widget.result.qualityScore).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+  Widget _buildScoreCard(VideoAnalysisResult result) {
+    final verdict = ReviewVerdict.fromScore(result.qualityScore.round());
+    return AppCard(
+      accentColor: verdict.color,
       child: Column(
         children: [
-          const Text(
-            'Overall Score',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
-          ),
+          const Text('Score global', style: AppText.caption),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -303,83 +113,99 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                widget.result.qualityScore.toStringAsFixed(1),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 64,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Text(
-                '/100',
+                _decimal(result.qualityScore),
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 24,
+                  color: verdict.color,
+                  fontSize: 56,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
+              Text('/100', style: AppText.h2.copyWith(color: AppColors.textSecondary)),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Grade: ${widget.result.grade}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              VerdictBadge(verdict),
+              Pill(text: 'Note : ${result.grade}', color: AppColors.primary, dense: true),
+            ],
           ),
+          const SizedBox(height: 12),
+          const Text('Ce verdict est ajouté à ton planning.', style: AppText.caption),
         ],
       ),
     );
   }
 
-  Widget _buildExerciseInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
+  Widget _buildAnnotatedVideo() {
+    final controller = _videoController!;
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.fitness_center,
-              color: Colors.blue,
-              size: 24,
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              children: [
+                IconTile(icon: LucideIcons.video, color: AppColors.accent, size: 36, iconSize: 18),
+                SizedBox(width: 12),
+                Expanded(child: Text('Analyse du mouvement', style: AppText.bodyMedium)),
+                Pill(text: 'Pose suivie', icon: LucideIcons.check, color: AppColors.success, dense: true),
+              ],
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          AspectRatio(
+            aspectRatio: controller.value.aspectRatio,
+            child: GestureDetector(
+              onTap: () => setState(() {
+                _isVideoPlaying ? controller.pause() : controller.play();
+                _isVideoPlaying = !_isVideoPlaying;
+              }),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  VideoPlayer(controller),
+                  AnimatedOpacity(
+                    opacity: _isVideoPlaying ? 0 : 1,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.background.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(LucideIcons.play, color: AppColors.textPrimary, size: 40),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
               children: [
-                Text(
-                  _formatExerciseName(widget.result.detectedExercise),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Confidence: ${widget.result.detectionConfidence.toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
+                _legend(AppColors.success, 'Bonne forme'),
+                _legend(AppColors.warning, 'À travailler'),
+                _legend(AppColors.error, 'À corriger'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 12,
+                      child: CustomPaint(painter: DashedLinePainter(color: AppColors.primary)),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('Forme idéale (décalée)', style: AppText.caption.copyWith(color: AppColors.primary)),
+                  ],
                 ),
               ],
             ),
@@ -389,132 +215,150 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
     );
   }
 
-  Widget _buildFormScores() {
-    final scores = [
-      ('Depth', widget.result.formScores.depth, Icons.height),
-      ('Alignment', widget.result.formScores.alignment, Icons.straighten),
-      ('Stability', widget.result.formScores.stability, Icons.balance),
-      ('Tempo', widget.result.formScores.tempo, Icons.timer),
-      ('Range of Motion', widget.result.formScores.rangeOfMotion, Icons.open_with),
+  Widget _legend(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: AppText.caption),
+      ],
+    );
+  }
+
+  Widget _buildExerciseInfo(VideoAnalysisResult result) {
+    return AppCard(
+      child: Row(
+        children: [
+          const IconTile(icon: LucideIcons.dumbbell, size: 48, iconSize: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(analysisExerciseLabel(result.detectedExercise), style: AppText.h3),
+                Text(
+                  'Exercice détecté • confiance ${_decimal(result.detectionConfidence)} %',
+                  style: AppText.caption,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormScores(FormScores scores) {
+    final rows = [
+      ('Profondeur', scores.depth, LucideIcons.moveVertical),
+      ('Alignement', scores.alignment, LucideIcons.ruler),
+      ('Stabilité', scores.stability, LucideIcons.scale),
+      ('Tempo', scores.tempo, LucideIcons.timer),
+      ('Amplitude', scores.rangeOfMotion, LucideIcons.move),
     ];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Form Analysis',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+          const SectionTitle('Analyse de la forme'),
+          for (final (label, score, icon) in rows) ...[
+            Row(
+              children: [
+                Icon(icon, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
+                Expanded(child: Text(label, style: AppText.body.copyWith(fontSize: 14))),
+                Text(
+                  _decimal(score),
+                  style: AppText.bodyMedium.copyWith(fontSize: 14, color: _scoreColor(score)),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          ...scores.map((score) => _buildScoreBar(
-                score.$1,
-                score.$2,
-                score.$3,
-              )),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: (score / 100).clamp(0, 1),
+                minHeight: 8,
+                backgroundColor: AppColors.surface2,
+                valueColor: AlwaysStoppedAnimation(_scoreColor(score)),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildScoreBar(String label, double score, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+  Widget _buildFeedback(List<FeedbackComment> feedback) {
+    final sorted = [...feedback]..sort((a, b) => b.severity.compareTo(a.severity));
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const SectionTitle('Conseils'),
+          for (final item in sorted) ...[
+            _FeedbackItem(item),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetrics(AnalysisMetrics metrics) {
+    Widget row(String label, String value) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
             children: [
-              Icon(icon, color: Colors.white54, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                score.toStringAsFixed(1),
-                style: TextStyle(
-                  color: _getScoreColor(score),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Expanded(child: Text(label, style: AppText.caption.copyWith(fontSize: 14))),
+              Text(value, style: AppText.bodyMedium.copyWith(fontSize: 14)),
             ],
           ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: score / 100,
-              backgroundColor: Colors.white10,
-              valueColor: AlwaysStoppedAnimation(_getScoreColor(score)),
-              minHeight: 8,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        );
 
-  Widget _buildFeedbackSection() {
-    // Sort feedback by severity (most important first)
-    final sortedFeedback = List<FeedbackComment>.from(widget.result.feedback)
-      ..sort((a, b) => b.severity.compareTo(a.severity));
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.feedback, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Feedback & Tips',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...sortedFeedback.map((fb) => _buildFeedbackItem(fb)),
+          const SectionTitle('Détails de l\'analyse'),
+          row('Temps de traitement', '${metrics.processingTimeSeconds.toStringAsFixed(2).replaceAll('.', ',')} s'),
+          row('Images analysées', '${metrics.framesAnalyzed}'),
+          row('Images par seconde', _decimal(metrics.videoFps)),
+          row('Appareil de calcul', metrics.modelDevice),
         ],
       ),
     );
   }
+}
 
-  Widget _buildFeedbackItem(FeedbackComment feedback) {
-    final color = _getFeedbackColor(feedback.type);
-    final icon = _getFeedbackIcon(feedback.type);
+class _FeedbackItem extends StatelessWidget {
+  final FeedbackComment feedback;
+
+  const _FeedbackItem(this.feedback);
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color color, IconData icon) = switch (feedback.type) {
+      'positive' => (AppColors.success, LucideIcons.circleCheck),
+      'encouragement' => (AppColors.primary, LucideIcons.trophy),
+      'correction' => (AppColors.warning, LucideIcons.lightbulb),
+      'warning' => (AppColors.error, LucideIcons.triangleAlert),
+      _ => (AppColors.textSecondary, LucideIcons.info),
+    };
+    final category = feedback.category
+        .split('_')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,22 +369,9 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _formatCategoryName(feedback.category),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(category, style: AppText.caption.copyWith(color: color)),
                 const SizedBox(height: 4),
-                Text(
-                  feedback.text,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(feedback.text, style: AppText.body.copyWith(fontSize: 14)),
               ],
             ),
           ),
@@ -548,115 +379,7 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
       ),
     );
   }
-
-  Widget _buildMetricsCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Analysis Details',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildMetricRow('Processing Time', '${widget.result.metrics.processingTimeSeconds.toStringAsFixed(2)}s'),
-          _buildMetricRow('Frames Analyzed', '${widget.result.metrics.framesAnalyzed}'),
-          _buildMetricRow('Video FPS', '${widget.result.metrics.videoFps.toStringAsFixed(1)}'),
-          _buildMetricRow('Device', widget.result.metrics.modelDevice),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white54, fontSize: 14),
-          ),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getScoreColor(double score) {
-    if (score >= 80) return Colors.green;
-    if (score >= 60) return Colors.orange;
-    return Colors.red;
-  }
-
-  List<Color> _getScoreGradient(double score) {
-    if (score >= 80) {
-      return [Colors.green.shade700, Colors.green.shade400];
-    }
-    if (score >= 60) {
-      return [Colors.orange.shade700, Colors.orange.shade400];
-    }
-    return [Colors.red.shade700, Colors.red.shade400];
-  }
-
-  Color _getFeedbackColor(String type) {
-    switch (type) {
-      case 'positive':
-        return Colors.green;
-      case 'encouragement':
-        return Colors.blue;
-      case 'correction':
-        return Colors.orange;
-      case 'warning':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getFeedbackIcon(String type) {
-    switch (type) {
-      case 'positive':
-        return Icons.check_circle;
-      case 'encouragement':
-        return Icons.emoji_events;
-      case 'correction':
-        return Icons.tips_and_updates;
-      case 'warning':
-        return Icons.warning;
-      default:
-        return Icons.info;
-    }
-  }
-
-  String _formatExerciseName(String name) {
-    return name
-        .split('_')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
-  }
-
-  String _formatCategoryName(String name) {
-    return name
-        .split('_')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
-  }
 }
-
 
 /// Video Analysis Page - Unified upload and analysis flow
 class VideoAnalysisPage extends StatefulWidget {
@@ -675,7 +398,7 @@ class VideoAnalysisPage extends StatefulWidget {
 
 class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
   final _analysisService = VideoAnalysisService();
-  
+
   bool _isAnalyzing = false;
   double _progress = 0.0;
   String _statusMessage = 'Preparing video...';
@@ -832,21 +555,21 @@ class _VideoAnalysisPageState extends State<VideoAnalysisPage> {
 /// Custom painter for dashed line in legend
 class DashedLinePainter extends CustomPainter {
   final Color color;
-  
-  DashedLinePainter({required this.color});
-  
+
+  const DashedLinePainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
-    
+
     const dashWidth = 4.0;
     const dashSpace = 3.0;
     double startX = 0;
     final y = size.height / 2;
-    
+
     while (startX < size.width) {
       canvas.drawLine(
         Offset(startX, y),
@@ -856,7 +579,7 @@ class DashedLinePainter extends CustomPainter {
       startX += dashWidth + dashSpace;
     }
   }
-  
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

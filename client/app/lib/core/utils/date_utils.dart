@@ -1,6 +1,21 @@
+import 'package:intl/intl.dart';
+
 /// Date formatting utilities
 class AppDateUtils {
   AppDateUtils._();
+
+  /// "Lundi 27 octobre"
+  static String weekdayDayMonth(DateTime date) =>
+      _capitalize(DateFormat('EEEE d MMMM').format(date));
+
+  /// "Octobre 2026"
+  static String monthYear(DateTime date) => _capitalize(DateFormat('MMMM y').format(date));
+
+  /// "21 oct."
+  static String shortDayMonth(DateTime date) => DateFormat('d MMM').format(date);
+
+  static String _capitalize(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
   static String formatDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

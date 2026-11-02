@@ -115,6 +115,20 @@ class AuthApiService {
     }
   }
 
+  /// Delete the account and its data
+  /// DELETE /users/:id
+  Future<void> deleteAccount(String userId) async {
+    try {
+      await _dio.delete('/users/$userId');
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 405 || status == 501) {
+        throw AccountDeletionUnavailableException();
+      }
+      throw ApiException('La suppression du compte a échoué');
+    }
+  }
+
   /// Convert DioException to ApiException with user-friendly messages
   Exception _handleError(DioException error) {
     if (error.response != null) {
@@ -149,6 +163,9 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
+
+/// The backend does not expose account deletion yet (no DELETE /users/:id).
+class AccountDeletionUnavailableException implements Exception {}
 
 /// Login response model
 class LoginResponse {

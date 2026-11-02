@@ -1,283 +1,148 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:app/core/constants/app_constants.dart';
-import 'package:app/core/widgets/main_scaffold.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
+import 'package:app/core/widgets/ui/ui.dart';
+import 'package:app/features/auth/presentation/widgets/auth_link.dart';
 
-/// Onboarding Page (Get Started)
-/// 
-/// The initial page shown to new users with app introduction
-/// and options to login or register.
-class OnboardingPage extends StatefulWidget {
+/// Welcome screen shown before login / registration.
+class OnboardingPage extends StatelessWidget {
   const OnboardingPage({super.key});
 
-  @override
-  State<OnboardingPage> createState() => _OnboardingPageState();
-}
-
-class _OnboardingPageState extends State<OnboardingPage> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  final List<_OnboardingData> _pages = [
-    _OnboardingData(
-      icon: null,
-      imagePath: 'lib/assets/image.png',
-      title: 'Bienvenue sur LiftUp',
-      description:
-          'Votre coach personnel alimenté par l\'IA pour améliorer vos performances sportives.',
+  static const _features = [
+    (
+      icon: LucideIcons.sparkles,
       color: AppColors.primary,
+      title: 'Coach IA',
+      subtitle: 'Un programme qui s\'adapte à votre progression',
     ),
-    _OnboardingData(
-      icon: Icons.videocam_rounded,
-      title: 'Analysez vos Mouvements',
-      description:
-          'Filmez vos exercices et obtenez des conseils personnalisés pour perfectionner votre technique.',
-      color: AppColors.secondary,
-    ),
-    _OnboardingData(
-      icon: Icons.trending_up_rounded,
-      title: 'Suivez vos Progrès',
-      description:
-          'Visualisez votre évolution et atteignez vos objectifs avec un programme adapté.',
+    (
+      icon: LucideIcons.video,
       color: AppColors.accent,
+      title: 'Analyse vidéo',
+      subtitle: 'Des conseils pour perfectionner votre technique',
+    ),
+    (
+      icon: LucideIcons.trendingUp,
+      color: AppColors.success,
+      title: 'Suivi des progrès',
+      subtitle: 'Séances, records et évolution',
     ),
   ];
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _nextPage() {
-    if (_currentPage < _pages.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
+  static const _padding = EdgeInsets.fromLTRB(20, 48, 20, 32);
 
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      children: [
+        const GradientTile(icon: LucideIcons.dumbbell, size: 80),
+        const SizedBox(height: 32),
+        const Text('Bienvenue sur LiftUp', style: AppText.h1, textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        Text(
+          'Votre coach personnel alimenté par l\'IA pour améliorer vos performances sportives.',
+          style: AppText.body.copyWith(color: AppColors.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Column(
+            children: [
+              for (final feature in _features) ...[
+                _FeatureRow(
+                  icon: feature.icon,
+                  color: feature.color,
+                  title: feature.title,
+                  subtitle: feature.subtitle,
+                ),
+                const SizedBox(height: 12),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final actions = Column(
+      children: [
+        const SizedBox(height: 24),
+        AppButton(
+          label: 'Commencer',
+          fullWidth: true,
+          onPressed: () => context.go('/register'),
+        ),
+        const SizedBox(height: 8),
+        AuthLink(link: 'J\'ai déjà un compte', onTap: () => context.go('/login')),
+      ],
+    );
+
+    // No IntrinsicHeight: it measures text at the full width and ignores the
+    // narrower boxes below, which made this page overflow on wide windows.
+    // spaceBetween around an empty first child centers the content above the
+    // actions, and the page still scrolls when the window is short.
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Skip button
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(AppConstants.spacingM),
-                child: TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: Text(
-                    'Passer',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 16,
-                    ),
+        child: LayoutBuilder(
+          builder: (context, constraints) => Center(
+            child: SizedBox(
+              width: math.min(constraints.maxWidth, 448 + _padding.horizontal),
+              child: SingleChildScrollView(
+                padding: _padding,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: math.max(0, constraints.maxHeight - _padding.vertical),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [const SizedBox.shrink(), content, actions],
                   ),
                 ),
               ),
             ),
-
-            // Page view
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _pages.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
-                },
-              ),
-            ),
-
-            // Page indicators
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingL),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _pages.length,
-                  (index) => _buildIndicator(index),
-                ),
-              ),
-            ),
-
-            // Buttons
-            Padding(
-              padding: const EdgeInsets.all(AppConstants.spacingL),
-              child: _currentPage == _pages.length - 1
-                  ? _buildFinalButtons()
-                  : _buildNextButton(),
-            ),
-
-            const SizedBox(height: AppConstants.spacingL),
-          ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildPage(_OnboardingData data) {
-    return Padding(
-      padding: const EdgeInsets.all(AppConstants.spacingXl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+class _FeatureRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+
+  const _FeatureRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
         children: [
-          // Animated icon container
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              color: data.color.withOpacity(0.2),
-              shape: BoxShape.circle,
+          IconTile(icon: icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.bodyMedium),
+                Text(subtitle, style: AppText.caption),
+              ],
             ),
-            child: data.imagePath != null
-                ? ClipOval(
-                    child: Image.asset(
-                      data.imagePath!,
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.contain,
-                    ),
-                  )
-                : Icon(
-                    data.icon,
-                    size: 80,
-                    color: data.color,
-                  ),
-          ),
-          const SizedBox(height: AppConstants.spacingXl),
-
-          // Title
-          Text(
-            data.title,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppConstants.spacingM),
-
-          // Description
-          Text(
-            data.description,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
-
-  Widget _buildIndicator(int index) {
-    final isActive = index == _currentPage;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: isActive ? 24 : 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: isActive ? AppColors.primary : AppColors.textSecondary,
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
-  }
-
-  Widget _buildNextButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _nextPage,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-          ),
-        ),
-        child: const Text(
-          'Suivant',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFinalButtons() {
-    return Column(
-      children: [
-        // Get Started / Register button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => context.go('/register'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-              ),
-            ),
-            child: const Text(
-              'Commencer',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppConstants.spacingM),
-
-        // Login button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () => context.go('/login'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textPrimary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-              ),
-            ),
-            child: const Text(
-              'J\'ai déjà un compte',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Data class for onboarding pages
-class _OnboardingData {
-  final IconData? icon;
-  final String? imagePath;
-  final String title;
-  final String description;
-  final Color color;
-
-  _OnboardingData({
-    this.icon,
-    this.imagePath,
-    required this.title,
-    required this.description,
-    required this.color,
-  });
 }

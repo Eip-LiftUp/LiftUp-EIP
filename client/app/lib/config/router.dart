@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/features/home/presentation/pages/home_page.dart';
-import 'package:app/features/movement_analysis/presentation/pages/movement_analysis_page.dart';
 import 'package:app/features/profile/presentation/pages/profile_page.dart' show ProfilePage;
+import 'package:app/features/planning/presentation/pages/planning_page.dart';
 import 'package:app/features/program/presentation/pages/program_page.dart';
+import 'package:app/features/program_generation/presentation/generate_program_page.dart';
+import 'package:app/features/progress/presentation/pages/progress_page.dart';
 import 'package:app/features/auth/auth.dart';
 import 'package:app/features/profile_setup/presentation/pages/profile_setup_page.dart';
 
 int _getNavIndex(String location) {
-  if (location.startsWith('/movement-analysis')) return 1;
-  if (location.startsWith('/program')) return 2;
+  if (location.startsWith('/training')) return 1;
+  if (location.startsWith('/progress')) return 2;
   if (location.startsWith('/profile')) return 3;
   return 0;
 }
@@ -29,7 +31,7 @@ CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
         CurveTween(curve: Curves.easeOut),
       );
       return Container(
-        color: const Color(0xFF0D1B2A),
+        color: AppColors.background,
         child: SlideTransition(
           position: animation.drive(tween),
           child: FadeTransition(
@@ -83,6 +85,28 @@ final GoRouter appRouter = GoRouter(
       name: 'profile-setup',
     ),
 
+    // Full-screen pages pushed above the tabs (no bottom nav)
+    GoRoute(
+      path: '/planning',
+      pageBuilder: (context, state) => _buildPage(
+        PlanningPage(
+          initialDate: DateTime.tryParse(state.uri.queryParameters['date'] ?? ''),
+        ),
+        state,
+      ),
+      name: 'planning',
+    ),
+    GoRoute(
+      path: '/profile/training',
+      pageBuilder: (context, state) => _buildPage(const ProfileSetupPage(editMode: true), state),
+      name: 'edit-training-profile',
+    ),
+    GoRoute(
+      path: '/training/generate',
+      pageBuilder: (context, state) => _buildPage(const GenerateProgramPage(), state),
+      name: 'generate-program',
+    ),
+
     // Main app routes (inside shell with bottom nav)
     ShellRoute(
       builder: (context, state, child) {
@@ -98,33 +122,29 @@ final GoRouter appRouter = GoRouter(
           name: 'home',
         ),
         GoRoute(
-          path: '/movement-analysis',
-          pageBuilder: (context, state) => _buildPage(const MovementAnalysisPage(), state),
-          name: 'movement-analysis',
+          path: '/training',
+          pageBuilder: (context, state) => _buildPage(const ProgramPage(), state),
+          name: 'training',
+        ),
+        GoRoute(
+          path: '/progress',
+          pageBuilder: (context, state) => _buildPage(const ProgressPage(), state),
+          name: 'progress',
         ),
         GoRoute(
           path: '/profile',
           pageBuilder: (context, state) => _buildPage(const ProfilePage(), state),
           name: 'profile',
         ),
-        GoRoute(
-          path: '/program',
-          pageBuilder: (context, state) => _buildPage(const ProgramPage(), state),
-          name: 'program',
-        ),
       ],
     ),
   ],
   errorBuilder: (context, state) => Scaffold(
-    backgroundColor: const Color(0xFF0D1B2A),
-    appBar: AppBar(
-      backgroundColor: const Color(0xFF1B2838),
-      title: const Text('Error', style: TextStyle(color: Colors.white)),
-    ),
+    appBar: AppBar(title: const Text('Page introuvable')),
     body: Center(
       child: Text(
-        'Page not found: ${state.uri}',
-        style: const TextStyle(color: Colors.white),
+        'Aucune page à l\'adresse ${state.uri}',
+        style: const TextStyle(color: AppColors.textSecondary),
       ),
     ),
   ),

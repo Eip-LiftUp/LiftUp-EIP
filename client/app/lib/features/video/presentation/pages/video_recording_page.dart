@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
 import 'package:app/core/constants/app_constants.dart';
-import 'package:app/core/widgets/main_scaffold.dart';
+import 'package:app/core/widgets/ui/ui.dart';
 
 /// Video Recording Page
 /// 
@@ -93,7 +96,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
     if (!cameraStatus.isGranted || !microphoneStatus.isGranted) {
       setState(() {
         _hasPermission = false;
-        _errorMessage = 'Camera and microphone permissions are required';
+        _errorMessage = 'L\'accès à la caméra et au micro est nécessaire';
       });
       return;
     }
@@ -106,7 +109,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
         setState(() {
-          _errorMessage = 'No cameras available on this device';
+          _errorMessage = 'Aucune caméra disponible sur cet appareil';
         });
         return;
       }
@@ -114,7 +117,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       await _setupCameraController(_cameras[_selectedCameraIndex]);
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to initialize camera: $e';
+        _errorMessage = 'Impossible d\'initialiser la caméra : $e';
       });
     }
   }
@@ -142,7 +145,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to setup camera: $e';
+        _errorMessage = 'Impossible de configurer la caméra : $e';
       });
     }
   }
@@ -194,13 +197,13 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
   IconData _getFlashIcon() {
     switch (_flashMode) {
       case FlashMode.off:
-        return Icons.flash_off;
+        return LucideIcons.zapOff;
       case FlashMode.auto:
-        return Icons.flash_auto;
+        return LucideIcons.zap;
       case FlashMode.always:
-        return Icons.flash_on;
+        return LucideIcons.zap;
       case FlashMode.torch:
-        return Icons.highlight;
+        return LucideIcons.flashlight;
     }
   }
 
@@ -223,7 +226,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to start recording: $e';
+        _errorMessage = 'Impossible de démarrer l\'enregistrement : $e';
       });
     }
   }
@@ -250,7 +253,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
     } catch (e) {
       setState(() {
         _isRecording = false;
-        _errorMessage = 'Failed to stop recording: $e';
+        _errorMessage = 'Impossible d\'arrêter l\'enregistrement : $e';
       });
     }
   }
@@ -295,9 +298,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
     }
 
     if (!_isInitialized || _controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return Center(
@@ -312,42 +313,26 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.videocam_off_rounded,
-              size: 80,
+            const IconTile(
+              icon: LucideIcons.videoOff,
               color: AppColors.textSecondary,
+              background: AppColors.surface2,
+              size: 80,
+              iconSize: 36,
             ),
             const SizedBox(height: AppConstants.spacingL),
-            Text(
-              'Permissions requises',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-            ),
+            const Text('Autorisations requises', style: AppText.metric, textAlign: TextAlign.center),
             const SizedBox(height: AppConstants.spacingM),
             Text(
-              'Veuillez autoriser l\'accès à la caméra et au microphone pour enregistrer des vidéos.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              'Autorise l\'accès à la caméra et au micro pour filmer ton mouvement.',
+              style: AppText.body.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppConstants.spacingL),
-            ElevatedButton(
-              onPressed: () async {
-                await openAppSettings();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.spacingXl,
-                  vertical: AppConstants.spacingM,
-                ),
-              ),
-              child: const Text('Ouvrir les paramètres'),
+            AppButton(
+              label: 'Ouvrir les paramètres',
+              icon: LucideIcons.settings,
+              onPressed: openAppSettings,
             ),
           ],
         ),
@@ -367,7 +352,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
           children: [
             // Close button
             _buildControlButton(
-              icon: Icons.close,
+              icon: LucideIcons.x,
               onPressed: () => Navigator.of(context).pop(),
             ),
 
@@ -401,7 +386,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
 
             // Switch camera button
             _buildControlButton(
-              icon: Icons.cameraswitch_rounded,
+              icon: LucideIcons.switchCamera,
               onPressed: _cameras.length > 1 ? _switchCamera : null,
             ),
           ],
@@ -427,7 +412,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: _isRecording ? Colors.red : Colors.red.withOpacity(0.8),
+            color: _isRecording ? AppColors.error : AppColors.error.withValues(alpha: 0.85),
             shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
             borderRadius: _isRecording ? BorderRadius.circular(8) : null,
           ),
@@ -444,11 +429,11 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       width: 50,
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.6),
         shape: BoxShape.circle,
       ),
       child: IconButton(
-        icon: Icon(icon, color: Colors.white),
+        icon: Icon(icon, color: AppColors.textPrimary),
         onPressed: onPressed,
       ),
     );
@@ -466,27 +451,25 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             vertical: AppConstants.spacingS,
           ),
           decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
+            color: AppColors.error.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: AppConstants.spacingS),
               Text(
                 _formatDuration(_recordingDuration),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                style: AppText.bodyMedium.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -504,15 +487,12 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
       child: Container(
         padding: const EdgeInsets.all(AppConstants.spacingM),
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
+          color: AppColors.error.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           _errorMessage!,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-          ),
+          style: AppText.body.copyWith(fontSize: 14),
           textAlign: TextAlign.center,
         ),
       ),

@@ -1,294 +1,157 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:app/core/constants/app_constants.dart';
-import 'package:app/core/widgets/main_scaffold.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:app/config/app_colors.dart';
+import 'package:app/config/theme.dart';
+import 'package:app/core/widgets/ui/ui.dart';
 import 'video_preview_page.dart';
 import 'video_recording_page.dart';
 
-/// Video Selection Page
-/// 
-/// This page allows users to select a video from their device
-/// or record a new video using the camera.
+/// First step of the video review: record a video or pick one.
 class VideoSelectionPage extends StatelessWidget {
-  /// Callback when a video is selected
+  /// Called with the video path once the user confirms it in the preview.
   final void Function(String videoPath)? onVideoSelected;
 
-  const VideoSelectionPage({
-    super.key,
-    this.onVideoSelected,
-  });
+  const VideoSelectionPage({super.key, this.onVideoSelected});
 
-  /// Pick video from gallery
   Future<void> _pickVideoFromGallery(BuildContext context) async {
-    final picker = ImagePicker();
-
     try {
-      final pickedFile = await picker.pickVideo(
+      final pickedFile = await ImagePicker().pickVideo(
         source: ImageSource.gallery,
         maxDuration: const Duration(minutes: 10),
       );
-
-      if (pickedFile != null) {
-        _handleVideoSelected(context, pickedFile.path);
-      }
+      if (pickedFile != null && context.mounted) _handleVideoSelected(context, pickedFile.path);
     } catch (e) {
-      _showErrorSnackBar(context, 'Erreur lors de la sélection: $e');
+      if (context.mounted) _showError(context, 'Erreur lors de la sélection : $e');
     }
   }
 
-  /// Pick video using file picker (for more formats)
   Future<void> _pickVideoFromFiles(BuildContext context) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.video,
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final path = result.files.first.path;
-        if (path != null) {
-          _handleVideoSelected(context, path);
-        }
-      }
+      final result = await FilePicker.platform.pickFiles(type: FileType.video, allowMultiple: false);
+      final path = result?.files.firstOrNull?.path;
+      if (path != null && context.mounted) _handleVideoSelected(context, path);
     } catch (e) {
-      _showErrorSnackBar(context, 'Erreur lors de la sélection: $e');
+      if (context.mounted) _showError(context, 'Erreur lors de la sélection : $e');
     }
   }
 
-  /// Open camera to record a new video
   Future<void> _recordNewVideo(BuildContext context) async {
-    final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (context) => VideoRecordingPage(
-          onVideoRecorded: (path) {
-            // Video recorded, will be returned from page
-          },
-        ),
-      ),
+    final path = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const VideoRecordingPage()),
     );
-
-    if (result != null) {
-      _handleVideoSelected(context, result);
-    }
+    if (path != null && context.mounted) _handleVideoSelected(context, path);
   }
 
-  /// Handle video selection
   void _handleVideoSelected(BuildContext context, String videoPath) {
-    // Navigate to video preview page
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => VideoPreviewPage(
-          videoPath: videoPath,
-          onConfirm: (path) {
-            onVideoSelected?.call(path);
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-        ),
+        builder: (_) => VideoPreviewPage(videoPath: videoPath, onConfirm: onVideoSelected),
       ),
     );
   }
 
-  /// Show error snackbar
-  void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.cardBackground,
-        title: const Text(
-          'Ajouter une vidéo',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingL),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Text(
-                'Comment souhaitez-vous ajouter votre vidéo ?',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppConstants.spacingL),
-              Text(
-                'Choisissez une option pour ajouter une vidéo de votre mouvement à analyser.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppConstants.spacingXl),
-
-              // Options
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Record new video option
-                    _VideoOptionCard(
-                      icon: Icons.videocam_rounded,
-                      title: 'Enregistrer une vidéo',
-                      description:
-                          'Utilisez la caméra pour filmer votre mouvement en temps réel.',
-                      color: AppColors.primary,
-                      onTap: () => _recordNewVideo(context),
-                    ),
-                    const SizedBox(height: AppConstants.spacingL),
-
-                    // Import from gallery option
-                    _VideoOptionCard(
-                      icon: Icons.photo_library_rounded,
-                      title: 'Importer depuis la galerie',
-                      description:
-                          'Sélectionnez une vidéo existante depuis votre galerie photo.',
-                      color: AppColors.secondary,
-                      onTap: () => _pickVideoFromGallery(context),
-                    ),
-                    const SizedBox(height: AppConstants.spacingL),
-
-                    // Import from files option
-                    _VideoOptionCard(
-                      icon: Icons.folder_rounded,
-                      title: 'Importer depuis les fichiers',
-                      description:
-                          'Parcourez vos dossiers pour sélectionner un fichier vidéo.',
-                      color: AppColors.accent,
-                      onTap: () => _pickVideoFromFiles(context),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Supported formats info
-              Container(
-                padding: const EdgeInsets.all(AppConstants.spacingM),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                  border: Border.all(color: AppColors.navBarBorder),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: AppConstants.spacingS),
-                    Expanded(
-                      child: Text(
-                        'Formats supportés: MP4, MOV, AVI, MKV (max 10 min)',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      appBar: const AppTopBar(title: 'Analyser une vidéo', showBack: true),
+      body: PageListView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        children: [
+          const Text('Filme ton mouvement', style: AppText.metric),
+          const SizedBox(height: 8),
+          Text(
+            'Ton coach IA analyse ta technique et te donne un verdict : Parfait, Améliorable ou À corriger. '
+            'Il apparaîtra dans ton planning.',
+            style: AppText.body.copyWith(color: AppColors.textSecondary),
           ),
-        ),
+          const SizedBox(height: 24),
+          _OptionCard(
+            icon: LucideIcons.video,
+            color: AppColors.primary,
+            title: 'Enregistrer une vidéo',
+            description: 'Utilise la caméra pour filmer ton mouvement.',
+            onTap: () => _recordNewVideo(context),
+          ),
+          const SizedBox(height: 12),
+          _OptionCard(
+            icon: LucideIcons.images,
+            color: AppColors.success,
+            title: 'Importer depuis la galerie',
+            description: 'Sélectionne une vidéo existante.',
+            onTap: () => _pickVideoFromGallery(context),
+          ),
+          const SizedBox(height: 12),
+          _OptionCard(
+            icon: LucideIcons.folderOpen,
+            color: AppColors.accent,
+            title: 'Importer depuis les fichiers',
+            description: 'Parcours tes dossiers pour choisir un fichier vidéo.',
+            onTap: () => _pickVideoFromFiles(context),
+          ),
+          const SizedBox(height: 24),
+          const AppCard(
+            elevated: true,
+            padding: EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(LucideIcons.info, size: 20, color: AppColors.textSecondary),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Formats supportés : MP4, MOV, AVI, MKV (10 min max)',
+                    style: AppText.caption,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Video option card widget
-class _VideoOptionCard extends StatelessWidget {
+class _OptionCard extends StatelessWidget {
   final IconData icon;
+  final Color color;
   final String title;
   final String description;
-  final Color color;
   final VoidCallback onTap;
 
-  const _VideoOptionCard({
+  const _OptionCard({
     required this.icon,
+    required this.color,
     required this.title,
     required this.description,
-    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-        child: Container(
-          padding: const EdgeInsets.all(AppConstants.spacingL),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(AppConstants.borderRadiusL),
-            border: Border.all(color: color.withOpacity(0.3)),
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          IconTile(icon: icon, color: color, size: 48, iconSize: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.bodyMedium),
+                const SizedBox(height: 2),
+                Text(description, style: AppText.caption),
+              ],
+            ),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppConstants.spacingM),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusM),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: AppConstants.spacingM),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: AppConstants.spacingXs),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: color,
-              ),
-            ],
-          ),
-        ),
+          const Icon(LucideIcons.chevronRight, size: 20, color: AppColors.textSecondary),
+        ],
       ),
     );
   }

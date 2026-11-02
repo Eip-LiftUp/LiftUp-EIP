@@ -31,8 +31,26 @@
 
   <title>LiftUp</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Shown until Flutter paints its first frame on top of it (debug builds
+       take a while to load), instead of a blank white page. -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #0B1020; }
+    #liftup-loading {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      color: #B7C0D9; font: 14px system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    #liftup-loading .spinner {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid #22325E; border-top-color: #2FB6FF;
+      animation: liftup-spin 0.8s linear infinite;
+    }
+    @keyframes liftup-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { #liftup-loading .spinner { animation-duration: 2.4s; } }
+  </style>
 </head>
 <body>
+  <div id="liftup-loading" aria-hidden="true"><div class="spinner"></div>Chargement de LiftUp…</div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

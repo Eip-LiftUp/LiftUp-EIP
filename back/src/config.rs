@@ -1,5 +1,6 @@
 //! Application configuration loaded from environment variables.
 
+use anyhow::Context;
 use std::env;
 use std::fmt;
 
@@ -64,7 +65,8 @@ impl Config {
     /// Load configuration from the environment (requires dotenvy to have loaded .env).
     ///
     /// # Errors
-    /// Returns an error if a numeric variable cannot be parsed, if `JWT_SECRET`
+    /// Returns an error if a numeric variable cannot be parsed, if `DATABASE_URL` or
+    /// `JWT_SECRET`
     /// is missing or shorter than 32 characters, or if `JWT_EXPIRATION_DAYS` or
     /// `LOGIN_RATE_LIMIT_PER_MINUTE` or `AI_TIMEOUT_SECS` is not a positive integer.
     pub fn from_env() -> anyhow::Result<Self> {
@@ -113,8 +115,8 @@ impl Config {
             server_port: env::var("SERVER_PORT")
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()?,
-            database_url: env::var("DATABASE_URL")
-                .expect("DATABASE_URL must be set"),
+            // `context` turns the `VarError` into an `anyhow::Error` with a clear message.
+            database_url: env::var("DATABASE_URL").context("DATABASE_URL must be set")?,
             database_max_connections: env::var("DATABASE_MAX_CONNECTIONS")
                 .unwrap_or_else(|_| "10".to_string())
                 .parse()?,

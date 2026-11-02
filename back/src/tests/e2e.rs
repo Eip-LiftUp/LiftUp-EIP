@@ -210,3 +210,22 @@ async fn too_many_failed_logins_return_429(pool: PgPool) {
     let blocked = server.post("/auth/login").add_header(name, value).json(&body).await;
     blocked.assert_status(StatusCode::TOO_MANY_REQUESTS);
 }
+
+/// Given a valid token whose user was deleted, when asking for a program, then 404
+/// (the signature is still valid, but the user no longer exists).
+#[sqlx::test]
+async fn program_for_deleted_user_returns_404(pool: PgPool) {
+    let mock = StoppableMock::start(ok_mock()).await;
+    // `PgPool` is a cheap handle: the clone shares the pool with the server.
+    let server = server(pool.clone(), mock.url.clone(), 100);
+    let (user_id, token) = create_and_login(&server).await;
+
+    sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(user_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let response = server.get("/workouts/program").add_header(AUTHORIZATION, bearer(&token)).await;
+    response.assert_status(StatusCode::NOT_FOUND);
+}

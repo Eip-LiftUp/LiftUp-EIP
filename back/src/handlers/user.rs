@@ -102,13 +102,8 @@ pub async fn update_user(
     Path(user_id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(
-        "update_user called with: height_cm={:?}, weight_kg={:?}, fitness_level={:?}, fitness_goals={:?}",
-        body.height_cm,
-        body.weight_kg,
-        body.fitness_level,
-        body.fitness_goals
-    );
+    // Only the id is logged: the body holds health data (height, weight, goals).
+    tracing::info!(%user_id, "update_user called");
     let user = state.user_service.update_user(user_id, body).await?;
     let response: UserProfileResponse = user.into();
     Ok((StatusCode::OK, Json(response)))

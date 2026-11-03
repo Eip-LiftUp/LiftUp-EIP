@@ -8,7 +8,7 @@ from app.ml.exercises.base import ExerciseModule
 
 _REGISTRY: Dict[str, ExerciseModule] = {}
 
-_INTERNAL_MODULES = {"base", "registry"}
+_INTERNAL_MODULES = {"base", "registry", "common"}
 
 
 def register_exercise(cls: Type[ExerciseModule]) -> Type[ExerciseModule]:

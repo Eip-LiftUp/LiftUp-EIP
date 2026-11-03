@@ -140,3 +140,21 @@ async fn post_then_get_user_workouts(pool: PgPool) {
     assert_eq!(workouts[0]["name"], "Push day");
     assert_eq!(workouts[0]["durationMinutes"], 45);
 }
+
+/// Given an unknown user id, when `POST /users/:id/workouts`, then 404 (not a 500 from the foreign key).
+#[sqlx::test]
+async fn post_workout_for_unknown_user_returns_404(pool: PgPool) {
+    let server = test_server(pool);
+    let unknown = Uuid::new_v4();
+
+    let response = server
+        .post(&format!("/users/{unknown}/workouts"))
+        .json(&json!({ "name": "Ghost workout" }))
+        .await;
+
+    response.assert_status(StatusCode::NOT_FOUND);
+    assert_eq!(
+        response.json::<Value>(),
+        json!({ "error": format!("User with id '{unknown}' not found") })
+    );
+}

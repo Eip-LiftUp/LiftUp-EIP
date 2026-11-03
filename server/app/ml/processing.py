@@ -8,7 +8,7 @@ import numpy as np
 from app.ml.exercises import ExerciseModule
 from app.ml.pose import PoseSequence
 from app.ml.preprocessing import preprocess
-from app.ml.segmentation import Rep, segment_reps
+from app.ml.segmentation import Rep, segment_holds, segment_reps
 
 
 @dataclass
@@ -23,7 +23,10 @@ class ProcessedRecording:
 def process_sequence(exercise: ExerciseModule, raw: PoseSequence) -> ProcessedRecording:
     seq = preprocess(raw, exercise.preprocess_config)
     signal = np.asarray(exercise.primary_signal(seq), dtype=np.float64)
-    reps = segment_reps(signal, seq.fps, exercise.segmentation_config)
+    if exercise.hold_config is None:
+        reps = segment_reps(signal, seq.fps, exercise.segmentation_config)
+    else:
+        reps = segment_holds(exercise.hold_mask(seq), seq.fps, exercise.hold_config)
     features = [exercise.features.compute(seq.slice(r.start, r.end)) for r in reps]
     names = exercise.features.names
     matrix = np.array([[f[n] for n in names] for f in features], dtype=np.float64).reshape(len(reps), len(names))

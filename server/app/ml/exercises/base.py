@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import cached_property
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from app.ml.features import FeatureSet
 from app.ml.pose import PoseSequence
 from app.ml.preprocessing import PreprocessConfig
 from app.ml.rules import Rule, RuleEngine, Severity
-from app.ml.segmentation import SegmentationConfig
+from app.ml.segmentation import HoldConfig, SegmentationConfig
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,7 @@ class ExerciseModule(ABC):
     display_name: str = ""
     preprocess_config: PreprocessConfig = PreprocessConfig()
     segmentation_config: SegmentationConfig = SegmentationConfig()
+    hold_config: Optional[HoldConfig] = None
 
     @abstractmethod
     def primary_signal(self, seq: PoseSequence) -> np.ndarray:
@@ -36,6 +37,9 @@ class ExerciseModule(ABC):
     @abstractmethod
     def build_features(self) -> FeatureSet:
         ...
+
+    def hold_mask(self, seq: PoseSequence) -> np.ndarray:
+        raise NotImplementedError(f"exercise '{self.name}' is a hold but does not define hold_mask")
 
     def build_faults(self) -> List[FaultSpec]:
         return []
@@ -70,6 +74,8 @@ class ExerciseModule(ABC):
             raise ValueError(f"{type(self).__name__} must define a non-empty 'name'")
         if len(set(self.fault_names)) != len(self.fault_names):
             raise ValueError(f"exercise '{self.name}' declares duplicate faults")
+        if self.hold_config is not None and type(self).hold_mask is ExerciseModule.hold_mask:
+            raise ValueError(f"exercise '{self.name}' is a hold and must define hold_mask")
         self.rule_engine.validate(self.features.names)
         unknown = sorted({r.fault for r in self.rule_engine.rules} - set(self.fault_names))
         if unknown:

@@ -23,7 +23,8 @@ use crate::{
 ///
 /// # Responses
 /// - `201 Created` — workout created successfully.
-/// - `400 Bad Request` — validation failed.
+/// - `404 Not Found` — user not found.
+/// - `422 Unprocessable Entity` — validation failed.
 /// - `500 Internal Server Error` — unexpected error.
 pub async fn create_workout(
     State(state): State<AppState>,

@@ -41,7 +41,19 @@ impl WorkoutRepository {
         .bind(&req.notes)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to create workout: {}", e)))?;
+        .map_err(|e| {
+            // The only foreign key of `workouts` is `user_id → users(id)`: a violation
+            // means the user does not exist, which is a 404 and not a server error.
+            // Checking in the same INSERT avoids a race with a concurrent user deletion.
+            let is_fk_violation = e
+                .as_database_error()
+                .is_some_and(|db_err| db_err.is_foreign_key_violation());
+            if is_fk_violation {
+                AppError::NotFound(format!("User with id '{user_id}' not found"))
+            } else {
+                AppError::Internal(format!("Failed to create workout: {e}"))
+            }
+        })?;
 
         Ok(workout)
     }

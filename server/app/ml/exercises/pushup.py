@@ -1,5 +1,3 @@
-import numpy as np
-
 from app.ml.exercises.base import ExerciseModule, FaultSpec
 from app.ml.exercises.common import body_line_angle, elbow_angle, side_only, view_ratio
 from app.ml.exercises.registry import register_exercise

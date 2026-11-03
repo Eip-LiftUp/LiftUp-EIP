@@ -4,7 +4,7 @@
 //! This allows the Flutter app to use the Rust backend as a single entry point.
 
 use axum::{
-    extract::Query,
+    extract::{Query, State},
     http::StatusCode,
     response::Json,
 };
@@ -12,8 +12,7 @@ use axum_extra::extract::Multipart;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Configuration for the AI service
-const AI_SERVICE_URL: &str = "http://localhost:8000";
+use crate::AppState;
 
 /// Query parameters for video analysis
 #[derive(Debug, Deserialize)]
@@ -86,11 +85,11 @@ pub struct ErrorResponse {
 /// - video: The video file to analyze
 /// - exercise_type (optional): Expected exercise type
 pub async fn analyze_video(
+    State(state): State<AppState>,
     Query(query): Query<AnalyzeQuery>,
     mut multipart: Multipart,
 ) -> Result<Json<AnalysisResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Build multipart form for the AI service
-    let client = reqwest::Client::new();
     let mut form = reqwest::multipart::Form::new();
 
     // Process incoming multipart data
@@ -153,8 +152,9 @@ pub async fn analyze_video(
     }
 
     // Send request to AI service
-    let response = client
-        .post(format!("{}/api/v1/video/analyze", AI_SERVICE_URL))
+    let response = state
+        .analysis_client
+        .post(format!("{}/api/v1/video/analyze", state.ai_service_url))
         .multipart(form)
         .send()
         .await
@@ -197,11 +197,11 @@ pub async fn analyze_video(
 ///
 /// GET /ai/exercises
 pub async fn get_supported_exercises(
+    State(state): State<AppState>,
 ) -> Result<Json<SupportedExercisesResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let client = reqwest::Client::new();
-
-    let response = client
-        .get(format!("{}/api/v1/video/supported-exercises", AI_SERVICE_URL))
+    let response = state
+        .analysis_client
+        .get(format!("{}/api/v1/video/supported-exercises", state.ai_service_url))
         .send()
         .await
         .map_err(|e| {
@@ -239,11 +239,13 @@ pub async fn get_supported_exercises(
 /// Health check for the AI service
 ///
 /// GET /ai/health
-pub async fn ai_health_check() -> Json<HashMap<String, serde_json::Value>> {
-    let client = reqwest::Client::new();
-
-    match client
-        .get(format!("{}/api/v1/video/health", AI_SERVICE_URL))
+pub async fn ai_health_check(
+    State(state): State<AppState>,
+) -> Json<HashMap<String, serde_json::Value>> {
+    // The shared client has the long analysis timeout; this call keeps its own short one.
+    match state
+        .analysis_client
+        .get(format!("{}/api/v1/video/health", state.ai_service_url))
         .timeout(std::time::Duration::from_secs(5))
         .send()
         .await

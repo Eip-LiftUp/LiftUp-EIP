@@ -91,6 +91,7 @@ mod tests {
             login_rate_limit_per_minute: 5,
             ai_service_url: "http://localhost:8000".to_string(),
             ai_timeout_secs: 5,
+            ai_analysis_timeout_secs: 120,
             cors_allowed_origins: origins.iter().map(|o| o.to_string()).collect(),
         }
     }

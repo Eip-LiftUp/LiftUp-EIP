@@ -42,7 +42,7 @@ pub fn build_test_state_with_ai(pool: PgPool, ai_service_url: String, ai_timeout
     let workout_service = Arc::new(WorkoutService::new(WorkoutRepository::new(pool.clone())));
     let program_service = Arc::new(
         ProgramService::new(
-            ai_service_url,
+            ai_service_url.clone(),
             ai_timeout,
             UserRepository::new(pool.clone()),
             ProgramRepository::new(pool),
@@ -55,6 +55,8 @@ pub fn build_test_state_with_ai(pool: PgPool, ai_service_url: String, ai_timeout
         user_service,
         workout_service,
         program_service,
+        ai_service_url: Arc::new(ai_service_url),
+        analysis_client: reqwest::Client::new(),
     }
 }
 

@@ -21,7 +21,7 @@ Exclus :
 
 - src/config.rs
   - Chargement des variables d'environnement et config runtime.
-  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7). Contient aussi AI_SERVICE_URL (defaut http://localhost:8000) et AI_TIMEOUT_SECS (defaut 5).
+  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7). Contient aussi AI_SERVICE_URL (defaut http://localhost:8000) et AI_TIMEOUT_SECS (defaut 5) et AI_ANALYSIS_TIMEOUT_SECS (defaut 120, analyse video). Tests de parse_positive_secs inclus.
 
 - src/auth/mod.rs
   - Module d'authentification ; extracteur Axum AuthUser(pub Uuid) qui lit Authorization: Bearer <token>.
@@ -70,7 +70,7 @@ Exclus :
   - Endpoints workouts/exercises (CRUD et operations associees).
 
 - src/handlers/analysis.rs
-  - Endpoints d'analyse mouvement/video.
+  - Endpoints d'analyse mouvement/video (proxy vers le service IA). Utilisent AppState.ai_service_url (AI_SERVICE_URL) et un client reqwest partage unique (AppState.analysis_client, timeout AI_ANALYSIS_TIMEOUT_SECS), plus de constante codee en dur.
   - Modeles de payload/reponse exposes dans ce module : AnalyzeQuery, AnalysisResponse, FormScores, FeedbackComment, AnalysisMetrics, SupportedExercisesResponse, ErrorResponse.
 
 ### 3) Modeles metier

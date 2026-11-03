@@ -142,6 +142,8 @@ LOGIN_RATE_LIMIT_PER_MINUTE=5
 # Optional, Python AI service (defaults: http://localhost:8000, 5 seconds)
 AI_SERVICE_URL=http://localhost:8000
 AI_TIMEOUT_SECS=5
+# Optional, video analysis timeout in seconds (default 120)
+AI_ANALYSIS_TIMEOUT_SECS=120
 RUST_LOG=liftup_backend=debug,tower_http=debug
 ```
 
@@ -353,3 +355,20 @@ Ce projet suit les conventions définies dans [`docs/GIT_WORKFLOW_AND_STANDARDS.
 - **Code** : Aucun code commenté, pas de `println!` de debug (utiliser `tracing::debug!`)
 - **Formatage** : `cargo fmt` avant chaque commit
 - **Lint** : `cargo clippy -- -D warnings` avant chaque PR
+
+---
+
+## Déploiement avec Docker Compose
+
+Le fichier [`docker-compose.yml`](../docker-compose.yml) (à la racine du repo) lance PostgreSQL, Adminer et le backend. Les variables sont lues dans un `.env` placé à côté du compose (modèle : [`.env.example`](../.env.example) à la racine) :
+
+```bash
+cp .env.example .env   # puis changer JWT_SECRET (openssl rand -hex 32)
+docker compose config  # valide le fichier ; échoue si JWT_SECRET est absent
+docker compose up --build
+```
+
+- `JWT_SECRET` est **obligatoire** (32 caractères minimum, aucune valeur par défaut) : `docker compose` s'arrête avec un message clair s'il manque. Ne commitez jamais le `.env`.
+- Dans le conteneur, `SERVER_HOST=0.0.0.0` (sinon le serveur serait injoignable de l'extérieur) et le port publié `8080:8080` correspond à `SERVER_PORT`.
+- Le service `ai-service` du compose est **désactivé** : `AI_SERVICE_URL` vaut par défaut `http://host.docker.internal:8000` (service lancé sur la machine hôte). `localhost` ne marcherait pas, il désigne le conteneur lui-même. Si vous activez `ai-service`, utilisez `http://ai-service:8000`.
+- Variables transmises : `JWT_SECRET`, `JWT_EXPIRATION_DAYS`, `CORS_ALLOWED_ORIGINS`, `LOGIN_RATE_LIMIT_PER_MINUTE`, `AI_SERVICE_URL`, `AI_TIMEOUT_SECS`, `AI_ANALYSIS_TIMEOUT_SECS`.

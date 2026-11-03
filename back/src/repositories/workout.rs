@@ -46,16 +46,6 @@ impl WorkoutRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| {
-<<<<<<< HEAD
-            // 23503 = foreign_key_violation: `user_id` does not exist in `users`.
-            // `as_database_error` borrows the Postgres error if there is one.
-            if let Some(db_error) = e.as_database_error() {
-                if db_error.code().as_deref() == Some("23503") {
-                    return AppError::NotFound("User not found".to_string());
-                }
-            }
-            AppError::Internal(format!("Failed to create workout: {}", e))
-=======
             // The only foreign key of `workouts` is `user_id → users(id)`: a violation
             // means the user does not exist, which is a 404 and not a server error.
             // Checking in the same INSERT avoids a race with a concurrent user deletion.
@@ -67,7 +57,6 @@ impl WorkoutRepository {
             } else {
                 AppError::Internal(format!("Failed to create workout: {e}"))
             }
->>>>>>> 046353fa4da4c00b3dd88e5b094e72ce3dd6f827
         })?;
 
         Ok(workout)

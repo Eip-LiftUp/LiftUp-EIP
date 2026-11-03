@@ -36,3 +36,20 @@ def sequence_from_frames(frames, fps=30.0):
 
 def both_sides(name, xy):
     return {f"left_{name}": xy, f"right_{name}": xy}
+
+
+def paired(points, width=0.0, axis=0):
+    offset = np.zeros(2)
+    offset[axis] = width
+    pose = {}
+    for name, xy in points.items():
+        xy = np.asarray(xy, dtype=float)
+        pose[f"left_{name}"] = xy
+        pose[f"right_{name}"] = xy + offset
+    return pose
+
+
+def keyframe_sequence(top, bottom, reps, fps=30.0, rep_seconds=2.0):
+    fractions = rep_fractions(reps, fps, rep_seconds=rep_seconds)
+    frames = [{k: (1 - f) * top[k] + f * bottom[k] for k in top} for f in fractions]
+    return sequence_from_frames(frames, fps)

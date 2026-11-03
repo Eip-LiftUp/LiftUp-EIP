@@ -92,6 +92,7 @@ mod tests {
             ai_service_url: "http://localhost:8000".to_string(),
             ai_timeout_secs: 5,
             ai_analysis_timeout_secs: 120,
+            max_upload_bytes: 50 * 1024 * 1024,
             cors_allowed_origins: origins.iter().map(|o| o.to_string()).collect(),
         }
     }

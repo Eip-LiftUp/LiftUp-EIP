@@ -92,8 +92,16 @@ fn too_many_requests_response(error: GovernorError) -> Response<Body> {
             }
             response
         }
-        // Other errors (e.g. no client IP found) keep the library's default response.
-        mut other => other.as_response(),
+        // Other errors (e.g. no client IP found): same JSON format as the rest of the API,
+        // generic message, and the cause is only logged.
+        other => {
+            tracing::error!("Login rate limiter error: {:?}", other);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Internal server error" })),
+            )
+                .into_response()
+        }
     }
 }
 
@@ -176,5 +184,18 @@ mod tests {
     #[tokio::test]
     async fn zero_limit_is_refused() {
         assert!(login_rate_limit_layer(0).is_err());
+    }
+
+    /// Given a request without any client IP (no proxy header, no peer address),
+    /// when it reaches the limiter, then the answer is a JSON 500 with a generic message.
+    #[tokio::test]
+    async fn missing_client_ip_returns_json_500() {
+        let server = test_server();
+
+        let response = server.post("/auth/login").await;
+
+        response.assert_status(StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(response.json::<Value>(), json!({ "error": "Internal server error" }));
+        assert!(response.header("content-type").to_str().unwrap().starts_with("application/json"));
     }
 }

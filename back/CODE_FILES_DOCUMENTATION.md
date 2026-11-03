@@ -21,11 +21,11 @@ Exclus :
 
 - src/config.rs
   - Chargement des variables d'environnement et config runtime.
-  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7). Contient aussi AI_SERVICE_URL (defaut http://localhost:8000) et AI_TIMEOUT_SECS (defaut 5) et AI_ANALYSIS_TIMEOUT_SECS (defaut 120, analyse video). Tests de parse_positive_secs inclus.
+  - Type principal : Config (avec JwtConfig : JWT_SECRET obligatoire >= 32 caracteres, masque dans Debug ; JWT_EXPIRATION_DAYS optionnel, defaut 7). Contient aussi AI_SERVICE_URL (defaut http://localhost:8000) et AI_TIMEOUT_SECS (defaut 5) et AI_ANALYSIS_TIMEOUT_SECS (defaut 120, analyse video). Contient aussi MAX_UPLOAD_MB (defaut 50, > 0 sinon erreur au demarrage) converti en octets (max_upload_bytes). Tests de parse_positive_u64 et mb_to_bytes inclus.
 
 - src/auth/mod.rs
   - Module d'authentification ; extracteur Axum AuthUser(pub Uuid) qui lit Authorization: Bearer <token>.
-  - Pas encore applique aux routes existantes (le front n'envoie pas le header).
+  - AuthUser::ensure_user(user_id) renvoie 403 Forbidden si l'id du chemin differe de celui du token. Applique a toutes les routes protegees (voir README, section Authentification).
 
 - src/auth/jwt.rs
   - Claims { sub, iat, exp }, create_token et verify_token (HS256, leeway 0, erreur generique 401).
@@ -40,6 +40,7 @@ Exclus :
   - login_rate_limit_layer(per_minute) : rate limiting de POST /auth/login par IP (tower_governor, burst N, un jeton toutes les 60/N s).
   - Cle = SmartIpKeyExtractor (X-Forwarded-For / X-Real-IP, puis IP du pair) : falsifiable si le serveur est expose sans reverse proxy.
   - Reponse 429 JSON { "error": ... } avec les en-tetes retry de la lib ; tache tokio de nettoyage (retain_recent). Contient ses tests.
+  - Sans IP exploitable (ni en-tete proxy ni IP du pair) : 500 JSON { "error": "Internal server error" } generique, cause loggee.
 
 - src/db.rs
   - Creation du pool PostgreSQL (sqlx) a partir de la config.
@@ -47,6 +48,7 @@ Exclus :
 - src/routes.rs
   - Construction du routeur HTTP principal.
   - Associe endpoints users/workouts/health/analysis aux handlers.
+  - build_router(state, login_rate_limit, max_upload_bytes) : DefaultBodyLimit::max(MAX_UPLOAD_MB) uniquement sur POST /ai/analyze ; les autres routes gardent la limite Axum de 2 Mo.
 
 - src/errors.rs
   - Erreurs applicatives centralisees et conversion en reponses HTTP.
@@ -70,7 +72,7 @@ Exclus :
   - Endpoints workouts/exercises (CRUD et operations associees).
 
 - src/handlers/analysis.rs
-  - Endpoints d'analyse mouvement/video (proxy vers le service IA). Utilisent AppState.ai_service_url (AI_SERVICE_URL) et un client reqwest partage unique (AppState.analysis_client, timeout AI_ANALYSIS_TIMEOUT_SECS), plus de constante codee en dur.
+  - Endpoints d'analyse mouvement/video (proxy vers le service IA). Utilisent AppState.ai_service_url (AI_SERVICE_URL) et un client reqwest partage unique (AppState.analysis_client, timeout AI_ANALYSIS_TIMEOUT_SECS), plus de constante codee en dur. Les erreurs envoyees au client sont generiques (detail jamais l'URL interne), la cause reelle est loggee ; la video n'est plus copiee (Part::stream_with_length).
   - Modeles de payload/reponse exposes dans ce module : AnalyzeQuery, AnalysisResponse, FormScores, FeedbackComment, AnalysisMetrics, SupportedExercisesResponse, ErrorResponse.
 
 ### 3) Modeles metier
@@ -150,7 +152,7 @@ Exclus :
   - Declare les modules de tests (compiles uniquement en test) ; chaque #[sqlx::test] utilise une base temporaire creee depuis DATABASE_URL (role avec CREATEDB).
 
 - src/tests/common.rs
-  - Helpers : build_test_state, test_server (routeur reel via axum-test), register_user, test_jwt_config.
+  - Helpers : build_test_state, test_server (routeur reel via axum-test), register_user, test_jwt_config, bearer_for et register_and_login (id + header Authorization).
 
 - src/tests/user_service.rs, src/tests/workout_service.rs
   - Tests des services appeles directement (creation, doublon, validation, login, COALESCE, ownership, exercices).
@@ -160,6 +162,12 @@ Exclus :
 
 - src/tests/program_endpoint.rs
   - Tests de GET /workouts/program avec un faux moteur ML axum (OK, ML eteint avec/sans cache, ML lent, statut 500, sans token).
+
+- src/tests/access_control.rs
+  - Tests de controle d'acces : routes publiques sans token, 401 sans token sur chaque famille protegee, 403 avec le token d'un autre utilisateur, succes avec son propre token.
+
+- src/tests/analysis.rs
+  - Tests du proxy IA : 3 Mo accepte (503, moteur IA eteint), au-dessus de la limite configuree 413, limite par defaut conservee ailleurs, pas de fuite de l'URL interne.
 
 - src/tests/e2e.rs
   - Tests end-to-end : POST /users -> POST /auth/login -> GET /workouts/program (generated, puis cache quand le faux moteur ML s'arrete), 401 (sans token, token altere, token expire), 404 (utilisateur supprime), 429 (rate limit login).
@@ -176,7 +184,7 @@ Exclus :
   - Manifest Rust (dependencies, metadata, profil de build).
 
 - openapi.yaml
-  - Contrat OpenAPI 3.0.3 ecrit avant le code (contract-first) ; pour l'instant GET /workouts/program.
+  - Contrat OpenAPI 3.0.3 de toutes les routes actuelles (schemas conformes au code : snake_case pour POST /users et le proxy IA, camelCase ailleurs ; bearerAuth sur les routes protegees ; reponses 401/403/404/409/413/422/429/503).
 
 - Dockerfile
   - Build et execution conteneurises du backend back.

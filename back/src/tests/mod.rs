@@ -5,6 +5,8 @@
 //! in `main.rs`). Each `#[sqlx::test]` gets its own temporary database, created
 //! from `DATABASE_URL`, with the migrations of `./migrations` already applied.
 
+mod access_control;
+mod analysis;
 mod common;
 mod e2e;
 mod http;

@@ -76,7 +76,7 @@ impl StoppableMock {
 /// Builds the real router for `pool`, with a login limit of `login_limit` per minute.
 fn server(pool: PgPool, ai_url: String, login_limit: u32) -> TestServer {
     let state = build_test_state_with_ai(pool, ai_url, TEST_TIMEOUT);
-    TestServer::new(routes::build_router(state, login_limit).unwrap()).unwrap()
+    TestServer::new(routes::build_router(state, login_limit, 50 * 1024 * 1024).unwrap()).unwrap()
 }
 
 /// Header name/value pair for `X-Forwarded-For`.

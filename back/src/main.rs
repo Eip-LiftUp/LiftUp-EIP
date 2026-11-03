@@ -103,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Layers wrap the router from the inside out: the last `.layer(...)` is the outermost,
     // so CORS sees every request first and answers preflight OPTIONS before routing.
-    let app = routes::build_router(state, config.login_rate_limit_per_minute)?
+    let app = routes::build_router(state, config.login_rate_limit_per_minute, config.max_upload_bytes)?
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(cors_layer);

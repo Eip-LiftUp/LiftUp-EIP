@@ -1,4 +1,8 @@
-use axum::{routing::{get, post, patch}, Router};
+use axum::{
+    extract::DefaultBodyLimit,
+    routing::{get, post, patch},
+    Router,
+};
 
 use crate::{
     handlers::{
@@ -17,7 +21,10 @@ use crate::{
 
 /// Build and return the application router with all registered routes.
 ///
-/// Current routes:
+/// Current routes. Public: `/health`, `POST /users`, `POST /auth/login`, `GET /ai/health`.
+/// All the others require `Authorization: Bearer <token>` (`401` otherwise); routes with a
+/// user id in the path also require it to match the token (`403` otherwise).
+///
 /// - `GET  /health` → [`health_check`]
 /// - `POST /users`  → [`create_user`]
 /// - `GET  /users/:id` → [`get_user`]
@@ -33,13 +40,20 @@ use crate::{
 /// - `DELETE /users/:user_id/exercises/:exercise_id` → [`delete_exercise`]
 /// - `GET  /workouts/program` → [`get_program`] (Bearer token required; ML engine with cache fallback)
 ///
+/// `POST /ai/analyze` accepts bodies up to `max_upload_bytes` (video upload); every other
+/// route keeps Axum's default limit (2 MB).
+///
 /// Only `POST /auth/login` is rate limited (`login_rate_limit_per_minute` attempts
 /// per minute and per IP).
 ///
 /// # Errors
 /// Returns an error if `login_rate_limit_per_minute` is invalid (see [`login_rate_limit_layer`]).
 /// Must be called inside a tokio runtime (the rate limiter spawns a cleanup task).
-pub fn build_router(state: AppState, login_rate_limit_per_minute: u32) -> anyhow::Result<Router> {
+pub fn build_router(
+    state: AppState,
+    login_rate_limit_per_minute: u32,
+    max_upload_bytes: usize,
+) -> anyhow::Result<Router> {
     // The layer wraps only this sub-router, so the other routes are not limited.
     // Both routers still wait for the same `AppState`, given once by `with_state` below.
     let login_router = Router::new()
@@ -56,10 +70,14 @@ pub fn build_router(state: AppState, login_rate_limit_per_minute: u32) -> anyhow
         .route("/users/:user_id/workouts/:workout_id", get(get_workout).patch(update_workout).delete(delete_workout))
         .route("/users/:user_id/workouts/:workout_id/exercises", post(add_exercise))
         .route("/users/:user_id/exercises/:exercise_id", patch(update_exercise).delete(delete_exercise))
-        // Program route (skeleton)
+        // Program route
         .route("/workouts/program", get(get_program))
         // AI Analysis routes (proxied to Python service)
-        .route("/ai/analyze", post(analyze_video))
+        // `DefaultBodyLimit` is applied to this route only (the 2 MB default is too small for a video).
+        .route(
+            "/ai/analyze",
+            post(analyze_video).layer(DefaultBodyLimit::max(max_upload_bytes)),
+        )
         .route("/ai/exercises", get(get_supported_exercises))
         .route("/ai/health", get(ai_health_check))
         .with_state(state))

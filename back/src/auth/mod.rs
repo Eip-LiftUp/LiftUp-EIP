@@ -9,13 +9,33 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::{errors::AppError, AppState};
+use crate::{
+    errors::{AppError, AppResult},
+    AppState,
+};
 
 /// Id of the authenticated user, extracted from the `Authorization: Bearer <token>` header.
 ///
-/// Add it as a handler argument to require authentication. It is not used
-/// by any route yet (the front-end does not send the header for now).
+/// Add it as a handler argument to require authentication: a request without a
+/// valid token is rejected with `401` before the handler body runs.
+/// Put it before body extractors such as `Json`, so the `401` wins over body
+/// parsing errors.
 pub struct AuthUser(pub Uuid);
+
+impl AuthUser {
+    /// Checks that the authenticated user is the user identified by `user_id`
+    /// (usually the id found in the request path).
+    ///
+    /// # Errors
+    /// Returns [`AppError::Forbidden`] if `user_id` differs from the token's user.
+    pub fn ensure_user(&self, user_id: Uuid) -> AppResult<()> {
+        if self.0 == user_id {
+            Ok(())
+        } else {
+            Err(AppError::Forbidden("You can only access your own data".to_string()))
+        }
+    }
+}
 
 // `#[async_trait]` is required: Axum 0.7 declares this trait with it, so the
 // implementation must use the same macro to have a matching signature.

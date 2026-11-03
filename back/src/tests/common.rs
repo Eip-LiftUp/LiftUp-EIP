@@ -2,11 +2,14 @@
 
 use std::{sync::Arc, time::Duration};
 
+use axum::http::HeaderValue;
 use axum_test::TestServer;
 use serde_json::json;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::{
+    auth::jwt::create_token,
     config::JwtConfig,
     models::user::{CreateUserRequest, User},
     repositories::{program::ProgramRepository, user::UserRepository, workout::WorkoutRepository},
@@ -67,7 +70,12 @@ pub fn test_server(pool: PgPool) -> TestServer {
 
 /// Starts an in-memory HTTP server for a given state (e.g. with a mock ML engine).
 pub fn server_from_state(state: AppState) -> TestServer {
-    let app = routes::build_router(state, 100).unwrap();
+    server_with_upload_limit(state, 50 * 1024 * 1024)
+}
+
+/// Same as [`server_from_state`], with a custom `/ai/analyze` upload limit in bytes.
+pub fn server_with_upload_limit(state: AppState, max_upload_bytes: usize) -> TestServer {
+    let app = routes::build_router(state, 100, max_upload_bytes).unwrap();
     TestServer::new(app).unwrap()
 }
 
@@ -93,4 +101,26 @@ pub async fn register_user(state: &AppState, email: &str, username: &str) -> Use
         .create_user(create_user_request(email, username, TEST_PASSWORD))
         .await
         .unwrap()
+}
+
+/// Builds the `Authorization` header value (`Bearer <token>`) for a user id.
+///
+/// The token is signed with [`test_jwt_config`], exactly like a real login would.
+pub fn bearer_for(user_id: Uuid) -> HeaderValue {
+    let token = create_token(user_id, &test_jwt_config()).unwrap();
+    HeaderValue::from_str(&format!("Bearer {token}")).unwrap()
+}
+
+/// Registers a user through `POST /users`, then returns its id and its `Authorization` header value.
+///
+/// The token is created directly (not through `/auth/login`) so that tests do not
+/// depend on the login rate limiter.
+pub async fn register_and_login(server: &TestServer, email: &str, username: &str) -> (Uuid, HeaderValue) {
+    let response = server
+        .post("/users")
+        .json(&json!({ "email": email, "username": username, "password": TEST_PASSWORD }))
+        .await;
+    let body: serde_json::Value = response.json();
+    let id: Uuid = body["id"].as_str().unwrap().parse().unwrap();
+    (id, bearer_for(id))
 }

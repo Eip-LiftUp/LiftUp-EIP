@@ -17,6 +17,7 @@
 5. [Migration de la base de données](#migration-de-la-base-de-données)
 6. [Lancer le serveur](#lancer-le-serveur)
 7. [Endpoints disponibles](#endpoints-disponibles)
+   - [Authentification et contrôle d'accès](#authentification-et-contrôle-daccès)
 8. [Structure du code](#structure-du-code)
 9. [Conventions de code](#conventions-de-code)
 
@@ -37,7 +38,7 @@ Le backend suit une architecture en couches, conforme au C4 model documenté dan
 ```
 back/
 ├── Cargo.toml                  # Dépendances du projet
-├── openapi.yaml                # Contrat OpenAPI 3.0.3 (contract-first)
+├── openapi.yaml                # Contrat OpenAPI 3.0.3 (toutes les routes actuelles)
 ├── .env.example                # Template des variables d'environnement
 ├── migrations/
 │   ├── 0001_create_users.sql   # Schéma de la table `users`
@@ -144,6 +145,8 @@ AI_SERVICE_URL=http://localhost:8000
 AI_TIMEOUT_SECS=5
 # Optional, video analysis timeout in seconds (default 120)
 AI_ANALYSIS_TIMEOUT_SECS=120
+# Optional, max size of a video upload on POST /ai/analyze, in MB (default 50, must be > 0)
+MAX_UPLOAD_MB=50
 RUST_LOG=liftup_backend=debug,tower_http=debug
 ```
 
@@ -217,6 +220,8 @@ Le serveur écoute par défaut sur `http://127.0.0.1:8080`.
 ---
 
 ## Endpoints disponibles
+
+Le contrat complet de **toutes** les routes (schémas de requête/réponse, codes d'erreur, sécurité) est dans [`openapi.yaml`](./openapi.yaml). Les sections ci-dessous détaillent seulement quelques routes.
 
 ### `POST /users`
 
@@ -299,6 +304,22 @@ Renvoie le programme d'entraînement de l'utilisateur authentifié (header `Auth
 
 ---
 
+## Authentification et contrôle d'accès
+
+Les routes protégées exigent le header `Authorization: Bearer <token>` (le `token` renvoyé par `POST /auth/login`). Sans token valide, la réponse est `401`. Quand l'URL contient un id d'utilisateur, il doit être égal au `sub` du token, sinon `403` (`You can only access your own data`).
+
+| Routes | Accès |
+|--------|-------|
+| `GET /health`, `POST /users`, `POST /auth/login`, `GET /ai/health` | Publiques |
+| `GET`/`PATCH /users/:id` | Token + id identique au token |
+| `/users/:user_id/workouts...` et `/users/:user_id/exercises/...` | Token + id identique au token |
+| `GET /workouts/program` | Token (l'utilisateur est celui du token) |
+| `POST /ai/analyze`, `GET /ai/exercises` | Token (pas d'id dans l'URL) |
+
+Dans le code : chaque handler protégé prend `auth: AuthUser` en premier extracteur (le `401` passe avant les erreurs de parsing du corps) puis appelle `auth.ensure_user(user_id)?`.
+
+---
+
 ## Tests
 
 Les tests sont dans le crate (`src/tests/` et des modules `#[cfg(test)]`), car le projet est un binaire : un dossier `tests/` à la racine ne pourrait pas importer le code.
@@ -323,10 +344,9 @@ La CI GitHub Actions ([`.github/workflows/backend.yml`](../.github/workflows/bac
 
 ```bash
 cargo test                       # tous les tests (Postgres requis)
-cargo test -- --ignored          # tests marqués #[ignore = "bug: ..."] (échouent tant que le bug existe)
 ```
 
-Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `program_endpoint.rs` (GET /workouts/program avec faux moteur ML), `e2e.rs` (création → login → programme, fallback cache, 401, 404, 429), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
+Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `access_control.rs` (401/403), `analysis.rs` (limite d'upload 413, messages d'erreur génériques), `program_endpoint.rs` (GET /workouts/program avec faux moteur ML), `e2e.rs` (création → login → programme, fallback cache, 401, 404, 429), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
 
 ---
 
@@ -371,4 +391,4 @@ docker compose up --build
 - `JWT_SECRET` est **obligatoire** (32 caractères minimum, aucune valeur par défaut) : `docker compose` s'arrête avec un message clair s'il manque. Ne commitez jamais le `.env`.
 - Dans le conteneur, `SERVER_HOST=0.0.0.0` (sinon le serveur serait injoignable de l'extérieur) et le port publié `8080:8080` correspond à `SERVER_PORT`.
 - Le service `ai-service` du compose est **désactivé** : `AI_SERVICE_URL` vaut par défaut `http://host.docker.internal:8000` (service lancé sur la machine hôte). `localhost` ne marcherait pas, il désigne le conteneur lui-même. Si vous activez `ai-service`, utilisez `http://ai-service:8000`.
-- Variables transmises : `JWT_SECRET`, `JWT_EXPIRATION_DAYS`, `CORS_ALLOWED_ORIGINS`, `LOGIN_RATE_LIMIT_PER_MINUTE`, `AI_SERVICE_URL`, `AI_TIMEOUT_SECS`, `AI_ANALYSIS_TIMEOUT_SECS`.
+- Variables transmises : `JWT_SECRET`, `JWT_EXPIRATION_DAYS`, `CORS_ALLOWED_ORIGINS`, `LOGIN_RATE_LIMIT_PER_MINUTE`, `AI_SERVICE_URL`, `AI_TIMEOUT_SECS`, `AI_ANALYSIS_TIMEOUT_SECS`, `MAX_UPLOAD_MB`.

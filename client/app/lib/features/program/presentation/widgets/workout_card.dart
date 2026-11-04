@@ -163,11 +163,11 @@ class _Menu extends StatelessWidget {
     }
 
     return SizedBox(
-      width: 36,
-      height: 36,
+      width: 44,
+      height: 44,
       child: PopupMenuButton<WorkoutMenuAction>(
         padding: EdgeInsets.zero,
-        tooltip: 'Actions',
+        tooltip: 'Actions de la séance',
         icon: const Icon(LucideIcons.ellipsisVertical, size: 20, color: AppColors.textSecondary),
         onSelected: onSelected,
         itemBuilder: (context) => [
@@ -231,7 +231,11 @@ class _NumberedExercise extends StatelessWidget {
             children: [
               Text(exercise.exerciseName, style: AppText.bodyMedium),
               const SizedBox(height: 2),
-              Text(exercisePrescription(exercise), style: AppText.caption),
+              Text(
+                exercisePrescription(exercise),
+                semanticsLabel: exercisePrescriptionLabel(exercise),
+                style: AppText.caption,
+              ),
             ],
           ),
         ),

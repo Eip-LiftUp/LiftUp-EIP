@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
 import 'package:app/core/constants/app_constants.dart';
@@ -11,11 +10,14 @@ import 'package:app/core/models/user.dart';
 import 'package:app/core/providers/active_program_provider.dart';
 import 'package:app/core/providers/active_workout_provider.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/connectivity_provider.dart';
 import 'package:app/core/providers/review_history_provider.dart';
 import 'package:app/core/providers/user_profile_provider.dart';
 import 'package:app/core/providers/workout_provider.dart';
 import 'package:app/core/services/auth_api_service.dart';
+import 'package:app/core/utils/local_user_data.dart';
 import 'package:app/core/utils/workout_stats.dart';
+import 'package:app/core/widgets/sync_status.dart';
 import 'package:app/core/widgets/ui/ui.dart';
 import 'package:app/features/profile/data/data_export.dart';
 
@@ -39,7 +41,7 @@ class ProfilePage extends ConsumerWidget {
         onRefresh: () => ref.refresh(userProfileProvider(userId).future),
         child: PageListView(
           children: [
-            const Text('Profil', style: AppText.h1),
+            Semantics(header: true, child: const Text('Profil', style: AppText.h1)),
             const SizedBox(height: 24),
             profile.when(
               loading: () => const AppCard(child: SizedBox(height: 160, child: Center(child: CircularProgressIndicator()))),
@@ -47,7 +49,9 @@ class ProfilePage extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const InlineError('Impossible de charger ton profil.'),
+                    InlineError(
+                      ref.watch(isOnlineProvider) ? 'Impossible de charger ton profil.' : offlineProfileMessage,
+                    ),
                     const SizedBox(height: 12),
                     AppButton(
                       label: 'Réessayer',
@@ -64,6 +68,8 @@ class ProfilePage extends ConsumerWidget {
                 onEdit: () => _showNameDialog(context, ref, userId, p),
               ),
             ),
+            const SizedBox(height: 16),
+            SyncStatusCard(userId: userId),
             const SizedBox(height: 24),
             const SectionTitle('Mes données'),
             _Group(
@@ -125,6 +131,31 @@ class ProfilePage extends ConsumerWidget {
                   onTap: () => _confirmDeleteAccount(context, ref, userId),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            const AppCard(
+              accentColor: AppColors.primary,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(LucideIcons.wifiOff, size: 20, color: AppColors.primary),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Utilisable hors ligne', style: AppText.bodyMedium),
+                        SizedBox(height: 4),
+                        Text(
+                          'Tes séances sont enregistrées sur l\'appareil et se synchronisent dès que tu es en ligne. '
+                          'La génération de programme, l\'analyse vidéo et la modification du profil demandent une connexion.',
+                          style: AppText.caption,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 32),
             AppButton(
@@ -277,29 +308,34 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = color ?? AppColors.textSecondary;
-    return InkWell(
-      onTap: comingSoon ? null : onTap,
-      hoverColor: AppColors.surface2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: tint),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: AppText.body.copyWith(color: color ?? AppColors.textPrimary)),
-                  if (subtitle != null) Text(subtitle!, style: AppText.caption),
-                ],
+    final enabled = !comingSoon && onTap != null;
+    return Semantics(
+      container: true,
+      button: enabled,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        hoverColor: AppColors.surface2,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: tint),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppText.body.copyWith(color: color ?? AppColors.textPrimary)),
+                    if (subtitle != null) Text(subtitle!, style: AppText.caption),
+                  ],
+                ),
               ),
-            ),
-            if (comingSoon)
-              const Pill(text: 'Bientôt', color: AppColors.textSecondary, background: AppColors.surface2, dense: true)
-            else
-              Icon(LucideIcons.chevronRight, size: 20, color: tint),
-          ],
+              if (comingSoon)
+                const Pill(text: 'Bientôt', color: AppColors.textSecondary, background: AppColors.surface2, dense: true)
+              else
+                Icon(LucideIcons.chevronRight, size: 20, color: tint),
+            ],
+          ),
         ),
       ),
     );
@@ -429,7 +465,11 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref, String u
       ],
     ),
   );
-  if (confirmed != true) return;
+  if (confirmed != true || !context.mounted) return;
+  if (!ref.read(isOnlineProvider)) {
+    _snack(context, offlineMessage, error: true);
+    return;
+  }
 
   try {
     await ref.read(authApiServiceProvider).deleteAccount(userId);
@@ -454,9 +494,7 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref, String u
     return;
   }
 
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('reviews.$userId');
-  await prefs.remove('program.$userId');
+  await clearLocalUserData(userId);
   final active = ref.read(activeWorkoutProvider);
   if (active.isActive) active.finish();
   ref.read(authProvider.notifier).logout();
@@ -642,6 +680,10 @@ class _ProfileFormDialogState extends ConsumerState<_ProfileFormDialog> {
   }
 
   Future<void> _save() async {
+    if (!ref.read(isOnlineProvider)) {
+      setState(() => _error = offlineMessage);
+      return;
+    }
     final values = {for (final f in widget.fields) f.key: _value(f)};
     setState(() {
       _saving = true;
@@ -704,18 +746,25 @@ class _ProfileFormDialogState extends ConsumerState<_ProfileFormDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(field.label, style: AppText.bodyMedium),
+                    ExcludeSemantics(child: Text(field.label, style: AppText.bodyMedium)),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _choices[field.key],
-                      dropdownColor: AppColors.surface2,
-                      style: AppText.body,
-                      hint: const Text('Choisir'),
-                      items: [
-                        for (final MapEntry(key: value, value: label) in field.choices!.entries)
-                          DropdownMenuItem(value: value, child: Text(label)),
-                      ],
-                      onChanged: (value) => setState(() => _choices[field.key] = value),
+                    Semantics(
+                      container: true,
+                      label: field.label,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _choices[field.key],
+                        dropdownColor: AppColors.surface2,
+                        style: AppText.body,
+                        hint: const Text('Choisir'),
+                        // Long choices wrap instead of overflowing the dialog.
+                        isExpanded: true,
+                        itemHeight: null,
+                        items: [
+                          for (final MapEntry(key: value, value: label) in field.choices!.entries)
+                            DropdownMenuItem(value: value, child: Text(label)),
+                        ],
+                        onChanged: (value) => setState(() => _choices[field.key] = value),
+                      ),
                     ),
                   ],
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app/core/providers/auth_provider.dart';
 import 'package:app/core/widgets/main_scaffold.dart';
 import 'package:app/features/home/presentation/pages/home_page.dart';
 import 'package:app/features/profile/presentation/pages/profile_page.dart' show ProfilePage;
@@ -17,6 +18,26 @@ int _getNavIndex(String location) {
   return 0;
 }
 
+/// Browser tab and app switcher title of each screen (WCAG 2.4.2).
+const _pageTitles = {
+  '/onboarding': 'Bienvenue',
+  '/login': 'Connexion',
+  '/register': 'Inscription',
+  '/profile-setup': 'Ton profil',
+  '/planning': 'Planning',
+  '/profile/training': 'Profil d\'entraînement',
+  '/training/generate': 'Générer un programme',
+  '/home': 'Accueil',
+  '/training': 'Entraînement',
+  '/progress': 'Progrès',
+  '/profile': 'Profil',
+};
+
+String pageTitle(String location) {
+  final title = _pageTitles[location];
+  return title == null ? 'LiftUp' : '$title · LiftUp';
+}
+
 // Custom page with slide transition
 CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
   return CustomTransitionPage<void>(
@@ -25,6 +46,7 @@ CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
     transitionDuration: const Duration(milliseconds: 200),
     reverseTransitionDuration: const Duration(milliseconds: 200),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.disableAnimationsOf(context)) return child;
       const begin = Offset(0.05, 0.0);
       const end = Offset.zero;
       final tween = Tween(begin: begin, end: end).chain(
@@ -52,6 +74,7 @@ CustomTransitionPage<void> _buildAuthPage(Widget child, GoRouterState state) {
     transitionDuration: const Duration(milliseconds: 300),
     reverseTransitionDuration: const Duration(milliseconds: 300),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      if (MediaQuery.disableAnimationsOf(context)) return child;
       return FadeTransition(
         opacity: animation,
         child: child,
@@ -60,8 +83,15 @@ CustomTransitionPage<void> _buildAuthPage(Widget child, GoRouterState state) {
   );
 }
 
-final GoRouter appRouter = GoRouter(
-  initialLocation: '/onboarding',
+/// First screen: a session restored from the device goes straight to the app.
+String startLocation(AuthState? session) {
+  if (session == null) return '/onboarding';
+  return session.onboardingCompleted ? '/home' : '/profile-setup';
+}
+
+/// A fresh router over the app routes; tests start it at the screen under test.
+GoRouter buildAppRouter({String initialLocation = '/onboarding'}) => GoRouter(
+  initialLocation: initialLocation,
   routes: [
     // Auth routes (outside shell)
     GoRoute(

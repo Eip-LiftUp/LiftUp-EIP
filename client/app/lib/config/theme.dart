@@ -91,10 +91,14 @@ class AppTheme {
     );
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.border),
+      borderSide: const BorderSide(color: AppColors.borderStrong),
     );
 
     return base.copyWith(
+      // Material controls keep a 48px touch area on the web and desktop too.
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      // Keyboard focus shows as a clear cyan highlight on the dark surfaces.
+      focusColor: AppColors.primary.withValues(alpha: 0.25),
       scaffoldBackgroundColor: AppColors.background,
       textTheme: base.textTheme
           .apply(

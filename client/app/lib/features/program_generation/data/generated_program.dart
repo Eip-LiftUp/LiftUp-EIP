@@ -8,6 +8,9 @@ class GeneratedProgram {
   final bool fromCache;
   final String name;
   final int weeks;
+
+  /// Sessions in a week; [sessions] holds one week, the first one.
+  final int sessionsPerWeek;
   final String? rationale;
   final List<ProgramSession> sessions;
 
@@ -17,22 +20,24 @@ class GeneratedProgram {
     required this.fromCache,
     required this.name,
     required this.weeks,
+    required this.sessionsPerWeek,
     required this.rationale,
     required this.sessions,
   });
 
   factory GeneratedProgram.fromJson(Map<String, dynamic> json) {
+    final sessions = [
+      for (final w in json['workouts'] as List? ?? const []) ProgramSession.fromJson(w as Map<String, dynamic>),
+    ];
     return GeneratedProgram(
       programId: json['programId'] as String,
       generatedAt: DateTime.parse(json['generatedAt'] as String),
       fromCache: json['fromCache'] as bool? ?? false,
       name: json['name'] as String? ?? 'Programme LiftUp',
       weeks: (json['weeks'] as num?)?.toInt() ?? 1,
+      sessionsPerWeek: (json['sessionsPerWeek'] as num?)?.toInt() ?? sessions.length,
       rationale: json['rationale'] as String?,
-      sessions: [
-        for (final w in json['workouts'] as List? ?? const [])
-          ProgramSession.fromJson(w as Map<String, dynamic>),
-      ],
+      sessions: sessions,
     );
   }
 }

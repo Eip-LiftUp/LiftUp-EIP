@@ -11,6 +11,10 @@ enum MetricTrend { up, down }
 class MetricCard extends StatelessWidget {
   final String label;
   final String value;
+
+  /// How screen readers say [value] when its short form reads badly,
+  /// e.g. "3 jours" for "3 j".
+  final String? valueLabel;
   final MetricTrend? trend;
   final String? trendValue;
   final IconData? icon;
@@ -24,6 +28,7 @@ class MetricCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
+    this.valueLabel,
     this.trend,
     this.trendValue,
     this.icon,
@@ -37,12 +42,17 @@ class MetricCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: AppText.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(
+          label,
+          style: AppText.caption,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(value, style: AppText.metric),
+          child: Text(value, style: AppText.metric, semanticsLabel: valueLabel),
         ),
         if (trend != null && trendValue != null) ...[
           const SizedBox(height: 4),
@@ -51,28 +61,36 @@ class MetricCard extends StatelessWidget {
       ],
     );
 
-    return AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: icon == null
-          ? texts
-          : compact
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IconTile(icon: icon!, size: 32, iconSize: 16, background: AppColors.surface2),
-                    const SizedBox(height: 12),
-                    texts,
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: texts),
-                    const SizedBox(width: 8),
-                    IconTile(icon: icon!, background: AppColors.surface2),
-                  ],
-                ),
+    return Semantics(
+      container: true,
+      child: AppCard(
+        onTap: onTap,
+        padding: const EdgeInsets.all(16),
+        child: icon == null
+            ? texts
+            : compact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconTile(
+                    icon: icon!,
+                    size: 32,
+                    iconSize: 16,
+                    background: AppColors.surface2,
+                  ),
+                  const SizedBox(height: 12),
+                  texts,
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: texts),
+                  const SizedBox(width: 8),
+                  IconTile(icon: icon!, background: AppColors.surface2),
+                ],
+              ),
+      ),
     );
   }
 }
@@ -90,7 +108,9 @@ class _TrendLabel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          trend == MetricTrend.up ? LucideIcons.trendingUp : LucideIcons.trendingDown,
+          trend == MetricTrend.up
+              ? LucideIcons.trendingUp
+              : LucideIcons.trendingDown,
           size: 14,
           color: color,
         ),

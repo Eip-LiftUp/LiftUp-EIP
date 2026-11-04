@@ -67,6 +67,6 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>LiftUp needs access to your camera to provide AI-powered form analysis and coaching</string>
+	<string>LiftUp utilise la caméra pour filmer tes mouvements et les faire analyser par le coach IA.</string>
 </dict>
 </plist>

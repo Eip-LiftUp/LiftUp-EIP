@@ -45,7 +45,7 @@ class _ProgressPageState extends ConsumerState<ProgressPage> {
 
     final page = PageListView(
       children: [
-        const Text('Progrès', style: AppText.h1),
+        Semantics(header: true, child: const Text('Progrès', style: AppText.h1)),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -132,6 +132,7 @@ class _Timeline extends StatelessWidget {
                 for (final v in verdicts) v.label,
               ].join(', '),
               excludeSemantics: true,
+              onTap: () => onDayTap(day),
               child: InkWell(
                 onTap: () => onDayTap(day),
                 borderRadius: BorderRadius.circular(12),
@@ -242,6 +243,7 @@ class _Summary extends StatelessWidget {
           MetricCard(
             label: 'Volume (kg)',
             value: volume == 0 ? '0' : compact.format(volume),
+            valueLabel: '${NumberFormat.decimalPattern().format(volume.round())} kilos',
             trend: volumeChange == null || volumeChange == 0
                 ? null
                 : (volumeChange > 0 ? MetricTrend.up : MetricTrend.down),

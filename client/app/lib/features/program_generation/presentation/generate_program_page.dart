@@ -9,6 +9,7 @@ import 'package:app/config/theme.dart';
 import 'package:app/core/models/user.dart';
 import 'package:app/core/providers/active_program_provider.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/connectivity_provider.dart';
 import 'package:app/core/providers/user_profile_provider.dart';
 import 'package:app/core/providers/workout_provider.dart';
 import 'package:app/core/services/auth_api_service.dart';
@@ -52,6 +53,13 @@ class _GenerateProgramPageState extends ConsumerState<GenerateProgramPage> {
   }
 
   Future<void> _generate(String userId) async {
+    if (!ref.read(isOnlineProvider)) {
+      setState(() {
+        _error = const ProgramGenerationException(offlineMessage);
+        _view = _View.error;
+      });
+      return;
+    }
     final request = ++_request;
     setState(() {
       _view = _View.loading;
@@ -72,8 +80,9 @@ class _GenerateProgramPageState extends ConsumerState<GenerateProgramPage> {
     } on ProgramGenerationException catch (e) {
       if (!mounted || request != _request) return;
       if (e.profileIncomplete) {
-        context.go('/profile-setup');
+        setState(() => _view = _View.summary);
         showAppSnack(context, 'Complète ton profil pour générer un programme', error: true);
+        await _completeProfile(userId);
         return;
       }
       setState(() {
@@ -97,10 +106,19 @@ class _GenerateProgramPageState extends ConsumerState<GenerateProgramPage> {
     setState(() => _view = _View.summary);
   }
 
+  /// Opens the questionnaire above this page, then reloads the profile it
+  /// filled in.
+  Future<void> _completeProfile(String userId) async {
+    await context.push('/profile-setup');
+    if (mounted) ref.invalidate(userProfileProvider(userId));
+  }
+
   Future<void> _start(String userId, GeneratedProgram program) async {
-    final count = program.sessions.length;
     setState(() => _saving = true);
+    // Read before any await: the user may leave the page meanwhile.
     final notifier = ref.read(apiWorkoutProvider(userId).notifier);
+    final activeProgram = ref.read(activeProgramProvider(userId).notifier);
+    // Saved on the device at once; sent to the server in the background.
     for (final session in program.sessions) {
       final workout = await notifier.createWorkout(
         name: session.name,
@@ -108,12 +126,7 @@ class _GenerateProgramPageState extends ConsumerState<GenerateProgramPage> {
         durationMinutes: session.durationMinutes,
         notes: session.focus.isEmpty ? null : 'Focus : ${session.focus.join(', ')}',
       );
-      if (workout == null) {
-        if (!mounted) return;
-        setState(() => _saving = false);
-        showAppSnack(context, 'L\'ajout au planning a échoué, réessaie.', error: true);
-        return;
-      }
+      if (workout == null) continue;
       for (final (index, exercise) in session.exercises.indexed) {
         await notifier.addExercise(
           workoutId: workout.id,
@@ -127,15 +140,14 @@ class _GenerateProgramPageState extends ConsumerState<GenerateProgramPage> {
         );
       }
     }
-    await notifier.loadWorkouts();
-    await ref.read(activeProgramProvider(userId).notifier).start(
-          ActiveProgram(
-            name: program.name,
-            startDate: program.sessions.isEmpty ? DateTime.now() : program.sessions.first.workoutDate,
-            weeks: program.weeks,
-            sessionsPerWeek: count,
-          ),
-        );
+    await activeProgram.start(
+      ActiveProgram(
+        name: program.name,
+        startDate: program.sessions.isEmpty ? DateTime.now() : program.sessions.first.workoutDate,
+        weeks: program.weeks,
+        sessionsPerWeek: program.sessionsPerWeek,
+      ),
+    );
 
     if (!mounted) return;
     context.go('/training');
@@ -155,7 +167,11 @@ class _GenerateProgramPageState extends ConsumerState<GenerateProgramPage> {
       body: userId == null
           ? const Center(child: Text('Non connecté', style: AppText.caption))
           : switch (_view) {
-              _View.summary => _SummaryView(userId: userId, onGenerate: () => _generate(userId)),
+              _View.summary => _SummaryView(
+                  userId: userId,
+                  onGenerate: () => _generate(userId),
+                  onCompleteProfile: () => _completeProfile(userId),
+                ),
               _View.loading => _LoadingView(status: _statusMessages[_statusIndex], onCancel: _cancel),
               _View.result => _ResultView(
                   program: _program!,
@@ -209,8 +225,9 @@ class _Body extends StatelessWidget {
 class _SummaryView extends ConsumerWidget {
   final String userId;
   final VoidCallback onGenerate;
+  final VoidCallback onCompleteProfile;
 
-  const _SummaryView({required this.userId, required this.onGenerate});
+  const _SummaryView({required this.userId, required this.onGenerate, required this.onCompleteProfile});
 
   static String _level(FitnessLevel? level) => switch (level) {
         FitnessLevel.beginner => 'Débutant',
@@ -245,7 +262,7 @@ class _SummaryView extends ConsumerWidget {
       ),
       error: (_, _) => _Body(
         children: [
-          const InlineError('Impossible de charger ton profil.'),
+          InlineError(ref.watch(isOnlineProvider) ? 'Impossible de charger ton profil.' : offlineProfileMessage),
           const SizedBox(height: 16),
           AppButton(
             label: 'Réessayer',
@@ -287,7 +304,7 @@ class _SummaryView extends ConsumerWidget {
               child: IconTile(icon: LucideIcons.sparkles, size: 64, iconSize: 32),
             ),
             const SizedBox(height: 20),
-            const Text('Récap de ton profil', style: AppText.metric),
+            Semantics(header: true, child: const Text('Récap de ton profil', style: AppText.metric)),
             const SizedBox(height: 8),
             Text(
               'Ton coach IA s\'appuie sur ces informations pour construire une semaine d\'entraînement équilibrée.',
@@ -336,7 +353,7 @@ class _SummaryView extends ConsumerWidget {
                       label: 'Compléter mon profil',
                       variant: AppButtonVariant.secondary,
                       size: AppButtonSize.sm,
-                      onPressed: () => context.go('/profile-setup'),
+                      onPressed: onCompleteProfile,
                     ),
                   ],
                 ),
@@ -370,15 +387,16 @@ class _LoadingView extends StatelessWidget {
         const SizedBox(height: 24),
         const Center(child: _PulsingSparkles()),
         const SizedBox(height: 24),
-        const Text('Construction de ton programme…', style: AppText.metric, textAlign: TextAlign.center),
-        const SizedBox(height: 8),
+        // Announced once; the status below changes too often to be read out.
         Semantics(
           liveRegion: true,
-          child: Text(
-            status,
-            style: AppText.body.copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
+          child: const Text('Construction de ton programme…', style: AppText.metric, textAlign: TextAlign.center),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          status,
+          style: AppText.body.copyWith(color: AppColors.textSecondary),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 40),
         const Row(
@@ -426,7 +444,17 @@ class _PulsingSparklesState extends State<_PulsingSparkles> with SingleTickerPro
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1000),
-  )..repeat(reverse: true);
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    }
+  }
 
   @override
   void dispose() {
@@ -476,7 +504,7 @@ class _ResultViewState extends State<_ResultView> {
   @override
   Widget build(BuildContext context) {
     final program = widget.program;
-    final perWeek = program.sessions.length;
+    final perWeek = program.sessionsPerWeek;
 
     return _Body(
       bottom: Column(
@@ -503,9 +531,11 @@ class _ResultViewState extends State<_ResultView> {
           children: [
             const Icon(LucideIcons.sparkles, size: 20, color: AppColors.primary),
             const SizedBox(width: 8),
-            Text(
-              'GÉNÉRÉ POUR TOI PAR L\'IA',
-              style: AppText.caption.copyWith(color: AppColors.primary),
+            Flexible(
+              child: Text(
+                'GÉNÉRÉ POUR TOI PAR L\'IA',
+                style: AppText.caption.copyWith(color: AppColors.primary),
+              ),
             ),
           ],
         ),
@@ -516,9 +546,11 @@ class _ResultViewState extends State<_ResultView> {
           children: [
             const Icon(LucideIcons.calendarDays, size: 16, color: AppColors.textSecondary),
             const SizedBox(width: 8),
-            Text(
-              '${program.weeks} semaines · $perWeek séance${perWeek > 1 ? 's' : ''} par semaine',
-              style: AppText.caption,
+            Flexible(
+              child: Text(
+                '${program.weeks} semaines · $perWeek séance${perWeek > 1 ? 's' : ''} par semaine',
+                style: AppText.caption,
+              ),
             ),
           ],
         ),

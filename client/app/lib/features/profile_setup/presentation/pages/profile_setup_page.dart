@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:app/config/app_colors.dart';
 import 'package:app/config/theme.dart';
 import 'package:app/core/providers/auth_provider.dart';
+import 'package:app/core/providers/connectivity_provider.dart';
 import 'package:app/core/providers/user_profile_provider.dart';
 import 'package:app/core/services/auth_api_service.dart';
 import 'package:app/core/models/user.dart';
@@ -115,7 +116,7 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
       if (!mounted) return;
       setState(() {
         _loadingProfile = false;
-        _errorMessage = 'Impossible de charger ton profil.';
+        _errorMessage = ref.read(isOnlineProvider) ? 'Impossible de charger ton profil.' : offlineProfileMessage;
       });
     }
   }
@@ -187,6 +188,10 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
       return;
     }
 
+    if (!ref.read(isOnlineProvider)) {
+      setState(() => _errorMessage = offlineMessage);
+      return;
+    }
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -221,7 +226,8 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
         );
       } else {
         ref.read(authProvider.notifier).markOnboardingCompleted();
-        context.go('/home');
+        // Opened from another page (e.g. program generation): back to it.
+        context.canPop() ? context.pop() : context.go('/home');
       }
     } on ApiException catch (e) {
       setState(() {
@@ -285,9 +291,9 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
                         onPressed: _isSubmitting ? null : () => _goToPage(_currentPage - 1),
                         icon: const Icon(LucideIcons.arrowLeft, size: 20),
                       )
-                    : widget.editMode
+                    : widget.editMode || context.canPop()
                         ? IconButton(
-                            tooltip: 'Retour au profil',
+                            tooltip: widget.editMode ? 'Retour au profil' : 'Retour',
                             onPressed: () => context.pop(),
                             icon: const Icon(LucideIcons.arrowLeft, size: 20),
                           )
@@ -307,8 +313,8 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
             ],
           ),
           const SizedBox(height: 24),
-          Semantics(
-            label: 'Étape ${_currentPage + 1} sur $_pageCount',
+          // The step is announced by the text below.
+          ExcludeSemantics(
             child: Row(
               children: [
                 for (var i = 0; i < _pageCount; i++) ...[
@@ -328,9 +334,13 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            'ÉTAPE ${_currentPage + 1} SUR $_pageCount',
-            style: AppText.caption.copyWith(color: AppColors.primary),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              'ÉTAPE ${_currentPage + 1} SUR $_pageCount',
+              semanticsLabel: 'Étape ${_currentPage + 1} sur $_pageCount',
+              style: AppText.caption.copyWith(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -352,7 +362,7 @@ class _ProfileSetupPageState extends ConsumerState<ProfileSetupPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(title, style: AppText.metric),
+                Semantics(header: true, child: Text(title, style: AppText.metric)),
                 const SizedBox(height: 8),
                 Text(subtitle, style: AppText.body.copyWith(color: AppColors.textSecondary)),
                 const SizedBox(height: 24),

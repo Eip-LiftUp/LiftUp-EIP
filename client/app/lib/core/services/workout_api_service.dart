@@ -1,11 +1,35 @@
 import 'package:dio/dio.dart';
 import 'package:app/core/models/workout.dart';
 
+/// A failed call: either the server answered with [statusCode], or it could
+/// not be reached ([isNetworkError]) and the call may be retried as is.
+class ApiRequestException implements Exception {
+  final String message;
+  final int? statusCode;
+  final bool isNetworkError;
+
+  const ApiRequestException(this.message, {this.statusCode, this.isNetworkError = false});
+
+  /// The server refused the request itself: sending it again won't help.
+  /// Session (401, 403), timeout (408) and rate limit (429) answers are
+  /// worth retrying later.
+  bool get isRejected {
+    final code = statusCode;
+    return code != null && code >= 400 && code < 500 && !const {401, 403, 408, 429}.contains(code);
+  }
+
+  bool get isNotFound => statusCode == 404;
+
+  @override
+  String toString() => message;
+}
+
 /// Workout API service for managing workouts and exercises
 class WorkoutApiService {
   final Dio _dio;
 
-  WorkoutApiService({String baseUrl = 'http://10.0.2.2:8080'}) : _dio = Dio(
+  /// [dio] replaces the HTTP client, e.g. in tests.
+  WorkoutApiService({String baseUrl = 'http://10.0.2.2:8080', Dio? dio}) : _dio = dio ?? Dio(
     BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 60),
@@ -42,6 +66,8 @@ class WorkoutApiService {
       return WorkoutModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -53,6 +79,8 @@ class WorkoutApiService {
       return data.map((json) => WorkoutModel.fromJson(json)).toList();
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -66,6 +94,8 @@ class WorkoutApiService {
       return WorkoutModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -83,6 +113,8 @@ class WorkoutApiService {
       return WorkoutModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -95,6 +127,8 @@ class WorkoutApiService {
       await _dio.delete('/users/$userId/workouts/$workoutId');
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -114,6 +148,8 @@ class WorkoutApiService {
       return ExerciseModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -131,6 +167,8 @@ class WorkoutApiService {
       return ExerciseModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
@@ -143,45 +181,50 @@ class WorkoutApiService {
       await _dio.delete('/users/$userId/exercises/$exerciseId');
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw _unexpectedResponse(e);
     }
   }
 
   // ==================== ERROR HANDLING ====================
 
-  Exception _handleError(DioException error) {
+  /// A body that is not the expected JSON, e.g. the page of a Wi-Fi portal:
+  /// treated like a network failure, so the call is retried later.
+  ApiRequestException _unexpectedResponse(Object error) =>
+      ApiRequestException('Unexpected response: $error', isNetworkError: true);
+
+  ApiRequestException _handleError(DioException error) {
     if (error.response != null) {
       final statusCode = error.response!.statusCode;
-      final message = error.response!.data?['error'] ?? 'Unknown error';
+      final data = error.response!.data;
+      final message = (data is Map ? data['error'] : null) ?? 'Unknown error';
 
-      switch (statusCode) {
-        case 400:
-          return Exception('Bad request: $message');
-        case 401:
-          return Exception('Unauthorized: $message');
-        case 403:
-          return Exception('Forbidden: $message');
-        case 404:
-          return Exception('Not found: $message');
-        case 409:
-          return Exception('Conflict: $message');
-        case 422:
-          return Exception('Validation error: $message');
-        case 500:
-          return Exception('Server error: $message');
-        default:
-          return Exception('Error: $message');
-      }
+      final text = switch (statusCode) {
+        400 => 'Bad request: $message',
+        401 => 'Unauthorized: $message',
+        403 => 'Forbidden: $message',
+        404 => 'Not found: $message',
+        409 => 'Conflict: $message',
+        422 => 'Validation error: $message',
+        500 => 'Server error: $message',
+        _ => 'Error: $message',
+      };
+      return ApiRequestException(text, statusCode: statusCode);
     }
 
     if (error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.receiveTimeout) {
-      return Exception('Connection timeout');
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      return const ApiRequestException('Connection timeout', isNetworkError: true);
     }
 
     if (error.type == DioExceptionType.connectionError) {
-      return Exception('Connection error. Please check your internet connection.');
+      return const ApiRequestException(
+        'Connection error. Please check your internet connection.',
+        isNetworkError: true,
+      );
     }
 
-    return Exception('Unknown error: ${error.message}');
+    return ApiRequestException('Unknown error: ${error.message}', isNetworkError: true);
   }
 }

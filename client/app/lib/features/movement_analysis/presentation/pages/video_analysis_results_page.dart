@@ -55,6 +55,14 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
     super.dispose();
   }
 
+  void _toggleVideo() {
+    final controller = _videoController!;
+    setState(() {
+      _isVideoPlaying ? controller.pause() : controller.play();
+      _isVideoPlaying = !_isVideoPlaying;
+    });
+  }
+
   void _close() => Navigator.of(context).popUntil((route) => route.isFirst);
 
   void _openPlanning() {
@@ -107,22 +115,29 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
         children: [
           const Text('Score global', style: AppText.caption),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                _decimal(result.qualityScore),
-                style: TextStyle(
-                  color: verdict.color,
-                  fontSize: 56,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+          Semantics(
+            label: '${_decimal(result.qualityScore)} sur 100',
+            excludeSemantics: true,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    _decimal(result.qualityScore),
+                    style: TextStyle(
+                      color: verdict.color,
+                      fontSize: 56,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text('/100', style: AppText.h2.copyWith(color: AppColors.textSecondary)),
+                ],
               ),
-              Text('/100', style: AppText.h2.copyWith(color: AppColors.textSecondary)),
-            ],
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -160,28 +175,31 @@ class _VideoAnalysisResultsPageState extends State<VideoAnalysisResultsPage> {
           ),
           AspectRatio(
             aspectRatio: controller.value.aspectRatio,
-            child: GestureDetector(
-              onTap: () => setState(() {
-                _isVideoPlaying ? controller.pause() : controller.play();
-                _isVideoPlaying = !_isVideoPlaying;
-              }),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  VideoPlayer(controller),
-                  AnimatedOpacity(
-                    opacity: _isVideoPlaying ? 0 : 1,
-                    duration: const Duration(milliseconds: 200),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.background.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
+            child: Semantics(
+              button: true,
+              label: _isVideoPlaying ? 'Mettre la vidéo en pause' : 'Lire la vidéo',
+              excludeSemantics: true,
+              onTap: _toggleVideo,
+              child: GestureDetector(
+                onTap: _toggleVideo,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    VideoPlayer(controller),
+                    AnimatedOpacity(
+                      opacity: _isVideoPlaying ? 0 : 1,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(LucideIcons.play, color: AppColors.textPrimary, size: 40),
                       ),
-                      child: const Icon(LucideIcons.play, color: AppColors.textPrimary, size: 40),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -15,7 +15,9 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: AppText.h3)),
+          Expanded(
+            child: Semantics(container: true, header: true, child: Text(title, style: AppText.h3)),
+          ),
           ?trailing,
         ],
       ),

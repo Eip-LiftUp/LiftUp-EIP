@@ -21,6 +21,7 @@ Map<String, dynamic> exampleProgramJson({required DateTime now, required int ses
     'fromCache': false,
     'name': 'LiftUp Force & Volume',
     'weeks': 6,
+    'sessionsPerWeek': sessions.length,
     'rationale':
         'Ce programme privilégie les mouvements polyarticulaires pour développer la force, puis ajoute '
         'du volume ciblé pour une progression équilibrée. La charge est répartie sur la semaine pour que '

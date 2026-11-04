@@ -194,6 +194,13 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
   }
 
   /// Get flash icon based on current mode
+  String _flashLabel() => switch (_flashMode) {
+        FlashMode.off => 'Flash désactivé',
+        FlashMode.auto => 'Flash automatique',
+        FlashMode.always => 'Flash activé',
+        FlashMode.torch => 'Lampe allumée',
+      };
+
   IconData _getFlashIcon() {
     switch (_flashMode) {
       case FlashMode.off:
@@ -353,6 +360,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             // Close button
             _buildControlButton(
               icon: LucideIcons.x,
+              tooltip: 'Fermer',
               onPressed: () => Navigator.of(context).pop(),
             ),
 
@@ -360,6 +368,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             if (_isInitialized)
               _buildControlButton(
                 icon: _getFlashIcon(),
+                tooltip: _flashLabel(),
                 onPressed: _toggleFlash,
               ),
           ],
@@ -387,6 +396,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
             // Switch camera button
             _buildControlButton(
               icon: LucideIcons.switchCamera,
+              tooltip: 'Changer de caméra',
               onPressed: _cameras.length > 1 ? _switchCamera : null,
             ),
           ],
@@ -396,25 +406,32 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
   }
 
   Widget _buildRecordButton() {
-    return GestureDetector(
-      onTap: _isRecording ? _stopRecording : _startRecording,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white,
-            width: 4,
-          ),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+    final onTap = _isRecording ? _stopRecording : _startRecording;
+    return Semantics(
+      button: true,
+      label: _isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: _isRecording ? AppColors.error : AppColors.error.withValues(alpha: 0.85),
-            shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
-            borderRadius: _isRecording ? BorderRadius.circular(8) : null,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 4,
+            ),
+          ),
+          padding: const EdgeInsets.all(4),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: _isRecording ? AppColors.error : AppColors.error.withValues(alpha: 0.85),
+              shape: _isRecording ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius: _isRecording ? BorderRadius.circular(8) : null,
+            ),
           ),
         ),
       ),
@@ -423,6 +440,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
 
   Widget _buildControlButton({
     required IconData icon,
+    required String tooltip,
     VoidCallback? onPressed,
   }) {
     return Container(
@@ -433,6 +451,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
         shape: BoxShape.circle,
       ),
       child: IconButton(
+        tooltip: tooltip,
         icon: Icon(icon, color: AppColors.textPrimary),
         onPressed: onPressed,
       ),
@@ -461,14 +480,16 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
                 width: 10,
                 height: 10,
                 decoration: const BoxDecoration(
-                  color: AppColors.textPrimary,
+                  color: AppColors.onPrimary,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: AppConstants.spacingS),
+              // Dark text: white only reaches 3:1 on this red.
               Text(
                 _formatDuration(_recordingDuration),
                 style: AppText.bodyMedium.copyWith(
+                  color: AppColors.onPrimary,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -492,7 +513,7 @@ class _VideoRecordingPageState extends State<VideoRecordingPage>
         ),
         child: Text(
           _errorMessage!,
-          style: AppText.body.copyWith(fontSize: 14),
+          style: AppText.body.copyWith(fontSize: 14, color: AppColors.onPrimary),
           textAlign: TextAlign.center,
         ),
       ),

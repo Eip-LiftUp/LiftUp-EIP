@@ -17,6 +17,7 @@
 5. [Migration de la base de données](#migration-de-la-base-de-données)
 6. [Lancer le serveur](#lancer-le-serveur)
 7. [Endpoints disponibles](#endpoints-disponibles)
+   - [Authentification et contrôle d'accès](#authentification-et-contrôle-daccès)
 8. [Structure du code](#structure-du-code)
 9. [Conventions de code](#conventions-de-code)
 
@@ -37,22 +38,34 @@ Le backend suit une architecture en couches, conforme au C4 model documenté dan
 ```
 back/
 ├── Cargo.toml                  # Dépendances du projet
+├── openapi.yaml                # Contrat OpenAPI 3.0.3 (toutes les routes actuelles)
 ├── .env.example                # Template des variables d'environnement
 ├── migrations/
-│   └── 0001_create_users.sql   # Schéma de la table `users`
+│   ├── 0001_create_users.sql   # Schéma de la table `users`
+│   └── 0008_create_cached_programs.sql # Cache du dernier programme par utilisateur
 └── src/
     ├── main.rs                 # Point d'entrée — wiring + démarrage du serveur
     ├── config.rs               # Chargement de la configuration depuis l'env
+    ├── cors.rs                 # Couche CORS : whitelist d'origines (CORS_ALLOWED_ORIGINS)
+    ├── rate_limit.rs           # Limitation de débit de POST /auth/login (par IP)
     ├── db.rs                   # Pool PostgreSQL + exécution des migrations
     ├── errors.rs               # Type d'erreur global + impl IntoResponse
     ├── routes.rs               # Déclaration de toutes les routes HTTP
+    ├── auth/
+    │   ├── mod.rs              # Extracteur Axum `AuthUser` (Authorization: Bearer)
+    │   └── jwt.rs              # Claims, create_token, verify_token (HS256, expiration 7 j)
+    ├── tests/                  # Tests avec base Postgres (#[sqlx::test]) : services + HTTP
     ├── models/
+    │   ├── program.rs          # ProgramResponse (GET /workouts/program, schéma provisoire)
     │   └── user.rs             # Struct User, DTOs CreateUserRequest/Response, FitnessLevel
     ├── repositories/
+    │   ├── program.rs          # Accès à `cached_programs` (upsert, find_by_user)
     │   └── user.rs             # Accès direct à la base (SQL queries via sqlx)
     ├── services/
+    │   ├── program.rs          # ProgramService : appel du moteur ML (contrat provisoire) + cache
     │   └── user.rs             # Logique métier (validation, unicité email, création)
     └── handlers/
+        ├── program.rs          # GET /workouts/program (moteur ML + cache, 401 sans token)
         └── user.rs             # Handlers HTTP Axum (POST /users)
 ```
 
@@ -119,6 +132,21 @@ SERVER_HOST=127.0.0.1
 SERVER_PORT=8080
 DATABASE_URL=postgres://liftup_user:liftup_password@localhost:5432/liftup_db
 DATABASE_MAX_CONNECTIONS=10
+# Required, at least 32 characters (the server refuses to start otherwise)
+JWT_SECRET=change-me-dummy-secret-at-least-32-chars
+# Optional, token lifetime in days (default: 7)
+JWT_EXPIRATION_DAYS=7
+# Optional, comma-separated browser origins allowed by CORS ("*" is refused)
+CORS_ALLOWED_ORIGINS=http://localhost:8090,http://127.0.0.1:8090
+# Optional, login attempts per minute and per IP (default 5)
+LOGIN_RATE_LIMIT_PER_MINUTE=5
+# Optional, Python AI service (defaults: http://localhost:8000, 5 seconds)
+AI_SERVICE_URL=http://localhost:8000
+AI_TIMEOUT_SECS=5
+# Optional, video analysis timeout in seconds (default 120)
+AI_ANALYSIS_TIMEOUT_SECS=120
+# Optional, max size of a video upload on POST /ai/analyze, in MB (default 50, must be > 0)
+MAX_UPLOAD_MB=50
 RUST_LOG=liftup_backend=debug,tower_http=debug
 ```
 
@@ -163,6 +191,18 @@ sqlx migrate run --database-url "$DATABASE_URL"
 | `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Date de création |
 | `updated_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Mise à jour automatique via trigger |
 
+### Schéma de la table `cached_programs`
+
+Dernier programme connu de chaque utilisateur, servi en secours quand le service IA est indisponible (migration `0008`). Table dédiée plutôt qu'une colonne JSONB sur `users` : `User` est lu avec `SELECT *`, un gros JSON serait chargé à chaque lecture de profil. `ON DELETE CASCADE` supprime le cache avec l'utilisateur (RGPD).
+
+| Colonne | Type | Contraintes | Description |
+|---------|------|-------------|-------------|
+| `user_id` | `UUID` | PK, FK → `users(id)` ON DELETE CASCADE | Propriétaire ; un seul programme caché par utilisateur |
+| `program` | `JSONB` | NOT NULL | `ProgramResponse` sérialisé (camelCase) |
+| `generated_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Dernière génération par le service IA (remis à `NOW()` à chaque upsert) |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Date d'insertion |
+| `updated_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT `NOW()` | Mise à jour automatique via trigger |
+
 ---
 
 ## Lancer le serveur
@@ -180,6 +220,8 @@ Le serveur écoute par défaut sur `http://127.0.0.1:8080`.
 ---
 
 ## Endpoints disponibles
+
+Le contrat complet de **toutes** les routes (schémas de requête/réponse, codes d'erreur, sécurité) est dans [`openapi.yaml`](./openapi.yaml). Les sections ci-dessous détaillent seulement quelques routes.
 
 ### `POST /users`
 
@@ -242,6 +284,72 @@ curl -X POST http://127.0.0.1:8080/users \
 
 ---
 
+### `POST /auth/login` (limité en débit)
+
+Authentifie un utilisateur et renvoie un JWT dans le champ `token`. La route est limitée **par IP** : `LOGIN_RATE_LIMIT_PER_MINUTE` tentatives (défaut 5), puis un jeton est rendu toutes les `60/N` secondes. Au-delà, la réponse est `429 Too Many Requests` avec `{"error": "Too many login attempts, please retry later"}` et les en-têtes `retry-after` / `x-ratelimit-after`.
+
+L'IP vient de `X-Forwarded-For` / `X-Real-IP`, puis de l'IP du pair. **Derrière un reverse proxy**, celui-ci doit écraser `X-Forwarded-For` ; si le serveur est exposé directement, ce header est falsifiable et la limite peut être contournée.
+
+---
+
+### `GET /workouts/program`
+
+Renvoie le programme d'entraînement de l'utilisateur authentifié (header `Authorization: Bearer <token>` obligatoire, sinon `401`). Contrat dans [`openapi.yaml`](./openapi.yaml) ; le schéma est **provisoire** (contrat du moteur ML non figé).
+
+1. Le backend charge le profil (`404` si l'utilisateur n'existe plus) et appelle `POST {AI_SERVICE_URL}/api/v1/program/generate` (chemin **provisoire**, timeout `AI_TIMEOUT_SECS`, connexion limitée à 1 s).
+2. Succès : le programme est enregistré dans `cached_programs` et renvoyé en `200` avec `"source": "generated"`.
+3. Échec (timeout, connexion refusée, statut non-2xx, JSON invalide) : le dernier programme caché est renvoyé en `200` avec `"source": "cache"` et son `generatedAt` d'origine. Sans cache : `503` `{"error": "..."}`. Une panne de l'IA ne produit jamais de `500`.
+
+`injured_zones` est une donnée de santé : les corps échangés avec le moteur ML ne sont jamais loggés.
+
+---
+
+## Authentification et contrôle d'accès
+
+Les routes protégées exigent le header `Authorization: Bearer <token>` (le `token` renvoyé par `POST /auth/login`). Sans token valide, la réponse est `401`. Quand l'URL contient un id d'utilisateur, il doit être égal au `sub` du token, sinon `403` (`You can only access your own data`).
+
+| Routes | Accès |
+|--------|-------|
+| `GET /health`, `POST /users`, `POST /auth/login`, `GET /ai/health` | Publiques |
+| `GET`/`PATCH /users/:id` | Token + id identique au token |
+| `/users/:user_id/workouts...` et `/users/:user_id/exercises/...` | Token + id identique au token |
+| `GET /workouts/program` | Token (l'utilisateur est celui du token) |
+| `POST /ai/analyze`, `GET /ai/exercises` | Token (pas d'id dans l'URL) |
+
+Dans le code : chaque handler protégé prend `auth: AuthUser` en premier extracteur (le `401` passe avant les erreurs de parsing du corps) puis appelle `auth.ensure_user(user_id)?`.
+
+---
+
+## Tests
+
+Les tests sont dans le crate (`src/tests/` et des modules `#[cfg(test)]`), car le projet est un binaire : un dossier `tests/` à la racine ne pourrait pas importer le code.
+
+Les tests de base de données utilisent `#[sqlx::test]` : chaque test crée une base temporaire à partir de `DATABASE_URL` et y applique les migrations de `./migrations`. Le rôle Postgres doit donc avoir le droit `CREATEDB` :
+
+```bash
+sudo -u postgres psql -c "ALTER USER liftup_user CREATEDB;"
+```
+
+Lancer les tests en local :
+
+1. Démarrer un Postgres et définir `DATABASE_URL` (dans `.env` ou dans le shell). Exemple avec Docker, l'utilisateur créé est superuser donc a `CREATEDB` :
+   ```bash
+   docker run -d --rm --name liftup-test-pg -e POSTGRES_USER=liftup_test -e POSTGRES_PASSWORD=test -p 55432:5432 postgres:16
+   export DATABASE_URL=postgres://liftup_test:test@localhost:55432/postgres
+   ```
+   Avec un Postgres local, utiliser `DATABASE_URL` de `.env` et accorder `CREATEDB` comme ci-dessus.
+2. Lancer `cargo test` depuis `back/`. `JWT_SECRET` n'est pas nécessaire : les tests utilisent leur propre configuration JWT.
+
+La CI GitHub Actions ([`.github/workflows/backend.yml`](../.github/workflows/backend.yml)) fait la même chose : service `postgres:16`, puis `cargo build` et `cargo test` dans `back/`, sur chaque push et pull request touchant `back/**`.
+
+```bash
+cargo test                       # tous les tests (Postgres requis)
+```
+
+Contenu : `src/tests/user_service.rs`, `workout_service.rs` (services appelés directement), `http.rs` (routes via `axum-test`), `access_control.rs` (401/403), `analysis.rs` (limite d'upload 413, messages d'erreur génériques), `program_endpoint.rs` (GET /workouts/program avec faux moteur ML), `e2e.rs` (création → login → programme, fallback cache, 401, 404, 429), `common.rs` (helpers), et les validations de DTO dans `src/models/user.rs`.
+
+---
+
 ## Structure du code
 
 Le code est organisé selon les principes décrits dans le C4 Model :
@@ -267,3 +375,20 @@ Ce projet suit les conventions définies dans [`docs/GIT_WORKFLOW_AND_STANDARDS.
 - **Code** : Aucun code commenté, pas de `println!` de debug (utiliser `tracing::debug!`)
 - **Formatage** : `cargo fmt` avant chaque commit
 - **Lint** : `cargo clippy -- -D warnings` avant chaque PR
+
+---
+
+## Déploiement avec Docker Compose
+
+Le fichier [`docker-compose.yml`](../docker-compose.yml) (à la racine du repo) lance PostgreSQL, Adminer et le backend. Les variables sont lues dans un `.env` placé à côté du compose (modèle : [`.env.example`](../.env.example) à la racine) :
+
+```bash
+cp .env.example .env   # puis changer JWT_SECRET (openssl rand -hex 32)
+docker compose config  # valide le fichier ; échoue si JWT_SECRET est absent
+docker compose up --build
+```
+
+- `JWT_SECRET` est **obligatoire** (32 caractères minimum, aucune valeur par défaut) : `docker compose` s'arrête avec un message clair s'il manque. Ne commitez jamais le `.env`.
+- Dans le conteneur, `SERVER_HOST=0.0.0.0` (sinon le serveur serait injoignable de l'extérieur) et le port publié `8080:8080` correspond à `SERVER_PORT`.
+- Le service `ai-service` du compose est **désactivé** : `AI_SERVICE_URL` vaut par défaut `http://host.docker.internal:8000` (service lancé sur la machine hôte). `localhost` ne marcherait pas, il désigne le conteneur lui-même. Si vous activez `ai-service`, utilisez `http://ai-service:8000`.
+- Variables transmises : `JWT_SECRET`, `JWT_EXPIRATION_DAYS`, `CORS_ALLOWED_ORIGINS`, `LOGIN_RATE_LIMIT_PER_MINUTE`, `AI_SERVICE_URL`, `AI_TIMEOUT_SECS`, `AI_ANALYSIS_TIMEOUT_SECS`, `MAX_UPLOAD_MB`.

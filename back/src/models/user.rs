@@ -192,7 +192,7 @@ impl From<User> for UserProfileResponse {
             display_name: u.display_name,
             birth_date: u.birth_date.map(|d| d.to_string()),
             height_cm: u.height_cm,
-            weight_kg: u.weight_kg.map(|w| w.to_string().parse().unwrap_or(0.0)),
+            weight_kg: crate::models::decimal_to_f64(u.weight_kg, "weight_kg"),
             fitness_level: u.fitness_level,
             fitness_goals: u.fitness_goals,
             activity_frequency: u.activity_frequency,
@@ -204,5 +204,87 @@ impl From<User> for UserProfileResponse {
             created_at: u.created_at,
             updated_at: u.updated_at,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Builds a valid [`CreateUserRequest`] to tweak field by field.
+    fn valid_request() -> CreateUserRequest {
+        serde_json::from_value(serde_json::json!({
+            "email": "alice@example.com",
+            "username": "alice",
+            "password": "password123",
+        }))
+        .unwrap()
+    }
+
+    /// Given valid data, when validated, then no error is reported.
+    #[test]
+    fn valid_create_request_passes() {
+        assert!(valid_request().validate().is_ok());
+    }
+
+    /// Given a malformed email, when validated, then the error mentions the email.
+    #[test]
+    fn invalid_email_is_rejected() {
+        let mut req = valid_request();
+        req.email = "not-an-email".to_string();
+
+        let err = req.validate().unwrap_err().to_string();
+        assert!(err.contains("Invalid email format"));
+    }
+
+    /// Given usernames of 2 and 101 characters, when validated, then both are rejected;
+    /// the bounds 3 and 100 are accepted.
+    #[test]
+    fn username_length_bounds() {
+        let mut req = valid_request();
+        for (username, ok) in [("ab", false), ("abc", true), (&"a".repeat(100), true), (&"a".repeat(101), false)] {
+            req.username = username.to_string();
+            assert_eq!(req.validate().is_ok(), ok, "username of {} chars", username.len());
+        }
+    }
+
+    /// Given passwords of 7 and 8 characters, when validated, then only 8 is accepted.
+    #[test]
+    fn password_minimum_length() {
+        let mut req = valid_request();
+        req.password = "1234567".to_string();
+        assert!(req.validate().is_err());
+        req.password = "12345678".to_string();
+        assert!(req.validate().is_ok());
+    }
+
+    /// Given out-of-range height and weight, when validated, then they are rejected.
+    #[test]
+    fn height_and_weight_ranges() {
+        let mut req = valid_request();
+        req.height_cm = Some(300);
+        assert!(req.validate().is_err());
+        req.height_cm = Some(170);
+        req.weight_kg = Some(700.0);
+        assert!(req.validate().is_err());
+        req.weight_kg = Some(70.0);
+        assert!(req.validate().is_ok());
+    }
+
+    /// Given an empty password, when validating a login request, then it is rejected.
+    #[test]
+    fn login_requires_password() {
+        let req = LoginRequest { email: "alice@example.com".to_string(), password: String::new() };
+        assert!(req.validate().is_err());
+    }
+
+    /// Given a camelCase JSON body, when deserialized, then `UpdateUserRequest` reads it
+    /// (the creation DTO is snake_case, the update DTO is camelCase).
+    #[test]
+    fn update_request_is_camel_case() {
+        let req: UpdateUserRequest =
+            serde_json::from_value(serde_json::json!({ "displayName": "Alice", "heightCm": 170 })).unwrap();
+        assert_eq!(req.display_name.as_deref(), Some("Alice"));
+        assert_eq!(req.height_cm, Some(170));
     }
 }

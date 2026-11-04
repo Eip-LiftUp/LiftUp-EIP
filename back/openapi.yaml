@@ -1,0 +1,1079 @@
+openapi: 3.0.3
+info:
+  title: LiftUp Backend API
+  version: 0.1.0
+  description: |
+    Contract of the LiftUp backend. It describes the routes as they behave today.
+
+    Authentication: protected routes need `Authorization: Bearer <token>` (token
+    from `POST /auth/login`), otherwise `401`. Routes with a user id in the path
+    also require it to match the token's user, otherwise `403`.
+
+    Public routes: `GET /health`, `POST /users`, `POST /auth/login`, `GET /ai/health`.
+
+    Error bodies are JSON `{ "error": "..." }`, except the `/ai/*` proxy routes
+    (`{ "error": ..., "detail": ... }`). Malformed JSON bodies are rejected by
+    Axum itself (`400` / `415` / `422`) with a plain-text body, and any body larger
+    than 2 MB (except `POST /ai/analyze`) is rejected with `413`.
+
+    Casing: `POST /users` and the AI proxy bodies are snake_case; every other
+    request and response body is camelCase.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+paths:
+  /workouts/program:
+    get:
+      summary: Get the workout program of the authenticated user
+      description: |
+        Returns the training program produced by the ML engine, or the last
+        cached one when the engine is unavailable.
+
+        **The `ProgramResponse` schema is provisional**: the contract of the
+        ML engine is not frozen yet and fields may change.
+
+        If the ML engine fails (timeout, connection error, non-2xx status,
+        invalid JSON), the last cached program is served with `source: cache`
+        and its original `generatedAt`. Only when no program is cached does
+        the endpoint answer `503`; an AI outage never produces a `500`.
+      operationId: getProgram
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The program (freshly generated or served from cache).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramResponse'
+        '401':
+          description: Missing, invalid or expired Bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid or expired token
+        '503':
+          description: AI service unavailable and no cached program exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Program generation is unavailable and no cached program exists
+  /health:
+    get:
+      summary: Liveness check
+      operationId: getHealth
+      responses:
+        '200':
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: liftup-backend
+  /users:
+    post:
+      summary: Create a user account
+      description: Public route. The request body is **snake_case**, the response is camelCase.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created. The password hash is never returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /auth/login:
+    post:
+      summary: Log in and get a JWT
+      description: |
+        Public route, rate limited **per client IP** (`LOGIN_RATE_LIMIT_PER_MINUTE`
+        attempts per minute, default 5). The IP is read from `X-Forwarded-For`,
+        `X-Real-IP` or `Forwarded`, then from the TCP peer address.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Wrong email or password (same message in both cases).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid email or password
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          description: Too many login attempts from this IP.
+          headers:
+            retry-after:
+              description: Seconds to wait before retrying.
+              schema:
+                type: integer
+            x-ratelimit-after:
+              description: Seconds to wait before retrying.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Too many login attempts, please retry later
+        '500':
+          description: |
+            Unexpected error, or no client IP could be determined (neither proxy
+            header nor peer address). The message is generic.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+  /users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      summary: Get a user profile
+      description: The `id` must be the id of the authenticated user.
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The profile (camelCase).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update a user profile
+      description: |
+        The `id` must be the id of the authenticated user. The request body is
+        **camelCase** (unlike `POST /users`).
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: The updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /users/{userId}/workouts:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+    post:
+      summary: Create a workout
+      description: The `userId` must be the id of the authenticated user.
+      operationId: createWorkout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkoutRequest'
+      responses:
+        '201':
+          description: Workout created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    get:
+      summary: List the workouts of a user
+      description: The `userId` must be the id of the authenticated user.
+      operationId: listWorkouts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The workouts of the user, with their exercises.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkoutResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /users/{userId}/workouts/{workoutId}:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/WorkoutIdPath'
+    get:
+      summary: Get a workout
+      description: |
+        `userId` must be the authenticated user. `403` is also returned when the
+        workout belongs to another user.
+      operationId: getWorkout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The workout with its exercises.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update a workout
+      description: Same access rules as `GET`.
+      operationId: updateWorkout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkoutRequest'
+      responses:
+        '200':
+          description: The updated workout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      summary: Delete a workout
+      description: Same access rules as `GET`.
+      operationId: deleteWorkout
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Workout deleted (no body).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /users/{userId}/workouts/{workoutId}/exercises:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/WorkoutIdPath'
+    post:
+      summary: Add an exercise to a workout
+      description: Same access rules as `GET /users/{userId}/workouts/{workoutId}`.
+      operationId: addExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExerciseRequest'
+      responses:
+        '201':
+          description: Exercise created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /users/{userId}/exercises/{exerciseId}:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/ExerciseIdPath'
+    patch:
+      summary: Update an exercise
+      description: |
+        `userId` must be the authenticated user. `403` is also returned when the
+        exercise belongs to a workout of another user.
+      operationId: updateExercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExerciseRequest'
+      responses:
+        '200':
+          description: The updated exercise.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+    delete:
+      summary: Delete an exercise
+      description: Same access rules as `PATCH`.
+      operationId: deleteExercise
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Exercise deleted (no body).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /ai/analyze:
+    post:
+      summary: Analyse the form of an exercise video (proxy to the AI service)
+      description: |
+        Sends the video to the Python AI service and returns its analysis. The body
+        is limited to `MAX_UPLOAD_MB` megabytes (default 50); this is the only route
+        with a limit above Axum's 2 MB default.
+
+        Error bodies are `{ "error": ..., "detail": ... }`. They are generic: the
+        internal URL of the AI service and its error text are never returned.
+        When the AI service answers with an error status, that same status is
+        returned with the message `AI analysis failed`.
+      operationId: analyzeVideo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: exercise_type
+          in: query
+          required: false
+          description: Expected exercise type (forwarded to the AI service).
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [video]
+              properties:
+                video:
+                  type: string
+                  format: binary
+                  description: The video file.
+      responses:
+        '200':
+          description: The analysis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        '400':
+          description: Malformed multipart request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: The video is larger than `MAX_UPLOAD_MB`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiErrorResponse'
+        '500':
+          description: The AI response could not be parsed (generic message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiErrorResponse'
+        '503':
+          $ref: '#/components/responses/AiUnavailable'
+  /ai/exercises:
+    get:
+      summary: List the exercises supported by the AI service
+      operationId: getSupportedExercises
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The supported exercises.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportedExercisesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: The AI response could not be parsed (generic message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiErrorResponse'
+        '503':
+          $ref: '#/components/responses/AiUnavailable'
+  /ai/health:
+    get:
+      summary: Health of the AI service
+      description: |
+        Public route. Always answers `200`: the state of the AI service is in the
+        body (`status`: `healthy`, `unhealthy` or `unknown`; `ai_service`: a short
+        status text, never the internal URL).
+      operationId: getAiHealth
+      responses:
+        '200':
+          description: The health report.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                example:
+                  status: unhealthy
+                  ai_service: disconnected
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT returned by `POST /auth/login` (HS256, 7 days by default).
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      description: User id.
+      schema:
+        type: string
+        format: uuid
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      description: User id (must be the authenticated user).
+      schema:
+        type: string
+        format: uuid
+    WorkoutIdPath:
+      name: workoutId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ExerciseIdPath:
+      name: exerciseId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: "Missing, invalid or expired token (`Authorization: Bearer <token>`)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Invalid or expired token
+    Forbidden:
+      description: |
+        The user id in the path is not the id of the authenticated user, or the
+        workout / exercise belongs to another user.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: You can only access your own data
+    NotFound:
+      description: User, workout or exercise not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: User with id '3fa85f64-5717-4562-b3fc-2c963f66afa6' not found
+    Conflict:
+      description: The email is already registered.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unprocessable:
+      description: Validation failed (the message lists the invalid fields).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    AiUnavailable:
+      description: The AI service is unreachable or answered with an error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AiErrorResponse'
+          example:
+            error: AI service unavailable
+            detail: null
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message.
+    ProgramResponse:
+      type: object
+      description: Provisional schema, see the endpoint description.
+      required: [generatedAt, source, workouts]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [generated, cache]
+          description: '`generated` if just produced by the ML engine, `cache` otherwise.'
+        workouts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramWorkout'
+    ProgramWorkout:
+      type: object
+      required: [name, exercises]
+      properties:
+        name:
+          type: string
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramExercise'
+    ProgramExercise:
+      type: object
+      description: Same field names as `ExerciseResponse` (models/workout.rs), without database fields.
+      required: [exerciseName, sets, reps, weight, weightUnit]
+      properties:
+        exerciseName:
+          type: string
+        sets:
+          type: integer
+          format: int32
+        reps:
+          type: integer
+          format: int32
+        weight:
+          type: number
+          format: double
+          nullable: true
+          description: Null for bodyweight exercises.
+        weightUnit:
+          type: string
+          enum: [kg, lbs]
+    AiErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        detail:
+          type: string
+          nullable: true
+          description: Only set for malformed multipart requests; never contains internal URLs.
+    CreateUserRequest:
+      type: object
+      description: '**snake_case** fields.'
+      required: [email, username, password]
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+        password:
+          type: string
+          minLength: 8
+        display_name:
+          type: string
+          nullable: true
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        height_cm:
+          type: integer
+          minimum: 1
+          maximum: 299
+          nullable: true
+        weight_kg:
+          type: number
+          format: double
+          minimum: 1
+          maximum: 699
+          nullable: true
+        fitness_level:
+          $ref: '#/components/schemas/FitnessLevel'
+    CreateUserResponse:
+      type: object
+      required: [id, email, username, fitnessLevel, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        fitnessLevel:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    LoginResponse:
+      type: object
+      required: [token, userId, email, username, onboardingCompleted]
+      properties:
+        token:
+          type: string
+          description: "JWT to send as `Authorization: Bearer <token>`."
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        onboardingCompleted:
+          type: boolean
+    FitnessLevel:
+      type: string
+      enum: [beginner, intermediate, advanced]
+    ActivityFrequency:
+      type: string
+      enum: [sedentary, light, moderate, active, very_active]
+    UpdateUserRequest:
+      type: object
+      description: '**camelCase** fields, all optional.'
+      properties:
+        displayName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        heightCm:
+          type: integer
+          minimum: 1
+          maximum: 299
+        weightKg:
+          type: number
+          format: double
+          minimum: 1
+          maximum: 699
+        fitnessLevel:
+          $ref: '#/components/schemas/FitnessLevel'
+        fitnessGoals:
+          type: string
+        activityFrequency:
+          $ref: '#/components/schemas/ActivityFrequency'
+        hasInjuries:
+          type: boolean
+        medicalNotes:
+          type: string
+          maxLength: 5000
+        injuredZones:
+          type: array
+          items:
+            type: string
+        trainingFocus:
+          type: array
+          items:
+            type: string
+        onboardingCompleted:
+          type: boolean
+    UserProfileResponse:
+      type: object
+      required: [id, email, username, fitnessLevel, onboardingCompleted, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        heightCm:
+          type: integer
+          nullable: true
+        weightKg:
+          type: number
+          format: double
+          nullable: true
+        fitnessLevel:
+          type: string
+        fitnessGoals:
+          type: string
+          nullable: true
+        activityFrequency:
+          type: string
+          nullable: true
+        hasInjuries:
+          type: boolean
+          nullable: true
+        medicalNotes:
+          type: string
+          nullable: true
+        injuredZones:
+          type: array
+          items:
+            type: string
+          nullable: true
+        trainingFocus:
+          type: array
+          items:
+            type: string
+          nullable: true
+        onboardingCompleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WeightUnit:
+      type: string
+      enum: [kg, lbs]
+    CreateWorkoutRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        workoutDate:
+          type: string
+          format: date
+          description: Defaults to today when omitted.
+        durationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 600
+        notes:
+          type: string
+    UpdateWorkoutRequest:
+      type: object
+      description: All fields optional.
+      properties:
+        name:
+          type: string
+        workoutDate:
+          type: string
+          format: date
+        durationMinutes:
+          type: integer
+        notes:
+          type: string
+        isCompleted:
+          type: boolean
+    CreateExerciseRequest:
+      type: object
+      required: [exerciseName, sets, reps]
+      properties:
+        exerciseName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        sets:
+          type: integer
+          minimum: 1
+          maximum: 100
+        reps:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        weight:
+          type: number
+          format: double
+        weightUnit:
+          $ref: '#/components/schemas/WeightUnit'
+        orderIndex:
+          type: integer
+        notes:
+          type: string
+    UpdateExerciseRequest:
+      type: object
+      description: All fields optional.
+      properties:
+        exerciseName:
+          type: string
+        sets:
+          type: integer
+        reps:
+          type: integer
+        weight:
+          type: number
+          format: double
+        weightUnit:
+          $ref: '#/components/schemas/WeightUnit'
+        orderIndex:
+          type: integer
+        notes:
+          type: string
+        isCompleted:
+          type: boolean
+        setsData:
+          description: Free-form JSON (per-set details).
+    WorkoutResponse:
+      type: object
+      required: [id, userId, name, workoutDate, isCompleted, exercises, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        workoutDate:
+          type: string
+          format: date
+        durationMinutes:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        isCompleted:
+          type: boolean
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExerciseResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ExerciseResponse:
+      type: object
+      required: [id, workoutId, exerciseName, sets, reps, weightUnit, orderIndex, isCompleted, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        workoutId:
+          type: string
+          format: uuid
+        exerciseName:
+          type: string
+        sets:
+          type: integer
+        reps:
+          type: integer
+        weight:
+          type: number
+          format: double
+          nullable: true
+        weightUnit:
+          type: string
+        orderIndex:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        isCompleted:
+          type: boolean
+        setsData:
+          nullable: true
+          description: Free-form JSON.
+        createdAt:
+          type: string
+          format: date-time
+    AnalysisResponse:
+      type: object
+      description: Returned as is by the AI service; **snake_case** fields.
+      required: [analysis_id, timestamp, quality_score, detected_exercise, detection_confidence, form_scores, feedback, metrics]
+      properties:
+        analysis_id:
+          type: string
+        timestamp:
+          type: string
+        quality_score:
+          type: number
+          format: double
+        detected_exercise:
+          type: string
+        detection_confidence:
+          type: number
+          format: double
+        form_scores:
+          type: object
+          required: [depth, alignment, stability, tempo, range_of_motion]
+          properties:
+            depth:
+              type: number
+            alignment:
+              type: number
+            stability:
+              type: number
+            tempo:
+              type: number
+            range_of_motion:
+              type: number
+        feedback:
+          type: array
+          items:
+            type: object
+            required: [id, type, category, text, score, severity]
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              category:
+                type: string
+              text:
+                type: string
+              score:
+                type: number
+              severity:
+                type: integer
+        metrics:
+          type: object
+          required: [video_fps, total_frames, frames_analyzed, processing_time_seconds, model_device]
+          properties:
+            video_fps:
+              type: number
+            total_frames:
+              type: integer
+            frames_analyzed:
+              type: integer
+            processing_time_seconds:
+              type: number
+            model_device:
+              type: string
+    SupportedExercisesResponse:
+      type: object
+      description: '**snake_case** fields.'
+      required: [exercises, total, form_aspects]
+      properties:
+        exercises:
+          type: array
+          items:
+            type: string
+        total:
+          type: integer
+        form_aspects:
+          type: array
+          items:
+            type: string

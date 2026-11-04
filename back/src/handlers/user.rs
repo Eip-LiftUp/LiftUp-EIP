@@ -1,8 +1,9 @@
 use axum::{extract::{State, Path}, http::StatusCode, response::IntoResponse, Json};
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::{
+    auth::AuthUser,
+    auth::jwt::create_token,
     errors::AppResult,
     models::user::{CreateUserRequest, CreateUserResponse, LoginRequest, LoginResponse, UpdateUserRequest, UserProfileResponse},
     AppState,
@@ -37,7 +38,7 @@ pub async fn create_user(
 /// JSON body matching [`LoginRequest`].
 ///
 /// # Responses
-/// - `200 OK` — login successful, returns [`LoginResponse`] with JWT token.
+/// - `200 OK` — login successful, returns [`LoginResponse`] with a signed JWT (valid 7 days by default).
 /// - `401 Unauthorized` — invalid credentials.
 /// - `422 Unprocessable Entity` — validation failed.
 /// - `500 Internal Server Error` — unexpected error.
@@ -47,9 +48,9 @@ pub async fn login(
 ) -> AppResult<impl IntoResponse> {
     let user = state.user_service.login(body).await?;
     
-    // Generate a simple JWT token (in production, use a proper JWT library like jsonwebtoken)
-    let token = format!("token_{}_{}", user.id, Utc::now().timestamp());
-    
+    // Signed JWT (HS256); `?` returns the `AppError` straight to the client as a response.
+    let token = create_token(user.id, &state.jwt_config)?;
+
     let response = LoginResponse {
         token,
         user_id: user.id,
@@ -70,13 +71,17 @@ pub async fn login(
 /// - `id` — User UUID.
 ///
 /// # Responses
+/// - `401 Unauthorized` — missing or invalid Bearer token.
+/// - `403 Forbidden` — the path user id is not the token's user.
 /// - `200 OK` — returns [`UserProfileResponse`].
 /// - `404 Not Found` — user not found.
 /// - `500 Internal Server Error` — unexpected error.
 pub async fn get_user(
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
+    auth.ensure_user(user_id)?;
     let user = state.user_service.get_user_by_id(user_id).await?;
     let response: UserProfileResponse = user.into();
     Ok((StatusCode::OK, Json(response)))
@@ -93,22 +98,21 @@ pub async fn get_user(
 /// JSON body matching [`UpdateUserRequest`].
 ///
 /// # Responses
+/// - `401 Unauthorized` — missing or invalid Bearer token.
+/// - `403 Forbidden` — the path user id is not the token's user.
 /// - `200 OK` — profile updated, returns [`UserProfileResponse`].
 /// - `404 Not Found` — user not found.
 /// - `422 Unprocessable Entity` — validation failed.
 /// - `500 Internal Server Error` — unexpected error.
 pub async fn update_user(
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(
-        "update_user called with: height_cm={:?}, weight_kg={:?}, fitness_level={:?}, fitness_goals={:?}",
-        body.height_cm,
-        body.weight_kg,
-        body.fitness_level,
-        body.fitness_goals
-    );
+    auth.ensure_user(user_id)?;
+    // Only the id is logged: the body holds health data (height, weight, goals).
+    tracing::info!(%user_id, "update_user called");
     let user = state.user_service.update_user(user_id, body).await?;
     let response: UserProfileResponse = user.into();
     Ok((StatusCode::OK, Json(response)))

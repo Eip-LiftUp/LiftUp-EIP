@@ -27,6 +27,14 @@ validator = { version = "0.18", features = ["derive"] }
 # Password hashing
 bcrypt = "0.15"
 
+# JWT signing / verification
+jsonwebtoken = "9"
+
+# Rate limiting (0.5.x targets Axum 0.7; 0.6+ targets Axum 0.8)
+tower_governor = "0.5"
+# Needed directly for the limiter's middleware type
+governor = "0.8"
+
 # Error handling
 thiserror = "1"
 anyhow = "1"

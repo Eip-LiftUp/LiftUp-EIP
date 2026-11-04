@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    errors::AppResult,
+    errors::{AppError, AppResult},
     models::user::{CreateUserRequest, FitnessLevel, User, UpdateUserRequest},
 };
 
@@ -30,6 +30,11 @@ impl UserRepository {
     }
 
     /// Insert a new user row and return the created entity.
+    ///
+    /// # Errors
+    /// Returns [`AppError::Conflict`] if the email is already taken (unique
+    /// violation, e.g. two concurrent registrations), and [`AppError::Database`]
+    /// for any other database error.
     pub async fn create(&self, req: &CreateUserRequest, password_hash: &str) -> AppResult<User> {
         let fitness_level = req
             .fitness_level
@@ -65,7 +70,19 @@ impl UserRepository {
         .bind(fitness_level_str)
         .bind(password_hash)
         .fetch_one(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| {
+            // 23505 = unique_violation. The only unique column of `users` is the
+            // email, so this is the race lost against a concurrent registration
+            // (`email_exists` said "free" for both requests).
+            if let Some(db_error) = e.as_database_error() {
+                if db_error.code().as_deref() == Some("23505") {
+                    return AppError::Conflict("Email is already registered.".to_string());
+                }
+            }
+            // Any other sqlx error keeps the usual conversion (`AppError::Database`).
+            AppError::from(e)
+        })?;
 
         Ok(user)
     }

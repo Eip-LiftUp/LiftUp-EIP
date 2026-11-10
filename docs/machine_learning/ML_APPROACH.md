@@ -33,7 +33,7 @@ This matters because it sets the baseline the models must beat:
 
 | Component | Path | What it currently does |
 | --- | --- | --- |
-| Pose extraction | [`server/app/services/pose_estimator.py`](../../server/app/services/pose_estimator.py), [`skeleton_analysis.py`](../../skeleton_analysis.py) | MediaPipe Pose, 33 landmarks per frame, exported as CSV (`frame, timestamp, keypoint_id, x, y, z, visibility`) — see [SKELETON_ANALYSIS.md](../../SKELETON_ANALYSIS.md) |
+| Pose extraction | [`server/app/services/pose_estimator.py`](../../server/app/services/pose_estimator.py), [`tools/skeleton_analysis/skeleton_analysis.py`](../../tools/skeleton_analysis/skeleton_analysis.py) | MediaPipe Pose, 33 landmarks per frame, exported as CSV (`frame, timestamp, keypoint_id, x, y, z, visibility`) — see [its README](../../tools/skeleton_analysis/README.md) |
 | Form scoring | [`server/app/services/pose_analyzer.py`](../../server/app/services/pose_analyzer.py) | **Rule-based**: joint-angle geometry → `depth`, `alignment`, `stability`, `tempo`, `range_of_motion` sub-scores + annotated output video |
 | Exercise detection | `PoseAnalyzer._detect_exercise` | Heuristic on the angle-history signature |
 | Coaching text | [`server/app/services/form_analyzer.py`](../../server/app/services/form_analyzer.py) | Hand-written per-exercise guidelines, mistakes and safety tips for 8 exercises |

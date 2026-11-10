@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Union
 
 import numpy as np
 
@@ -33,6 +35,12 @@ class PoseSequence:
     def duration_s(self) -> float:
         return self.num_frames / self.fps
 
+    @property
+    def detection_rate(self) -> float:
+        # Extractors leave the frames without a detected person at zero.
+        detected = np.any(self.landmarks != 0, axis=(1, 2))
+        return float(detected.mean()) if self.num_frames else 0.0
+
     def joint(self, name: str) -> np.ndarray:
         return self.landmarks[:, landmark_index(name), :3]
 
@@ -46,3 +54,20 @@ class PoseSequence:
 
     def copy_with(self, landmarks: np.ndarray) -> "PoseSequence":
         return PoseSequence(landmarks, self.fps, dict(self.metadata))
+
+    def save(self, path: Union[str, Path]) -> Path:
+        # float32 halves the file size; MediaPipe outputs carry less precision anyway.
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            path,
+            landmarks=self.landmarks.astype(np.float32),
+            fps=np.float64(self.fps),
+            metadata=np.array(json.dumps(self.metadata, default=str)),
+        )
+        return path
+
+    @classmethod
+    def load(cls, path: Union[str, Path]) -> "PoseSequence":
+        with np.load(path, allow_pickle=False) as data:
+            return cls(data["landmarks"], float(data["fps"]), json.loads(str(data["metadata"])))

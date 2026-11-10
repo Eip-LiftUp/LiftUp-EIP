@@ -11,20 +11,17 @@ en analysant les keypoints frame par frame.
 Compatible avec MediaPipe 0.10.13+ (nouvelle API Tasks Vision)
 
 Installation :
-    pip install -r requirements.txt
+    python3 -m pip install -r tools/skeleton_analysis/requirements.txt
 
 Usage :
     # Analyser une vidéo → CSV généré automatiquement
-    python skeleton_detection.py --video squat.mp4
+    python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4
 
     # Idem mais sans fenêtre de visualisation (plus rapide)
-    python skeleton_detection.py --video squat.mp4 --no-display
+    python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --no-display
 
     # Nommer le CSV de sortie
-    python skeleton_detection.py --video squat.mp4 --output mon_squat.csv
-
-    # Tester en live avec la webcam (optionnel)
-    python skeleton_detection.py --webcam
+    python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --output mon_squat.csv
 """
 
 import cv2
@@ -101,7 +98,9 @@ CSV_FIELDS  = ["frame", "timestamp_sec", "keypoint_id", "keypoint_name",
 # Utilitaires
 # ─────────────────────────────────────────────
 
-def download_model(model_path="pose_landmarker_full.task"):
+def download_model(model_path=Path(__file__).with_name("pose_landmarker_full.task")):
+    # Gardé à côté du script, quel que soit le dossier d'où on le lance.
+    model_path = str(model_path)
     if os.path.exists(model_path):
         return model_path
     url = (
@@ -365,10 +364,10 @@ if __name__ == "__main__":
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""
 Exemples :
-  python skeleton_detection.py --video squat.mp4
-  python skeleton_detection.py --video squat.mp4 --output squat_keypoints.csv
-  python skeleton_detection.py --video squat.mp4 --no-display
-  python skeleton_detection.py --video squat.mp4 --labels
+  python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4
+  python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --output squat_keypoints.csv
+  python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --no-display
+  python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --labels
         """
     )
 

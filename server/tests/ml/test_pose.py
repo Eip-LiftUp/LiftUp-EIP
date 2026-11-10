@@ -34,3 +34,22 @@ def test_mediapipe_extractor_missing_file():
     extractor = MediaPipeExtractor()
     with pytest.raises((RuntimeError, FileNotFoundError)):
         extractor.extract("does_not_exist.mp4")
+
+
+def test_sequence_save_and_load(tmp_path):
+    seq = squat_sequence(reps=1, fps=25)
+    seq.metadata.update(source="clip.mp4", width=1280, height=720)
+    path = seq.save(tmp_path / "nested" / "clip.npz")
+    loaded = PoseSequence.load(path)
+    assert loaded.fps == 25
+    assert loaded.metadata == seq.metadata
+    assert loaded.landmarks.shape == seq.landmarks.shape
+    np.testing.assert_allclose(loaded.landmarks, seq.landmarks, atol=1e-6)
+
+
+def test_detection_rate_counts_frames_with_a_person():
+    seq = squat_sequence(reps=1, fps=30)
+    assert seq.detection_rate == 1.0
+    data = seq.landmarks.copy()
+    data[: seq.num_frames // 4] = 0
+    assert seq.copy_with(data).detection_rate == pytest.approx(1 - (seq.num_frames // 4) / seq.num_frames)

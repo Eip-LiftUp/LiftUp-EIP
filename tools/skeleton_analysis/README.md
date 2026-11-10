@@ -1,4 +1,4 @@
-# skeleton_detection
+# skeleton_analysis
 
 Analyse une vidéo d'exercice, détecte le squelette frame par frame avec **MediaPipe**, et exporte les coordonnées des 33 articulations dans un fichier **CSV**.
 
@@ -9,7 +9,7 @@ Conçu pour alimenter un coach IA capable de corriger les mouvements sportifs.
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r tools/skeleton_analysis/requirements.txt
 ```
 
 ---
@@ -17,7 +17,7 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python skeleton_detection.py --video <fichier> [options]
+python3 tools/skeleton_analysis/skeleton_analysis.py --video <fichier> [options]
 ```
 
 ### Paramètres
@@ -33,16 +33,16 @@ python skeleton_detection.py --video <fichier> [options]
 
 ```bash
 # Analyse basique — CSV généré automatiquement
-python skeleton_detection.py --video squat.mp4
+python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4
 
 # Nommer le CSV de sortie
-python skeleton_detection.py --video squat.mp4 --output squat_rep1.csv
+python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --output squat_rep1.csv
 
 # Traitement headless, sans fenêtre (plus rapide, idéal en prod)
-python skeleton_detection.py --video squat.mp4 --no-display
+python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --no-display
 
 # Afficher les noms des articulations sur la vidéo
-python skeleton_detection.py --video squat.mp4 --labels
+python3 tools/skeleton_analysis/skeleton_analysis.py --video squat.mp4 --labels
 ```
 
 ### Raccourcis clavier (fenêtre de visualisation)
@@ -111,4 +111,4 @@ opencv-python >= 4.8.0
 numpy >= 2.0.0
 ```
 
-> Le modèle MediaPipe (`pose_landmarker_full.task`, ~10 Mo) est téléchargé automatiquement au premier lancement.
+> Le modèle MediaPipe (`pose_landmarker_full.task`, ~10 Mo) est téléchargé automatiquement au premier lancement, dans `tools/skeleton_analysis/` (ignoré par git).

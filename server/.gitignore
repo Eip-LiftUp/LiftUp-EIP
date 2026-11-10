@@ -59,6 +59,9 @@ data/samples/*
 data/uploads/*
 !data/uploads/.gitkeep
 
+# Training videos and extracted poses (app/ml/pose/batch.py)
+data/datasets/
+
 # Logs
 *.log
 logs/

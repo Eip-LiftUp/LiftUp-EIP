@@ -40,6 +40,9 @@ class MediaPipeExtractor(PoseExtractor):
         if not capture.isOpened():
             raise FileNotFoundError(f"Cannot open video '{video_path}'")
         fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
+        # x and y are fractions of the frame width and height: angles need both.
+        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         frames = []
         with mp.solutions.pose.Pose(
@@ -61,7 +64,14 @@ class MediaPipeExtractor(PoseExtractor):
         return PoseSequence(
             np.stack(frames),
             fps=float(fps),
-            metadata={"source": str(video_path), "extractor": "mediapipe"},
+            metadata={
+                "source": str(video_path),
+                "extractor": "mediapipe",
+                "mediapipe_version": mp.__version__,
+                "model_complexity": self.model_complexity,
+                "width": width,
+                "height": height,
+            },
         )
 
     @staticmethod
